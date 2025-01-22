@@ -1,0 +1,158 @@
+Connection to node -1 (localhost/127.0.0.1:9092) could not be established. Broker may not be available.
+2024-06-29 09:47:26 2024-06-29 01:47:26,713 INFO  [kafka-admin-client-thread | kafka-ui-admin-1719625613-1] o.a.k.c.NetworkClient: [AdminClient clientId=kafka-ui-admin-1719625613-1] Node -1 disconnected.
+2024-06-29 09:47:26 2024-06-29 01:47:26,714 WARN  [kafka-admin-client-thread | kafka-ui-admin-1719625613-1] o.a.k.c.NetworkClient: [AdminClient clientId=kafka-ui-admin-1719625613-1] Connection to node -1 (localhost/127.0.0.1:9092) could not be established. Broker may not be available.
+2024-06-29 09:47:27 2024-06-29 01:47:27,698 INFO  [kafka-admin-client-thread | kafka-ui-admin-1719625618-2] o.a.k.c.NetworkClient: [AdminClient clientId=kafka-ui-admin-1719625618-2] Node -1 disconnected.
+2024-06-29 09:47:27 2024-06-29 01:47:27,698 WARN  [kafka-admin-client-thread | kaf
+
+
+
+
+
+mysqldump -uroot -p123 -hlocalhost mydb dir_site > d:/DATA/dir_site.sql
+
+mysqldump -d -uroot -p123 -hlocalhost mydb tableName > d:/DATA/dir_site.sql
+
+mysqldump -d -upms2 -pZuo2024pms999 -hlocalhost purchasing_sys  > /home/ubuntu/pms/badkend/purchasing_sys.sql
+mysqldump -d -uroot   -hlocalhost purchasing_sys  > /home/ubuntu/pms/badkend/purchasing_sys.sql
+
+'Access denied; you need (at least one of) the PROCESS privilege(s) for this operation' when trying to dump tablespaces
+
+ubuntu/@Zuo2024Fin919fu
+
+mysql -uroot -p123456 -hlocalhost -Dpurchasing_sys < purchasing_sys.sql
+
+
+http://www.cninfo.com.cn/new/disclosure/detail?plate=sse&orgId=gssh0600009&stockCode=600009&announcementId=1219461746&announcementTime=2024-03-30
+
+
+Firefox is backed by the Mozilla Foundation – a global community working to keep the internet open and accessible to all. It’s up to all of us to take on irresponsible tech companies and protect our privacy online.
+
+CREATE UNIQUE INDEX id_name ON public."user" (id, name);
+
+
+
+CREATE TABLE public."fund_shareclass_basicinfo" (
+  "mstar_id" VARCHAR(20) PRIMARY KEY,
+  "fund_name" VARCHAR(105),
+  "name" VARCHAR(105),
+  "previous_fund_name" VARCHAR(105),
+  "previous_fund_name_end_date" VARCHAR(45),
+  "exchange_id" VARCHAR(45),
+  "ticker" VARCHAR(45),
+  "cusip" VARCHAR(45),
+   "isin" VARCHAR(45)
+);
+
+
+https://api.morningstar.com/v2/service/mf/Attributes/{IdentifierType}/{Identifier}?accesscode={accesscode}
+jdbc:postgresql://xxxxxxx:xxxx/db?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf8&characterSetResults=utf8&stringtype=unspecified
+
+
+ INSERT INTO public.data_fetch_info (api_type, "enable") VALUES('FundShareClassBasicInfo', true);
+  INSERT INTO public.data_fetch_info (api_type, "enable") VALUES('FundAttributes', true);
+   INSERT INTO public.data_fetch_info (api_type, "enable") VALUES('FundManager', true);
+
+ "F00000XDAC",
+        "F000014W5C",
+        "F00000XDAH",
+        "F00000XDAG",
+        "F000014ES8",
+        "F000015Z8J",
+        "F00000YGE8",
+        "F00000H573",
+        "F00000H4V2",
+        "F0GBR06ERO",
+        "F000015HW2",
+        "F000015HW1",
+        "F000015HW4",
+        "F000015HW3",
+
+
+
+
+
+        eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6Ik1EY3hOemRHTnpGRFJrSTRPRGswTmtaRU1FSkdOekl5TXpORFJrUTROemd6TWtOR016bEdOdyJ9.eyJodHRwczovL21vcm5pbmdzdGFyLmNvbS9lbWFpbCI6ImpheS5mYW5nQG1vcm5pbmdzdGFyLmNvbSIsImh0dHBzOi8vbW9ybmluZ3N0YXIuY29tL3JvbGUiOlsiQ0IuQWRtaW4uQ29tcG9uZW50QWRtaW4iLCJEbmFsYWIuRGlyZWN0VXNlcnMiLCJFQy5TZXJ2aWNlLkNvbmZpZ3VyYXRpb24iLCJGaW5hbmNpYWxQbGFubmluZy5Hb2FsQnJpZGdlIiwiTGljZW5zZS5BUEdJbnZlc3RvclB1bHNlIiwiUGVyc29uYS5EaXJlY3RGb3JXZWFsdGhNYW5hZ2VtZW50IiwiRW5hYmxlZCBBbmFseXRpY3MgTGFiIERlbGl2ZXJ5IE5vdGVib29rcyIsIkVuYWJsZWQgQW5hbHl0aWNzIExhYiBCZXRhIEZlYXR1cmVzIiwiRGlzYWJsZSBJbnZlc3RtZW50IExpc3QgQmF0Y2ggRXhwb3J0IiwiUG9ydGZvbGlvIEFuYWx5c2lzIFVzZXIiLCJGaW5hbmNpYWxQbGFubmluZy5PZmZpY2VQb3J0YWwiLCJGaW5hbmNpYWxQbGFubmluZy5Qb3J0YWxQb3J0Zm9saW9BbmFseXNpcyIsIkZpbmFuY2lhbFBsYW5uaW5nLlBvcnRhbEFkdmlzb3IiLCJFbmFibGUgQW5hbHl0aWNhbCBWaWV3IiwiTW9ybmluZ3N0YXIgSW50ZXJuYWwgVXNlciIsIkZpbmFuY2lhbFBsYW5uaW5nLlBvcnRhbERvY3VtZW50cyIsIkJUVEYuSW52ZXN0bWVudERhdGFTb3VyY2VfM3giXSwiaHR0cHM6Ly9tb3JuaW5nc3Rhci5jb20vY29tcGFueV9pZCI6ImJmMGE0MjM0LTdiMGQtNDI1Mi1hZGY2LWM3YmIyOGM1NTRmNCIsImh0dHBzOi8vbW9ybmluZ3N0YXIuY29tL2ludGVybmFsX2NvbXBhbnlfaWQiOiJDbGllbnQwIiwiaHR0cHM6Ly9tb3JuaW5nc3Rhci5jb20vZGF0YV9yb2xlIjpbIkFMLnJlc291cmNlcy0yY3B1LThnYi1yYW0iLCJDQVAuZG5hbGFiLWRlZmF1bHQtcm8iLCJDQi5BbmFseXN0UmF0aW5nIiwiQ0IuRnVuZE1vbnRobHlSYW5raW5nIiwiQ0IuRnVuZFJhbmtpbmciLCJDQi5GdW5kU2VsZWN0aW9uIiwiQ0IuRnVuZFN1aXRhYmlsaXR5IiwiQ0IuRnVuZFN1aXRhYmlsaXR5UGx1cyIsIkNCLlBsYXRpbnVtQW5hbHlzdFJhdGluZyIsIkNCLlBvcnRmb2xpb0FuYWx5c2lzIiwiQ0IuUG9ydGZvbGlvU3VpdGFiaWxpdHkiXSwiaHR0cHM6Ly9tb3JuaW5nc3Rhci5jb20vbGVnYWN5X2NvbXBhbnlfaWQiOiJiZjBhNDIzNC03YjBkLTQyNTItYWRmNi1jN2JiMjhjNTU0ZjQiLCJodHRwczovL21vcm5pbmdzdGFyLmNvbS9yb2xlX2lkIjpbIjc4YmExYWU3LTFlZTMtNDRhMC1hMDE4LTA4YzU1OGZlY2YxNyIsIjJjZmYyNmFlLTBmNTMtMTFlYi05MGRmLTEyOWY4N2VjMzU5MiIsImYxYWZlYzI4LTRjMDQtNDFlYy05MDVjLTM3NjAyNDhmZjg4ZSIsIjE3OWY4MDRkLTBjZTAtNGYyOS05NWMxLTYyZDBlNTczZDljMyIsIjlmNGFhYWZlLWUxZDEtNDBlOS1hNzJjLTZhNmUzZDRmYjJlYyIsImRjMzE3ZDk4LTExMDAtNDIzZi05NTNmLWZmNGRiNzgzNTAxOCIsImNiMGRmYmQ3LWI4OTQtNDJlZC1hZDNkLTA2NzBiNjFkNWIxNSIsIjE5NWRmYWM5LTk5ZTEtNGZiZC1iYzkzLTFjYmJkMDQ1YmJjZiIsIjY3NDhmNzEyLWIzZGMtNGNmNi1hOTI3LTU0NmFhZTc1MjRjMyIsImYwYmQ4ZmEwLTRiOWQtNGE3ZS1iYjk2LTU1MTc0Nzc5N2YzYyIsImFkOGYyODA5LTRjNTktNDM4NC04MGU0LTY5MDI4ZjQ3ZjVjNCIsImQ2N2ZlNGVjLWQ1OGUtNDc5MS04ODE3LTkwNmZlMTgzZTBmOCIsIjQ1ODIxNzc5LTE0ZjktNGFiNy04Zjg2LWI4ODhlMTA1NTYwNyIsIjQ0MjVhMjdhLWFmNDEtNDhkYy1hMTY1LWM4YjJmNWIzMzIwNCIsIjJmMTdlN2JjLTg0MGMtNGUxNy05NDk1LWRhYTUwMTQ1MDkzYyJdLCJodHRwczovL21vcm5pbmdzdGFyLmNvbS9wcm9kdWN0IjpbIk9GRklDRSIsIkRJUkVDVCIsIlBTIl0sImh0dHBzOi8vbW9ybmluZ3N0YXIuY29tL2NvbXBhbnkiOlt7ImlkIjoiYmYwYTQyMzQtN2IwZC00MjUyLWFkZjYtYzdiYjI4YzU1NGY0IiwicHJvZHVjdCI6IkRJUkVDVCJ9XSwiaHR0cHM6Ly9tb3JuaW5nc3Rhci5jb20vbXN0YXJfaWQiOiI2NDI3OTAzRS1GQzY4LTQ2QTAtQURCRS01MjM3QzE4MTdBRTciLCJodHRwczovL21vcm5pbmdzdGFyLmNvbS9lbWFpbF92ZXJpZmllZCI6dHJ1ZSwiaHR0cHM6Ly9tb3JuaW5nc3Rhci5jb20vcGFzc3dvcmRDaGFuZ2VSZXF1aXJlZCI6ZmFsc2UsImh0dHBzOi8vbW9ybmluZ3N0YXIuY29tL3VpbV9yb2xlcyI6IkVBTVMsTERfTUVNQkVSXzFfMCxaT19NRU1CRVJfM18wLE1EX01FTUJFUl8xXzEsUlFfTUVNQkVSXzFfMSxTRV9NRU1CRVJfMl8wLEZEX01FTUJFUl8xXzEwMDAwMDAxMDAsQ09NTVVOSVRZX1NVU1RBSU5BTFlUSUNTLERNX01FTUJFUl8xXzAsR0xPQkFMX0FDQ0VTU19DTElFTlQsT0ZGSUNFX1BBSUQsRE9UX0NPTV9GUkVFLERJUkVDVCIsImh0dHBzOi8vbW9ybmluZ3N0YXIuY29tL2xhc3RfcGFzc3dvcmRfcmVzZXQiOiIyMDIzLTEwLTExVDA2OjIwOjU1LjQzNloiLCJpc3MiOiJodHRwczovL2xvZ2luLXByb2QubW9ybmluZ3N0YXIuY29tLyIsInN1YiI6ImF1dGgwfDY0Mjc5MDNFLUZDNjgtNDZBMC1BREJFLTUyMzdDMTgxN0FFNyIsImF1ZCI6WyJodHRwczovL3VpbS1wcm9kLm1vcm5pbmdzdGFyLmF1dGgwLmNvbS9hcGkvdjIvIiwiaHR0cHM6Ly91aW0tcHJvZC5tb3JuaW5nc3Rhci5hdXRoMC5jb20vdXNlcmluZm8iXSwiaWF0IjoxNzM0OTI4MTk1LCJleHAiOjE3MzUwMTQ1OTUsInNjb3BlIjoib3BlbmlkIHByb2ZpbGUgZW1haWwgb2ZmbGluZV9hY2Nlc3MiLCJhenAiOiJDaGVLTTR1ajhqUFQ2MGFVMkk0Y1BsSDhyREtkT3NaZCJ9.EQ_-LjReVMjRkb6I_leEZTDZ_rBVV-kIm8U4axbqAmgpBQ4_OSIE4ZghMVk99mkOJ2b4_Qk18AU16nEaIPBx9DMR7UVJOkA0QsQEPcjrUJaC-WdDYpAxCekh6D4ouxSARWw5_Sroc1XLRmYly6M80pweVJW0bVGw8DQCRf0FtgkARhTAJ57__8vDRiKlwGxrKB4VoS39C-5PiruPbuIts8OTza6bAa6c1gTtvc_-k8lx3ayRt8AQDp1IYOcOCWRoGnPrSYTa-2nt2SatWAOKjuXGtoOpGJKmifR9fdKvRs9PsGokutUPP0iviVvcnZJj3zmQhsy95btCesvhhyN9Iw
+
+
+
+        
+
+CREATE TABLE IF NOT EXISTS  public."asset_management_company_basics"(
+      "mstar_id" VARCHAR(25) PRIMARY KEY,
+     "administrator_companies" jsonb NULL,
+     "distributor_companies" jsonb NULL,
+     "transfer_agent_companies" jsonb NULL,
+     "auditor_companies" jsonb NULL,
+     "provider_company_country_headquarters" jsonb NULL,
+     "advisor_list_country_headquarters" jsonb NULL,
+
+        "sub_advisor_companies" jsonb NULL,
+      "custodian_companies" jsonb NULL,
+      "legal_counsel_companies" jsonb NULL,
+      "promoter_list_country_headquarters" jsonb NULL,
+      "paying_agent_list_country_headquarters" jsonb NULL,
+      "registration_companies" jsonb NULL,
+      "trustee_companies" jsonb NULL,
+      "representative_companies" jsonb NULL,
+
+
+     "fund_family_id" VARCHAR(25),
+     "firm_name" VARCHAR(65),
+     "company_city" VARCHAR(25),
+     "company_province" VARCHAR(25),
+     "company_postal_code" VARCHAR(25),
+     "company_address_line2" VARCHAR(125),
+     "fax" VARCHAR(25)
+);
+
+
+
+-- Add up migration script here
+CREATE TABLE IF NOT EXISTS  public."category_daily_performance"(
+     "category_code" VARCHAR(25) PRIMARY KEY,
+     "category_name" VARCHAR(85),
+     "day_end_date" VARCHAR(25),
+     "return1_day" VARCHAR(25),
+     "return1_week" VARCHAR(25),
+     "return1_mth" VARCHAR(25),
+     "return3_mth" VARCHAR(25),
+     "return6_mth" VARCHAR(25),
+     "return1_yr" VARCHAR(25),
+     "return3_yr" VARCHAR(25),
+     "return5_yr" VARCHAR(25),
+     "return_mtd" VARCHAR(25),
+     "return_qtd" VARCHAR(25),
+     "return_ytd" VARCHAR(25),
+     
+      "universe" VARCHAR(25),
+       "region" VARCHAR(25)
+);
+
+nohup java  -Xms512m -Xmx512m -XX:+HeapDumpOnOutOfMemoryError -XX:HeapDumpPath=/usr/bifang/b-dump.hprof -jar schedule-0.0.1-SNAPSHOT.jar &
+
+
+MediaType JSON = MediaType.parse("application/json; charset=utf-8");
+RequestBody jsonBody = RequestBody.create(JSON, "{\"key1\":\"value1\", \"key2\":\"value2\"}");
+
+
+
+https://equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetCountryList&Token=1dKscQampvYYojTEwAnCUpCgh4OEJbYAz6TFNyrRW9MfBW-LJlxa0qlZSIXKYx9G71UhXqbTT_nbx41PhXbzz8A7CliDQ5YJGe0OyBILD-41
+
+
+
+equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetCountryList&responseType=XML&
+
+
+
+https://equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetCountryList&responseType=XML&Token=1dKscQampvYYojTEwAnCUpCgh4OEJbYAz6TFNyrRW9MfBW-LJlxa0qlZSIXKYx9G71UhXqbTT_nbx41PhXbzz8A7CliDQ5YJGe0OyBILD-41
+
+
+
+
+
+
+https://equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetStockExchangeSecurityList&exchangeId=NYS&identifier=IBM&identifierType=Symbol&stockStatus=Active&responseType=XML&
+
+https://equityapi.morningstar.com/WebService/GlobalMasterListsService.asmx/GetStockExchangeSecurityList?category=GetStockExchangeSecurityList&exchangeId=NYS&identifier=IBM&identifierType=Symbol&stockStatus=Active&responseType=XML&Token=1dKscQampvYYojTEwAnCUpCgh4OEJbYAz6TFNyrRW9MfBW-LJlxa0qlZSIXKYx9G71UhXqbTT_mViaOlF4JT12zH6ghqlNzsPUp2OI1y9gw1
+
+

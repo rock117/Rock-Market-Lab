@@ -1,0 +1,40 @@
+[package]
+name = "web_endpoint"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "../common" }
+entity = { path = "../entity" }
+schedule = { path = "../schedule" }
+
+tokio = { version = "1.29.1", features = ["full"] }
+
+axum = "0.6.20"
+axum-route = "0.1.1"
+hyper = "0.14.27"
+http = "0.2.9"
+tower = { version = "0.4.13", features = ["timeout"] }
+tower-http = { version = "0.4.1", features = ["full"] }
+
+toml = "0.7.6"
+uuid = { version = "1.4.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+
+mime = "0.3.17"
+
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+serde_derive = { workspace = true }
+
+tracing =  { workspace = true}
+tracing-subscriber = { workspace = true}
+tracing-appender =  { workspace = true}
+
+chrono = { workspace = true }
+axum-typed-routing = "0.2.1"
+axum-trace-id = "0.1.0"
+dotenvy = "0.15.7"
+log = "0.4.22"
+
+

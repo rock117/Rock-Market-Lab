@@ -1,0 +1,26 @@
+[package]
+name = "service"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+
+bytes = { version = "1.4.0", features = [] }
+chrono = "0.4.24"
+itertools = "0.10.5"
+futures = "0.3.27"
+derive_more = "0.99.17"
+
+scraper = "0.19.0"
+
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+
+tracing =  { workspace = true}
+tracing-subscriber = { workspace = true}
+tracing-appender =  { workspace = true}
+once_cell = { workspace = true }
+num = "0.4.3"
+num-traits = "0.2.19"

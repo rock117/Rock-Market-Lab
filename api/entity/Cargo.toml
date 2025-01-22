@@ -1,0 +1,16 @@
+[package]
+name = "entity"
+version = "0.1.0"
+edition = "2021"
+
+[entity]
+# The folder to store the generated files
+entity_dir = "entity/src"
+# Generate `lib.rs` instead of `mod.rs`
+lib = true
+
+
+[dependencies]
+sea-orm = { version = "1.1.4", features = [ "sqlx-postgres", "runtime-tokio-rustls", "macros" ] }
+serde_json = { workspace = true }
+serde = { workspace = true }
