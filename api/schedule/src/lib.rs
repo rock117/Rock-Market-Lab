@@ -10,10 +10,12 @@ use crate::task::fetch_fund_task::FetchFundTask;
 use crate::task::fetch_income_task::FetchIncomeTask;
 use crate::task::fetch_index_daily_task::FetchIndexDailyTask;
 use crate::task::fetch_index_task::FetchIndexTask;
+use crate::task::fetch_margin_trading_summary_task::FetchMarginTradingSummaryTask;
 use crate::task::fetch_moneyflow_task::FetchMoneyflowTask;
 use crate::task::fetch_stock_daily_task::FetchStockDailyTask;
 use crate::task::fetch_stock_holder_number_task::FetchStockHolderNumberTask;
 use crate::task::fetch_stock_list_task::FetchStockListTask;
+use crate::task::fetch_stock_margin_detail_task::FetchStockMarginDetailTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::Task;
 
@@ -69,6 +71,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     //  Arc::new(FetchIncomeTask::new(conn.clone())),
      // Arc::new(FetchCashflowTask::new(conn.clone())),
     //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
-      Arc::new(FetchMoneyflowTask::new(conn.clone())),
+   //   Arc::new(FetchMoneyflowTask::new(conn.clone())),
+   //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
+      Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ]
 }

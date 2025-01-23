@@ -37,6 +37,7 @@ pub enum Api {
     index_basic,
     index_daily_basic,
     moneyflow,
+    moneyflow_industry_ths,
 }
 
 

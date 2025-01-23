@@ -40,6 +40,8 @@ pub use fund_basic::*;
 pub use index_basic::*;
 pub use index_daily::*;
 pub use moneyflow::*;
+pub use moneyflow_ind_ths::*;
+pub use margin_detail::*;
 
 use crate::tushare::model::{Api, ApiParam, TushareApiResp};
 
@@ -60,6 +62,8 @@ mod index_basic;
 mod index_daily;
 mod index_daily_basic;
 mod moneyflow;
+mod moneyflow_ind_ths;
+mod margin_detail;
 
 static TUSHARE_TOKEN: Lazy<String> =  Lazy::new(|| common::config::AppConfig::new().expect("failed to get config").tushare_token());
 

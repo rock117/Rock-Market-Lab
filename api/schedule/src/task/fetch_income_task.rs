@@ -38,7 +38,6 @@ impl Task for FetchIncomeTask {
                 if let Err(err) = res {
                     error!("insert income failed, ts_code: {}, end_date: {}, error: {:?}, data: {:?}", stock.ts_code, end_date, err, income);
                     error!("income json: {}", serde_json::to_string(&income).unwrap());
-                    panic!("exit");
                     continue;
                 }
             }
