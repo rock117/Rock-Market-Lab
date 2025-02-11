@@ -28,12 +28,14 @@ impl FetchStockDailyTask {
 
     async fn get_calendar_dates(&self) -> anyhow::Result<Vec<NaiveDate>> {
         let today = Local::now().format("%Y%m%d").to_string();
+        let start = Local::now().checked_sub_days(Days::new(365)).unwrap().format("%Y%m%d").to_string();
         let mut dates: Vec<trade_calendar::Model> = TradeCalendar::find()
             //.filter(cake::Column::Name.contains("chocolate"))
             // .select(trade_calendar::Column::CalDate)
             .filter(
                 Condition::all()
                     .add(trade_calendar::Column::CalDate.lte(today))
+                    .add(trade_calendar::Column::CalDate.gte(start))
                     .add(trade_calendar::Column::IsOpen.eq(1))
             )
             .order_by_desc(trade_calendar::Column::CalDate)

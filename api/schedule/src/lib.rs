@@ -9,7 +9,9 @@ use crate::task::fetch_finance_indicator_task::FetchFinanceIndicatorTask;
 use crate::task::fetch_fund_task::FetchFundTask;
 use crate::task::fetch_income_task::FetchIncomeTask;
 use crate::task::fetch_index_daily_task::FetchIndexDailyTask;
+use crate::task::fetch_index_monthly_task::FetchIndexMonthlyTask;
 use crate::task::fetch_index_task::FetchIndexTask;
+use crate::task::fetch_index_weekly_task::FetchIndexWeeklyTask;
 use crate::task::fetch_margin_trading_summary_task::FetchMarginTradingSummaryTask;
 use crate::task::fetch_moneyflow_task::FetchMoneyflowTask;
 use crate::task::fetch_stock_daily_task::FetchStockDailyTask;
@@ -60,9 +62,12 @@ pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn 
 
 fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     vec![
-        Arc::new(FetchStockListTask::new(conn.clone())),
-        // Arc::new(FetchTradeCalendarTask::new(conn.clone())),
-       //  Arc::new(FetchStockDailyTask::new(conn.clone())),
+     //   Arc::new(FetchStockListTask::new(conn.clone())),
+     //  Arc::new(FetchTradeCalendarTask::new(conn.clone())),
+    //      Arc::new(FetchStockDailyTask::new(conn.clone())),
+     Arc::new(FetchIndexDailyTask::new(conn.clone())),
+     Arc::new(FetchIndexWeeklyTask::new(conn.clone())),
+     Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
        // Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
       //  Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
    //  Arc::new(FetchFundTask::new(conn.clone())),

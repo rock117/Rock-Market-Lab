@@ -39,6 +39,9 @@ use entity::sea_orm::sqlx::encode::IsNull::No;
 pub use fund_basic::*;
 pub use index_basic::*;
 pub use index_daily::*;
+pub use index_weekly::*;
+pub use index_monthly::*;
+
 pub use moneyflow::*;
 pub use moneyflow_ind_ths::*;
 pub use margin_detail::*;
