@@ -1,12 +1,13 @@
 import winreg
 import os
 
+
 def get_proxy_settings():
     proxy_settings = {}
     try:
         # 打开注册表键
         key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, r"Software\Microsoft\Windows\CurrentVersion\Internet Settings")
-        
+
         # 获取代理启用状态
         proxy_enabled, _ = winreg.QueryValueEx(key, "ProxyEnable")
         proxy_settings["ProxyEnable"] = proxy_enabled
@@ -33,4 +34,3 @@ proxy_info = get_proxy_settings()
 proxyServer = proxy_info["ProxyServer"]
 print(f"proxyServer: {proxyServer}")
 os.system("git config --global http.proxy http://" + proxyServer)
-

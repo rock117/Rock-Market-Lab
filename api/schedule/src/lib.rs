@@ -60,7 +60,7 @@ pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn 
 
 fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     vec![
-      //   Arc::new(FetchStockListTask::new(conn.clone())),
+        Arc::new(FetchStockListTask::new(conn.clone())),
         // Arc::new(FetchTradeCalendarTask::new(conn.clone())),
        //  Arc::new(FetchStockDailyTask::new(conn.clone())),
        // Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
@@ -73,6 +73,6 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
    //   Arc::new(FetchMoneyflowTask::new(conn.clone())),
    //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
-      Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
+     // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ]
 }

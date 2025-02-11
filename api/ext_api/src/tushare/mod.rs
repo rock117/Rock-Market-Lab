@@ -64,6 +64,8 @@ mod index_daily_basic;
 mod moneyflow;
 mod moneyflow_ind_ths;
 mod margin_detail;
+mod index_weekly;
+mod index_monthly;
 
 static TUSHARE_TOKEN: Lazy<String> =  Lazy::new(|| common::config::AppConfig::new().expect("failed to get config").tushare_token());
 

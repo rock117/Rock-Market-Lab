@@ -11,6 +11,8 @@ pub mod income;
 pub mod index;
 pub mod index_daily;
 pub mod index_daily_basic;
+pub mod index_monthly;
+pub mod index_weekly;
 pub mod margin_trading_summary;
 pub mod moneyflow;
 pub mod moneyflow_industry_ths;

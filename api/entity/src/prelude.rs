@@ -9,6 +9,8 @@ pub use super::income::Entity as Income;
 pub use super::index::Entity as Index;
 pub use super::index_daily::Entity as IndexDaily;
 pub use super::index_daily_basic::Entity as IndexDailyBasic;
+pub use super::index_monthly::Entity as IndexMonthly;
+pub use super::index_weekly::Entity as IndexWeekly;
 pub use super::margin_trading_summary::Entity as MarginTradingSummary;
 pub use super::moneyflow::Entity as Moneyflow;
 pub use super::moneyflow_industry_ths::Entity as MoneyflowIndustryThs;
