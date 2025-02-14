@@ -16,7 +16,7 @@ impl EntityName for Entity {
 pub struct Model {
     pub ts_code: String,
     pub trade_date: String,
-    pub close: Option<String>,
+    pub close: Option<Decimal>,
     pub turnover_rate: Option<String>,
     pub turnover_rate_f: Option<String>,
     pub volume_ratio: Option<String>,
@@ -30,8 +30,8 @@ pub struct Model {
     pub total_share: Option<String>,
     pub float_share: Option<String>,
     pub free_share: Option<String>,
-    pub total_mv: Option<String>,
-    pub circ_mv: Option<String>,
+    pub total_mv: Option<Decimal>,
+    pub circ_mv: Option<Decimal>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -78,7 +78,7 @@ impl ColumnTrait for Column {
         match self {
             Self::TsCode => ColumnType::String(StringLen::N(10u32)).def(),
             Self::TradeDate => ColumnType::String(StringLen::N(10u32)).def(),
-            Self::Close => ColumnType::String(StringLen::N(45u32)).def().null(),
+            Self::Close => ColumnType::Decimal(None).def().null(),
             Self::TurnoverRate => ColumnType::String(StringLen::N(45u32)).def().null(),
             Self::TurnoverRateF => ColumnType::String(StringLen::N(45u32)).def().null(),
             Self::VolumeRatio => ColumnType::String(StringLen::N(45u32)).def().null(),
@@ -92,8 +92,8 @@ impl ColumnTrait for Column {
             Self::TotalShare => ColumnType::String(StringLen::N(45u32)).def().null(),
             Self::FloatShare => ColumnType::String(StringLen::N(45u32)).def().null(),
             Self::FreeShare => ColumnType::String(StringLen::N(45u32)).def().null(),
-            Self::TotalMv => ColumnType::String(StringLen::N(45u32)).def().null(),
-            Self::CircMv => ColumnType::String(StringLen::N(45u32)).def().null(),
+            Self::TotalMv => ColumnType::Decimal(None).def().null(),
+            Self::CircMv => ColumnType::Decimal(None).def().null(),
         }
     }
 }

@@ -4,7 +4,11 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+common = { path = "../common" }
+entity = { path = "../entity" }
+
 tokio = { version = "1", features = ["full"] }
+axum = "0.6.20"
 
 bytes = { version = "1.4.0", features = [] }
 chrono = "0.4.24"

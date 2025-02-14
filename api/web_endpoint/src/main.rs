@@ -32,6 +32,8 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 mod apis;
 mod axum_ex;
 mod resource;
+mod template;
+mod controller;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -221,7 +223,7 @@ async fn register_routes(conn: DatabaseConnection) -> Router<()> {
                     .into_make_classifier(),
             )
             .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
-                tracing::info!("{} {}", request.method(), request.uri())
+                info!("{} {}", request.method(), request.uri())
             }),
         )
         .with_state(state) // .on_response(|response: &Response, latency: Duration, _: &'_ _| {})

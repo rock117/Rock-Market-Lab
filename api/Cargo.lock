@@ -3256,9 +3256,12 @@ name = "service"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "axum 0.6.20",
  "bytes",
  "chrono",
+ "common",
  "derive_more",
+ "entity",
  "futures",
  "itertools",
  "num",
