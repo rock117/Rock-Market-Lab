@@ -4,12 +4,17 @@ mod correlation;
 /// # Arguments
 /// - `N` 5, 10, 20, 60 等
 pub fn ma<const N: usize>(prices: &[f64]) -> Option<f64> {
-    if prices.len() < N {
+    ma_n(N, prices)
+}
+
+pub fn ma_n(n: usize, prices: &[f64]) -> Option<f64> {
+    if prices.len() < n {
         return None
     }
-    let total = (&prices[0 .. N]).iter().sum::<f64>();
-    Some(total / N as f64)
+    let total = (&prices[0 .. n]).iter().sum::<f64>();
+    Some(total / n as f64)
 }
+
 
 /// 计算涨跌幅, 涨跌幅范围 x%100
 ///

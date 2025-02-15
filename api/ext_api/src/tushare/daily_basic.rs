@@ -7,10 +7,11 @@ use crate::tushare::model::Api;
 /// # 每日指标
 /// - `ts_code`: TS股票代码, tscode可以是逗号隔开, 空标识获取所有股票
 /// - `trade_date`: 交易日期
-pub async fn daily_basic(ts_code: &str, trade_date: &NaiveDate) -> anyhow::Result<Vec<stock_daily_basic::Model>> {
-    let trade_date = trade_date.format("%Y%m%d").to_string();
+pub async fn daily_basic(start: &NaiveDate, end: &NaiveDate) -> anyhow::Result<Vec<stock_daily_basic::Model>> {
+    let start_date = start.format("%Y%m%d").to_string();
+    let end_date = end.format("%Y%m%d").to_string();
     call_tushare_api_as::<500, stock_daily_basic::Model>(Api::daily_basic,
-                        &hash_map! {"ts_code" => ts_code, "trade_date" => trade_date.as_str()},
+                        &hash_map! {"start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
                         &[
                             "ts_code",
                             "trade_date",
