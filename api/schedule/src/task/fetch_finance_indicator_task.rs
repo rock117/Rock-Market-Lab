@@ -1,6 +1,7 @@
 use std::time::Duration;
+use anyhow::anyhow;
 use async_trait::async_trait;
-use chrono::{Local, NaiveDate};
+use chrono::{Days, Local, NaiveDate};
 use tracing::{info, warn};
 use entity::sea_orm::{DatabaseConnection, TransactionTrait};
 use entity::stock;
@@ -26,8 +27,8 @@ impl Task for FetchFinanceIndicatorTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let start_date = NaiveDate::from_ymd_opt(2020, 1, 1).ok_or(anyhow::anyhow!("Invalid date"))?;
         let end_date = Local::now().date_naive();
+        let start_date = Local::now().date_naive().checked_sub_days(Days::new(60)).ok_or(anyhow!("no value"))?;
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {

@@ -25,26 +25,6 @@ impl FetchStockDailyBasicTask {
     pub fn new(connection: DatabaseConnection) -> Self {
         FetchStockDailyBasicTask(connection)
     }
-
-    async fn get_calendar_dates(&self) -> anyhow::Result<Vec<NaiveDate>> {
-        let today = Local::now().format("%Y%m%d").to_string();
-        let start = Local::now().checked_sub_days(Days::new(365)).unwrap().format("%Y%m%d").to_string();
-        let mut dates: Vec<trade_calendar::Model> = TradeCalendar::find()
-            //.filter(cake::Column::Name.contains("chocolate"))
-            // .select(trade_calendar::Column::CalDate)
-            .filter(
-                Condition::all()
-                    .add(trade_calendar::Column::CalDate.lte(today))
-                    .add(trade_calendar::Column::CalDate.gte(start))
-                    .add(trade_calendar::Column::IsOpen.eq(1))
-            )
-            .order_by_desc(trade_calendar::Column::CalDate)
-            .all(&self.0)
-            .await?;
-        let dates = dates.iter().map(|v| NaiveDate::parse_from_str(&v.cal_date, "%Y%m%d").unwrap()).collect();
-        Ok(dates)
-    }
-
     fn fetch_data(dates: &[NaiveDate]) -> Receiver<anyhow::Result<Vec<Model>>> {
         let max_concurrent_requests = 1; // TODO 太大 tushare 会拒接连接
         let (tx, rx) = mpsc::channel(max_concurrent_requests);
@@ -89,7 +69,7 @@ impl Task for FetchStockDailyBasicTask {
 
 
     async fn run(&self) -> anyhow::Result<()> {
-        let dates = self.get_calendar_dates().await?;
+        let dates = super::get_calendar_dates(30, &self.0).await?;
         for date in &dates {
             let res = self.fetch_data_by_date(date).await;
             if let Err(e) = res {

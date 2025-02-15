@@ -27,7 +27,6 @@ mod task;
 pub async fn start_schedule(conn: DatabaseConnection) -> Result<(), Box<dyn Error>> {
     let tasks = get_schedule_jobs(conn);
     for task in tasks {
-
         tokio::spawn(async move {
             let result = task.run().await;
             if let Err(e) = result {
@@ -37,7 +36,6 @@ pub async fn start_schedule(conn: DatabaseConnection) -> Result<(), Box<dyn Erro
     }
     Ok(())
 }
-
 
 /// https://www.dongaigc.com/p/mvniekerk/tokio-cron-scheduler
 pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn Error>> {
@@ -62,25 +60,32 @@ pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn 
 }
 
 fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
-    vec![
-     //   Arc::new(FetchStockListTask::new(conn.clone())),
-     //  Arc::new(FetchTradeCalendarTask::new(conn.clone())),
-    //      Arc::new(FetchStockDailyTask::new(conn.clone())),
-    //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
-    //  Arc::new(FetchIndexWeeklyTask::new(conn.clone())),
-    //  Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
+    let mut jobs: Vec<Arc<dyn Task>> = vec![
+        //   Arc::new(FetchStockListTask::new(conn.clone())),
+        //  Arc::new(FetchTradeCalendarTask::new(conn.clone())),
+        //  Arc::new(FetchStockDailyTask::new(conn.clone())),
+        //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
+        //  Arc::new(FetchIndexWeeklyTask::new(conn.clone())),
+        //  Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
 
-     Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
-       // Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
-      //  Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
-   //  Arc::new(FetchFundTask::new(conn.clone())),
+        // Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+        // Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
+        //  Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
+        //  Arc::new(FetchFundTask::new(conn.clone())),
 
-   //    Arc::new(FetchBalancesheetTask::new(conn.clone())),
-    //  Arc::new(FetchIncomeTask::new(conn.clone())),
-     // Arc::new(FetchCashflowTask::new(conn.clone())),
-    //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
-   //   Arc::new(FetchMoneyflowTask::new(conn.clone())),
-   //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
-     // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
-    ]
+        //    Arc::new(FetchBalancesheetTask::new(conn.clone())),
+        //  Arc::new(FetchIncomeTask::new(conn.clone())),
+        // Arc::new(FetchCashflowTask::new(conn.clone())),
+        //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
+        //   Arc::new(FetchMoneyflowTask::new(conn.clone())),
+        //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
+        // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
+    ];
+    let dailys: Vec<Arc<dyn Task>> = vec![
+        Arc::new(FetchStockDailyTask::new(conn.clone())),
+        Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+        Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
+    ];
+    jobs.extend(dailys);
+    jobs
 }
