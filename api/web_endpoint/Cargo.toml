@@ -11,8 +11,6 @@ schedule = { path = "../schedule" }
 
 tokio = { version = "1.29.1", features = ["full"] }
 
-axum = "0.6.20"
-axum-route = "0.1.1"
 hyper = "0.14.27"
 http = "0.2.9"
 tower = { version = "0.4.13", features = ["timeout"] }
@@ -33,10 +31,10 @@ tracing-subscriber = { workspace = true}
 tracing-appender =  { workspace = true}
 
 chrono = { workspace = true }
-axum-typed-routing = "0.2.1"
-axum-trace-id = "0.1.0"
 dotenvy = "0.15.7"
 log = "0.4.22"
 time = { version = "0.3.37", features = ["local-offset"] }
+
+rocket = { version = "0.5.1", features = ["json"]}
 
 

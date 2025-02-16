@@ -9,7 +9,6 @@ use entity::sea_orm::ColumnTrait;
 use entity::sea_orm::QueryFilter;
 use entity::sea_orm::QueryOrder;
 
-use axum::{extract::State, Json};
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 use tracing::info;
@@ -51,7 +50,7 @@ pub struct StockOverView {
 
 
 pub async fn get_stock_overviews(conn: &DatabaseConnection) -> anyhow::Result<Vec<StockOverView>> {
-    //  let tx = conn.begin().await?;
+    let tx = conn.begin().await?;
     let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
     let dates = trade_calendar_service::get_trade_calendar(250, conn).await?;
 
@@ -76,13 +75,13 @@ pub async fn get_stock_overviews(conn: &DatabaseConnection) -> anyhow::Result<Ve
         let prices = stock_prices.iter().map(|v| v.close.to_f64()).collect::<Option<Vec<f64>>>().ok_or(anyhow!("stock_prices {} is None", tscode))?;
         let finance_indicator: Option<finance_indicator::Model> = get_finance_indicator(tscode, conn).await?;
         let stock_daily_basic: stock_daily_basic::Model = get_stock_daily_basic(tscode, conn).await?;
-        // views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices));
+        views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices));
         curr += 1;
-        // if curr % 100 == 0 {
-        info!("get_stock_overviews process {} / {}", curr, stocks.len());
-        // }
+        if curr % 50 == 0 {
+            info!("get_stock_overviews process {} / {}", curr, stocks.len());
+        }
     }
-    //  tx.commit().await?;
+    tx.commit().await?;
     Ok(views)
 }
 
@@ -143,7 +142,7 @@ fn pct_chg(stock_prices: &[f64], n: usize) -> Option<f64> {
         return None;
     }
     let curr = stock_prices[0];
-    let prev = stock_prices[n + 1];
+    let prev = stock_prices[n];
     Some(common::finance::pct_chg(prev, curr))
 }
 
