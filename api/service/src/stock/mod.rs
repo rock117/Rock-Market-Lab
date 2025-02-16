@@ -12,6 +12,7 @@ use entity::sea_orm::QueryOrder;
 use axum::{extract::State, Json};
 use itertools::Itertools;
 use num_traits::ToPrimitive;
+use tracing::info;
 use common::data_type::TsCode;
 use entity::sea_orm::prelude::Decimal;
 
@@ -49,9 +50,10 @@ pub struct StockOverView {
 }
 
 
-pub async fn get_stock_overviews(State(conn): State<DatabaseConnection>) -> anyhow::Result<Vec<StockOverView>> {
-    let stocks: Vec<stock::Model> = stock::Entity::find().all(&conn).await?;
-    let dates = trade_calendar_service::get_trade_calendar(250, &conn).await?;
+pub async fn get_stock_overviews(conn: &DatabaseConnection) -> anyhow::Result<Vec<StockOverView>> {
+    //  let tx = conn.begin().await?;
+    let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
+    let dates = trade_calendar_service::get_trade_calendar(250, conn).await?;
 
     let start_date_call = dates.last();
     let end_date_call = dates.first();
@@ -60,29 +62,34 @@ pub async fn get_stock_overviews(State(conn): State<DatabaseConnection>) -> anyh
     };
     let start_date = &start_date_call.cal_date;
     let end_date = &end_date_call.cal_date;
-
+    let mut views = vec![];
+    let mut curr = 0;
     for stock in &stocks {
         let tscode = stock.ts_code.as_str();
-
         let stock_prices: Vec<stock_daily::Model> = stock_daily::Entity::find()
-            .filter(stock_daily::Column::TsCode.gt(tscode))
+            .filter(stock_daily::Column::TsCode.eq(tscode))
             .filter(stock_daily::Column::TradeDate.gte(start_date))
             .filter(stock_daily::Column::TradeDate.lte(end_date))
-            .order_by_desc(stock_daily::Column::TradeDate) // 按日期升序排序
-            .all(&conn)
+            .order_by_desc(stock_daily::Column::TradeDate)
+            .all(conn)
             .await?;
         let prices = stock_prices.iter().map(|v| v.close.to_f64()).collect::<Option<Vec<f64>>>().ok_or(anyhow!("stock_prices {} is None", tscode))?;
-        let finance_indicator: Option<finance_indicator::Model> = get_finance_indicator(tscode, &conn).await?;
-        let stock_daily_basic: stock_daily_basic::Model = get_stock_daily_basic(tscode, &conn).await?;
-        create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices);
+        let finance_indicator: Option<finance_indicator::Model> = get_finance_indicator(tscode, conn).await?;
+        let stock_daily_basic: stock_daily_basic::Model = get_stock_daily_basic(tscode, conn).await?;
+        // views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices));
+        curr += 1;
+        // if curr % 100 == 0 {
+        info!("get_stock_overviews process {} / {}", curr, stocks.len());
+        // }
     }
-    bail!("")
+    //  tx.commit().await?;
+    Ok(views)
 }
 
 async fn get_stock_daily_basic(ts_code: &str, conn: &DatabaseConnection) -> anyhow::Result<stock_daily_basic::Model> {
     let stock_daily_basics: Vec<stock_daily_basic::Model> = stock_daily_basic::Entity::find()
         .filter(stock_daily_basic::Column::TsCode.eq(ts_code))
-        .order_by_desc(stock_daily_basic::Column::TradeDate) // 按日期升序排序
+        .order_by_desc(stock_daily_basic::Column::TradeDate)
         .all(conn)
         .await?;
     stock_daily_basics.first().cloned().ok_or(anyhow!("stock_daily_basic {} is None", ts_code))
@@ -91,7 +98,7 @@ async fn get_stock_daily_basic(ts_code: &str, conn: &DatabaseConnection) -> anyh
 async fn get_finance_indicator(ts_code: &str, conn: &DatabaseConnection) -> anyhow::Result<Option<finance_indicator::Model>> {
     let finance_indicators: Vec<finance_indicator::Model> = finance_indicator::Entity::find()
         .filter(finance_indicator::Column::TsCode.eq(ts_code))
-        .order_by_desc(finance_indicator::Column::AnnDate) // 按日期升序排序
+        .order_by_desc(finance_indicator::Column::EndDate)
         .all(conn)
         .await?;
     Ok(finance_indicators.first().cloned())

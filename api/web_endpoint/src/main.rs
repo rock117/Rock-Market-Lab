@@ -28,98 +28,37 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
+use controller::*;
 
 mod apis;
 mod axum_ex;
 mod resource;
 mod template;
 mod controller;
+mod domain;
+mod result;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenvy::dotenv().ok();
     let conn = get_db_conn().await;
-    let conn_schedule = conn.clone();
-    tokio::spawn(async move {
-        schedule::start_schedule(conn_schedule)
-            .await
-            .expect("Failed to start schedule");
-    });
     init_log_context()?;
     start(conn).await
 }
 
-fn init_log_context() -> anyhow::Result<()> {
-    // TODO
-    let file_appender = tracing_appender::rolling::daily(
-        "C:/rock/coding/code/my/rust/programmer-investment-research/api/tmp",
-        "app.log",
-    );
 
-    let filter = EnvFilter::from_default_env().add_directive(LevelFilter::INFO.into());
-    let subscriber = Registry::default()
-        .with(
-            fmt::layer()
-                .compact()
-                .with_ansi(true)
-                .with_file(true)
-                .with_line_number(true)
-                .with_thread_ids(false)
-                .with_target(false) // .with_span_events(FmtSpan::CLOSE),
-
-        )
-        .with(
-            fmt::layer()
-                //  .event_format("request_id", Field::new("")))
-                .with_ansi(false)
-                .with_writer(file_appender)
-                .with_file(true)
-                .with_line_number(true)
-                .with_thread_ids(false)
-                .with_target(false), //  .with_span_events(FmtSpan::CLOSE),
-        )
-        .with(filter);
-    tracing::subscriber::set_global_default(subscriber).map_err(|e| anyhow!(e))?;
+#[tokio::main]
+async fn main0() -> anyhow::Result<()> {
+    dotenvy::dotenv().ok();
+    let conn = get_db_conn().await;
+    init_log_context()?;
+    stock_overview_controller::stock_overview2(conn).await.unwrap();
     Ok(())
 }
-
-async fn start(conn: DatabaseConnection) -> anyhow::Result<()> {
-    let host = env::var("SERVER.HOST").expect("SERVER.HOST is not set in .env file");
-    let port = env::var("SERVER.PORT").expect("SERVER.PORT is not set in .env file");
-    let server_url = format!("{host}:{port}");
-    let x_request_id = HeaderName::from_static("x-request-id");
-    let layers = ServiceBuilder::new()
-        .layer(HandleErrorLayer::new(|_: BoxError| async {
-            StatusCode::REQUEST_TIMEOUT
-        }))
-        .layer(SetRequestIdLayer::new(
-            x_request_id.clone(),
-            axum_ex::PiAppMakeRequestId::default(),
-        ))
-        .layer(PropagateHeaderLayer::new(x_request_id))
-        .layer(TimeoutLayer::new(Duration::from_secs(60)));
-
-    let app = register_routes(conn).await.layer(layers);
-    let address = server_url.parse()?;
-    axum::Server::bind(&address)
-        .serve(app.into_make_service())
-        .await?;
-    Ok(())
-}
-
-async fn get_db_conn() -> DatabaseConnection {
-    let db_url = common::config::AppConfig::new().unwrap().database_url();
-    let mut opt = ConnectOptions::new(db_url);
-    opt.sqlx_logging(false); // Disable SQLx log
-                             // opt.sqlx_logging_level(log::LevelFilter::Warn); // Or set SQLx log level
-
-    return Database::connect(opt).await.unwrap();
-}
-
 async fn register_routes(conn: DatabaseConnection) -> Router<()> {
-    let state = AppState { conn };
     Router::new()
-        .route("/stocks", get(apis::list_stocks))
+        // .route("/stocks", get(apis::list_stocks))
+        .route("/api/stocks", get(stock_overview_controller::stock_overview))
         //  .typed_route(controller::tmp::item_handler)
         // .route("/api/fetch/stock-price", get(controller::fetch_data::stock_price_fetch_controller::fetch))
         // .route("/api/fetch/trade-calendar", get(controller::fetch_data::trade_calendar_fetch_controller::fetch))
@@ -222,9 +161,77 @@ async fn register_routes(conn: DatabaseConnection) -> Router<()> {
                 tower_http::classify::StatusInRangeAsFailures::new(400..=599)
                     .into_make_classifier(),
             )
-            .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
-                info!("{} {}", request.method(), request.uri())
-            }),
+                .on_request(|request: &hyper::Request<axum::body::Body>, _: &'_ _| {
+                    info!("{} {}", request.method(), request.uri())
+                }),
         )
-        .with_state(state) // .on_response(|response: &Response, latency: Duration, _: &'_ _| {})
+        .with_state(conn) // .on_response(|response: &Response, latency: Duration, _: &'_ _| {})
 }
+fn init_log_context() -> anyhow::Result<()> {
+    // TODO
+    let file_appender = tracing_appender::rolling::daily(
+        "C:/rock/coding/code/my/rust/programmer-investment-research/api/tmp",
+        "app.log",
+    );
+
+    let filter = EnvFilter::from_default_env().add_directive(LevelFilter::INFO.into());
+    let subscriber = Registry::default()
+        .with(
+            fmt::layer()
+                .compact()
+                .with_ansi(true)
+                .with_file(true)
+                .with_line_number(true)
+                .with_thread_ids(false)
+                .with_target(false) // .with_span_events(FmtSpan::CLOSE),
+
+        )
+        .with(
+            fmt::layer()
+                //  .event_format("request_id", Field::new("")))
+                .with_ansi(false)
+                .with_writer(file_appender)
+                .with_file(true)
+                .with_line_number(true)
+                .with_thread_ids(false)
+                .with_target(false), //  .with_span_events(FmtSpan::CLOSE),
+        )
+        .with(filter);
+    tracing::subscriber::set_global_default(subscriber).map_err(|e| anyhow!(e))?;
+    Ok(())
+}
+
+async fn start(conn: DatabaseConnection) -> anyhow::Result<()> {
+    let host = env::var("SERVER.HOST").expect("SERVER.HOST is not set in .env file");
+    let port = env::var("SERVER.PORT").expect("SERVER.PORT is not set in .env file");
+    let server_url = format!("{host}:{port}");
+    let x_request_id = HeaderName::from_static("x-request-id");
+    let layers = ServiceBuilder::new()
+        .layer(HandleErrorLayer::new(|_: BoxError| async {
+            StatusCode::REQUEST_TIMEOUT
+        }))
+        .layer(SetRequestIdLayer::new(
+            x_request_id.clone(),
+            axum_ex::PiAppMakeRequestId::default(),
+        ))
+        .layer(PropagateHeaderLayer::new(x_request_id))
+        .layer(TimeoutLayer::new(Duration::from_secs(60)));
+
+    let app = register_routes(conn).await.layer(layers);
+    let address = server_url.parse()?;
+    axum::Server::bind(&address)
+        .serve(app.into_make_service())
+        .await?;
+    Ok(())
+}
+
+async fn get_db_conn() -> DatabaseConnection {
+    let db_url = common::config::AppConfig::new().unwrap().database_url();
+    let mut opt = ConnectOptions::new(db_url);
+    opt.sqlx_logging(false); // Disable SQLx log
+                             // opt.sqlx_logging_level(log::LevelFilter::Warn); // Or set SQLx log level
+
+    return Database::connect(opt).await.unwrap();
+}
+
+

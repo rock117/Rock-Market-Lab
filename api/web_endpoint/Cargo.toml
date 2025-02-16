@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 common = { path = "../common" }
 entity = { path = "../entity" }
+service = { path = "../service" }
 schedule = { path = "../schedule" }
 
 tokio = { version = "1.29.1", features = ["full"] }
@@ -36,5 +37,6 @@ axum-typed-routing = "0.2.1"
 axum-trace-id = "0.1.0"
 dotenvy = "0.15.7"
 log = "0.4.22"
+time = { version = "0.3.37", features = ["local-offset"] }
 
 
