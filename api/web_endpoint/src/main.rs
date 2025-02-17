@@ -21,6 +21,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
+
 use controller::*;
 
 mod resource;
@@ -50,6 +51,12 @@ async fn main3() -> anyhow::Result<()> {
 async fn rocket() -> _ {
     dotenvy::dotenv().ok();
     let conn = get_db_conn().await;
+    let conn_schedule = conn.clone();
+    tokio::spawn(async move {
+        schedule::start_schedule(conn_schedule)
+            .await
+            .expect("Failed to start schedule");
+    });
     rocket::build()
         .manage(conn)
         .mount("/", routes![stock_overview_controller::stock_overview])
@@ -57,6 +64,7 @@ async fn rocket() -> _ {
 
 
 fn init_log_context() -> anyhow::Result<()> {
+    // https://github.com/somehowchris/rocket-tracing-fairing-example/tree/main
     // TODO
     let file_appender = tracing_appender::rolling::daily(
         "C:/rock/coding/code/my/rust/programmer-investment-research/api/tmp",

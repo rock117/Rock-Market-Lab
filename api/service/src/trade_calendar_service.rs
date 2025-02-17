@@ -1,4 +1,5 @@
-use chrono::Local;
+use anyhow::anyhow;
+use chrono::{Datelike, Local, NaiveDate};
 use tracing::info;
 
 use entity::{stock_daily, trade_calendar};
@@ -24,6 +25,18 @@ pub async fn get_trade_calendar(day_num: u64, conn: &DatabaseConnection) -> anyh
     Ok(dates)
 }
 
+pub async fn get_year_begin_trade_calendar(conn: &DatabaseConnection) -> anyhow::Result<String> {
+    let year_begin = NaiveDate::from_ymd_opt(Local::now().year(), 1, 1).unwrap().format("%Y%m%d").to_string();
+    let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
+        .filter(trade_calendar::Column::CalDate.gte(&year_begin))
+        .filter(trade_calendar::Column::IsOpen.eq(1))
+        .order_by_asc(trade_calendar::Column::CalDate)
+        .paginate(conn, 1)
+        .fetch_page(0)
+        .await?;
+    let date = dates.first().ok_or(anyhow!("no begin caldate for year: {}", year_begin))?.cal_date.clone();
+    Ok(date)
+}
 
 mod tests {
     use chrono::Local;

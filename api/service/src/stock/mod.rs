@@ -16,6 +16,7 @@ use common::data_type::TsCode;
 use entity::sea_orm::prelude::Decimal;
 
 use common::finance::*;
+use entity::sea_orm::sqlx::encode::IsNull::No;
 
 use super::trade_calendar_service;
 
@@ -53,6 +54,7 @@ pub async fn get_stock_overviews(conn: &DatabaseConnection) -> anyhow::Result<Ve
     let tx = conn.begin().await?;
     let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
     let dates = trade_calendar_service::get_trade_calendar(250, conn).await?;
+    let year_begin = trade_calendar_service::get_year_begin_trade_calendar(conn).await?;
 
     let start_date_call = dates.last();
     let end_date_call = dates.first();
@@ -75,7 +77,15 @@ pub async fn get_stock_overviews(conn: &DatabaseConnection) -> anyhow::Result<Ve
         let prices = stock_prices.iter().map(|v| v.close.to_f64()).collect::<Option<Vec<f64>>>().ok_or(anyhow!("stock_prices {} is None", tscode))?;
         let finance_indicator: Option<finance_indicator::Model> = get_finance_indicator(tscode, conn).await?;
         let stock_daily_basic: stock_daily_basic::Model = get_stock_daily_basic(tscode, conn).await?;
-        views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices));
+        let list_date_price = get_price(tscode, &stock.list_date.clone().unwrap_or("".into()), conn).await?;
+        let this_year_begin_price = get_price(tscode, &year_begin, conn).await?;
+        if list_date_price.is_none() {
+            info!("list_date_price is None: tscode -> {}, list date -> {:?}", tscode, stock.list_date);
+        }
+        if this_year_begin_price.is_none() {
+            info!("this_year_begin_price is None: tscode -> {}, year_begin -> {}", tscode, year_begin);
+        }
+        views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices, this_year_begin_price, list_date_price));
         curr += 1;
         if curr % 50 == 0 {
             info!("get_stock_overviews process {} / {}", curr, stocks.len());
@@ -103,12 +113,26 @@ async fn get_finance_indicator(ts_code: &str, conn: &DatabaseConnection) -> anyh
     Ok(finance_indicators.first().cloned())
 }
 
-fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_basic::Model, finance_indicator: &Option<finance_indicator::Model>, stock_prices: &[f64]) -> StockOverView {
+fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_basic::Model, finance_indicator: &Option<finance_indicator::Model>, stock_prices: &[f64],
+                         this_year_begin_price: Option<f64>, list_date_price: Option<f64>,
+) -> StockOverView {
     let roe = if let Some(finance_indicator) = finance_indicator {
         finance_indicator.roe.map(|v| v.to_f64()).flatten()
     } else {
         None
     };
+    let pct_chg_from_this_year = if let Some(this_year_begin_price) = this_year_begin_price {
+        Some(common::finance::pct_chg(this_year_begin_price, stock_daily_basic.close.unwrap().to_f64().unwrap()))
+    } else {
+        None
+    };
+
+    let pct_chg_from_list_date = if let Some(list_date_price) = list_date_price {
+        Some(common::finance::pct_chg(list_date_price, stock_daily_basic.close.unwrap().to_f64().unwrap()))
+    } else {
+        None
+    };
+
     let overview = StockOverView {
         name: stock.name.clone().unwrap_or("".to_string()),
         ts_code: stock.ts_code.clone(),
@@ -122,8 +146,8 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
         pct_chg20: pct_chg(stock_prices, 20),
         pct_chg60: pct_chg(stock_prices, 60),
         pct_chg250: pct_chg(stock_prices, 250),
-        pct_chg_from_this_year: None,
-        pct_chg_from_list_date: None,
+        pct_chg_from_this_year,
+        pct_chg_from_list_date,
         ma5: ma::<5>(stock_prices),
         ma10: ma::<10>(stock_prices),
         ma20: ma::<20>(stock_prices),
@@ -134,6 +158,14 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
         circ_mv: stock_daily_basic.circ_mv.map(|v| v.to_f64()).flatten(),
     };
     overview
+}
+
+async fn get_price(ts_code: &str, date: &str, conn: &DatabaseConnection) -> anyhow::Result<Option<f64>> {
+    let stock_daily: Option<stock_daily::Model> = stock_daily::Entity::find()
+        .filter(stock_daily::Column::TsCode.eq(ts_code))
+        .filter(stock_daily::Column::TradeDate.eq(date))
+        .one(conn).await?;
+    Ok(stock_daily.map(|v| v.close.to_f64()).flatten())
 }
 
 

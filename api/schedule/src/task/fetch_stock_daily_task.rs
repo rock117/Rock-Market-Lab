@@ -2,8 +2,8 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{Days, Local, NaiveDate};
 use tracing::{error, warn, info};
-use entity::sea_orm::{Condition, DatabaseConnection, Set, TransactionTrait};
-use entity::{stock_daily, trade_calendar};
+use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
+use entity::{stock, stock_daily, trade_calendar};
 use crate::task::Task;
 use ext_api::tushare;
 use entity::stock_daily::{Model as StockDaily, Model};
@@ -18,6 +18,7 @@ use entity::sea_orm::EntityOrSelect;
 use tokio::sync::{mpsc, Semaphore};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
+use entity::sea_orm::prelude::Decimal;
 
 pub struct FetchStockDailyTask(DatabaseConnection);
 
@@ -25,23 +26,27 @@ impl FetchStockDailyTask {
     pub fn new(connection: DatabaseConnection) -> Self {
         FetchStockDailyTask(connection)
     }
-
-    fn fetch_data(dates: &[NaiveDate]) -> Receiver<anyhow::Result<Vec<Model>>> {
-        let max_concurrent_requests = 1; // TODO 太大 tushare 会拒接连接
-        let (tx, rx) = mpsc::channel(max_concurrent_requests);
-        for date in dates {
-            let date = date.clone();
-            let tx_clone = tx.clone();
-            let _ = tokio::spawn(async move {
-                let stock_dailys = tushare::daily(&date, &date).await;
-                let _ = tx_clone.send(stock_dailys).await;
-            });
+    async fn fetch_price_from_listdate(&self) -> anyhow::Result<()> {
+        let date = Local::now().date_naive();
+        let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
+        let mut curr = 0;
+        for stock in &stocks {
+            let tx = self.0.begin().await?;
+            if let Some(list_date) = &stock.list_date {
+                let list_date = NaiveDate::parse_from_str(list_date, "%Y%m%d")?;
+                let dailys = tushare::daily(Some(&stock.ts_code), &list_date, &date).await?;
+                for daily in &dailys {
+                    let _ = stock_daily::ActiveModel {..daily.clone().into() }.insert(&self.0).await;
+                }
+            }
+            curr += 1;
+            tx.commit().await?;
+            info!("fetch stock_daily complete, ts_code: {}, list date: {:?}, progress: {}/{}", stock.ts_code, stock.list_date, curr, stocks.len());
         }
-        rx
+        Ok(())
     }
-
     async fn fetch_data_by_date(&self, date: &NaiveDate) -> anyhow::Result<()> {
-        let stock_dailys = tushare::daily(date, date).await?;
+        let stock_dailys = tushare::daily(None, date, date).await?;
 
         let tx = self.0.begin().await?;
         let total = stock_dailys.len();
@@ -68,7 +73,6 @@ impl Task for FetchStockDailyTask {
         "0 5 23 * * *".to_string()
     }
 
-
     async fn run(&self) -> anyhow::Result<()> {
         let dates = super::get_calendar_dates(30, &self.0).await?;
         for date in &dates {
@@ -77,9 +81,10 @@ impl Task for FetchStockDailyTask {
                 error!("fetch stock_daily failed, trade-date: {}, error: {:?}", date, e);
             }
         }
+
         info!("fetch all stock_daily tasks run..., start = {}, end = {}", dates[0], dates[dates.len() - 1]);
+        // self.fetch_price_from_listdate().await?;
+        // info!("fetch all stock_daily tasks run...");
         Ok(())
     }
-
-
 }
