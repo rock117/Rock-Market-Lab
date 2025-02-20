@@ -13,6 +13,8 @@ pub mod util;
 mod calc;
 mod pickup;
 pub mod config;
+pub mod cache;
+pub mod paging;
 
 use anyhow::{anyhow, bail};
 pub use data_type::SingleElement;

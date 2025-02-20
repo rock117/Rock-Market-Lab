@@ -484,6 +484,7 @@ dependencies = [
  "chrono",
  "config",
  "csv",
+ "dashmap 7.0.0-rc1",
  "derive_more",
  "flate2",
  "futures",
@@ -756,6 +757,20 @@ dependencies = [
  "hashbrown 0.14.5",
  "lock_api",
  "once_cell",
+ "parking_lot_core",
+]
+
+[[package]]
+name = "dashmap"
+version = "7.0.0-rc1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "48a6edd990d414379eca12f1828fc7cb2e64927987b75aa2df2383e0e88c2543"
+dependencies = [
+ "cfg-if",
+ "crossbeam-utils",
+ "equivalent",
+ "hashbrown 0.15.2",
+ "lock_api",
  "parking_lot_core",
 ]
 
@@ -1266,7 +1281,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "842dc78579ce01e6a1576ad896edc92fca002dd60c9c3746b7fc2bec6fb429d0"
 dependencies = [
  "cfg-if",
- "dashmap",
+ "dashmap 6.1.0",
  "futures-sink",
  "futures-timer",
  "futures-util",

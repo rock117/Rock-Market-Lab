@@ -1,7 +1,7 @@
 import {http} from "@/util/index.js";
 
-async function getStockList(){
-    return (await http.get('/api/stock-list')).data
+async function getStockList(page, pageSize, orderBy, order='desc'){
+    return (await http.get(`/api/stocks?page=${page}&page_size=${pageSize}&order_by=${orderBy}&order=${order}`)).data
 }
 
 async function getStockDaily(code, start, end, dateType, period = 'Daily') {

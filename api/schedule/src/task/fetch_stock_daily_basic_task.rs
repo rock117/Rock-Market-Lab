@@ -53,7 +53,7 @@ impl FetchStockDailyBasicTask {
                 //  error!("insert stock_daily failed, ts_code: {}, trade_date: {}, data: {:?}, error: {:?}", ts_code, trade_date, stock_daily_data, res);
             }
             curr += 1;
-            info!("insert stock_daily complete, ts_code: {}, trade_date: {}, {}/{}", ts_code, trade_date,  curr, total);
+            info!("insert stock_daily_basic complete, ts_code: {}, trade_date: {}, {}/{}", ts_code, trade_date,  curr, total);
         }
         info!("insert stock_daily_basic complete, trade_date: {}, total: {}", date, total);
         tx.commit().await?;

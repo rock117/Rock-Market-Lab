@@ -36,3 +36,4 @@ flate2 = "1.0.35"
 csv = "1.3.1"
 
 config = "0.15.6"
+dashmap = "7.0.0-rc1"

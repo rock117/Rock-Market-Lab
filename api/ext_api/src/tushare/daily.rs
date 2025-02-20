@@ -14,7 +14,7 @@ pub async fn daily(tscode: Option<&str>, start: &NaiveDate, end: &NaiveDate) -> 
         Some(tscode) => hash_map! {"ts_code" => tscode, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
         None => hash_map! {"start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
     };
-    call_tushare_api_as::<100, StockDaily>(Api::daily,
+    call_tushare_api_as::<500, StockDaily>(Api::daily,
                                            &parmas,
                                            &vec![
                                                "ts_code",

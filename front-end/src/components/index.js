@@ -10,7 +10,8 @@ import MainBusiness from "./main-business/MainBusiness.vue"
 import LimitUp from "./limit-up/LimitUp.vue"
 import TestUi from "./TestUi.vue"
 import StockChart from "./chart/chart.vue"
+import StockOverview from "./stock-overview/StockOverview.vue"
 export {
     IndexTradeHistory, StockTradeHistory, Sector, StockConcept, StockConceptDetail, Investment,
-    Fund, MainBusiness, LimitUp, StockSearch, TestUi, StockChart
+    Fund, MainBusiness, LimitUp, StockSearch, TestUi, StockChart, StockOverview
 }

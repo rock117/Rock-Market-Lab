@@ -51,7 +51,7 @@
               >
 
               <el-menu-item index="1-investment">投资组合</el-menu-item>
-              <el-menu-item index="1-stock">基准比较</el-menu-item>
+              <el-menu-item index="1-stock-bmk">基准比较</el-menu-item>
               <el-menu-item index="1-main-business">主营业务</el-menu-item>
               <el-menu-item index="1-limit-up">涨停板</el-menu-item>
             </el-sub-menu>
@@ -78,7 +78,7 @@
     </div>
     <div class="right">
       <IndexTradeHistory v-if="viewType == 'index'" />
-      <StockTradeHistory v-if="viewType == 'stock'" />
+      <StockOverview v-if="viewType == 'stock'" />
       <Sector v-if="viewType == 'sector'" />
       <StockConcept
         v-if="viewType == 'concept'"
@@ -117,6 +117,7 @@ import {
   StockConceptDetail,
   MainBusiness,
   LimitUp,
+  StockOverview,
   TestUi
 } from "@/components/index.js";
 import Investment from "./components/investment/Investment.vue";

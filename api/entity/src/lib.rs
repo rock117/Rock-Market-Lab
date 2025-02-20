@@ -3,6 +3,7 @@
 pub mod prelude;
 
 pub mod balancesheet;
+pub mod cache_data;
 pub mod cashflow;
 pub mod finance_indicator;
 pub mod finance_main_business;
@@ -23,4 +24,3 @@ pub mod stock_holder_number;
 pub mod stock_holder_trade;
 pub mod stock_margin_detail;
 pub mod trade_calendar;
-pub use sea_orm;

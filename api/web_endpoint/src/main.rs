@@ -28,6 +28,8 @@ mod resource;
 mod template;
 mod controller;
 mod domain;
+mod response;
+mod request;
 
 #[tokio::main]
 async fn main1() -> anyhow::Result<()> {
