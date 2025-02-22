@@ -24,3 +24,4 @@ pub mod stock_holder_number;
 pub mod stock_holder_trade;
 pub mod stock_margin_detail;
 pub mod trade_calendar;
+pub use sea_orm;

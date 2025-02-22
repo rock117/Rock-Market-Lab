@@ -7,8 +7,9 @@
     :size="size"
   />
 
+ 
   <el-select
-    v-model="value10"
+    v-model="value"
     multiple
     clearable
     collapse-tags
@@ -27,12 +28,13 @@
       </el-checkbox>
     </template>
     <el-option
-      v-for="item in stockFields"
+      v-for="item in cities"
       :key="item.value"
       :label="item.label"
       :value="item.value"
     />
   </el-select>
+ 
 
   <el-select
     v-model="sectorType"
@@ -63,7 +65,7 @@
     <el-table-column sortable prop="low" label="最低" width="80" />
     <el-table-column sortable prop="high" label="最高" width="80" />
     <el-table-column  sortable="custom"   prop="amount" label="成交量(亿元)" width="150" />
-    <el-table-column sortable="custom"  prop="turnover_rate" label="换手率" width="100" />
+    <el-table-column v-if="fields['turnover_rate']" sortable="custom"  prop="turnover_rate" label="换手率" width="100" />
 
     <el-table-column  sortable="custom"  prop="pct_chg5" label="5日涨幅"  width="120" />
     <el-table-column sortable="custom"  prop="pct_chg10" label="10日涨幅" width="120"/>
@@ -98,7 +100,7 @@
 
 <script setup>
 // https://element-plus.org/zh-CN/component/autocomplete.html
-import { ref, provide, onMounted } from "vue";
+import { ref, provide, watch, onMounted } from "vue";
 import { Message, Document } from "@element-plus/icons-vue";
 import { getStockList, searchSecurity } from "@/service/index.js";
 import {
@@ -112,11 +114,66 @@ import * as dayjs from "dayjs";
 
 // 自定义下拉菜单的头部
 // https://element-plus.org/zh-CN/component/select.html
-
+const fields = ref({turnover_rate: false})
 const loading = ref(true);
 const tableData = ref([]);
 const date = ref(getDate());
-let allData = [];
+
+
+ 
+
+const checkAll = ref(false)
+const indeterminate = ref(false)
+const value = ref([])
+const cities = ref([
+  {
+    value: 'Beijing',
+    label: 'Beijing',
+  },
+  {
+    value: 'Shanghai',
+    label: 'Shanghai',
+  },
+  {
+    value: 'Nanjing',
+    label: 'Nanjing',
+  },
+  {
+    value: 'Chengdu',
+    label: 'Chengdu',
+  },
+  {
+    value: 'Shenzhen',
+    label: 'Shenzhen',
+  },
+  {
+    value: 'Guangzhou',
+    label: 'Guangzhou',
+  },
+])
+
+watch(value, (val) => {
+  if (val.length === 0) {
+    checkAll.value = false
+    indeterminate.value = false
+  } else if (val.length === cities.value.length) {
+    checkAll.value = true
+    indeterminate.value = false
+  } else {
+    indeterminate.value = true
+  }
+})
+
+const handleCheckAll = (val) => {
+  indeterminate.value = false
+  if (val) {
+    value.value = cities.value.map((_) => _.value)
+  } else {
+    value.value = []
+  }
+}
+
+
 const options = [
   {
     value: "industry",
@@ -170,7 +227,6 @@ const loadData = async () => {
   loading.value = true;
   try {
     let data = await getData();
-    allData = data;
     genTableData(data);
   } catch (e) {
     console.log("failed to getstock list", e);
@@ -245,6 +301,12 @@ const handlePageChange = (page) => {
 </script>
 
 <style scoped>
+.custom-header {
+  .el-checkbox {
+    display: flex;
+    height: unset;
+  }
+}
 .nav {
   cursor: pointer;
 }
