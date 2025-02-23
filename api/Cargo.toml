@@ -5,7 +5,7 @@ members = [
     "entity",
     "service",
     "schedule",
-    "ext_api", "mytmp"]
+    "ext_api"]
 [workspace.dependencies]
 anyhow = "1.0.70"
 serde_json = "1.0"
