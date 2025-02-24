@@ -61,7 +61,10 @@ async fn rocket() -> _ {
     });
     rocket::build()
         .manage(conn)
-        .mount("/", routes![stock_overview_controller::stock_overview])
+        .mount("/", routes![
+            stock_overview_controller::stock_overview,
+            stock_price_limitup_controller::stock_price_limitup,
+        ])
 }
 
 

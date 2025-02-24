@@ -25,6 +25,17 @@ pub async fn get_trade_calendar(day_num: u64, conn: &DatabaseConnection) -> anyh
     Ok(dates)
 }
 
+pub async fn get_current_trade_calendar(conn: &DatabaseConnection) -> anyhow::Result<trade_calendar::Model> {
+    let now = Local::now().date_naive().format("%Y%m%d").to_string();
+    let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
+        .filter(trade_calendar::Column::CalDate.lte(&now))
+        .filter(trade_calendar::Column::IsOpen.eq(1))
+        .order_by_desc(trade_calendar::Column::CalDate)
+        .all(conn)
+        .await?;
+    dates.first().cloned().ok_or(anyhow!("no current caldate"))
+}
+
 pub async fn get_year_begin_trade_calendar(conn: &DatabaseConnection) -> anyhow::Result<String> {
     let year_begin = NaiveDate::from_ymd_opt(Local::now().year(), 1, 1).unwrap().format("%Y%m%d").to_string();
     let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
