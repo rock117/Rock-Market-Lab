@@ -49,19 +49,20 @@ struct StasticInfo {
 
 pub async fn filter_continue_price_limit(past_ndays: u64, conn: &DatabaseConnection) -> anyhow::Result<LimitupStocks> {
     let mut cal_dates = trade_calendar_service::get_trade_calendar(past_ndays, conn).await?;
-    cal_dates[0].cal_date = "20250221".into();
-    let first_date = &cal_dates[0].cal_date;
+
+    let start_date = &cal_dates[cal_dates.len() - 1].cal_date;
+    let end_date = &cal_dates[0].cal_date;
+
     let stock_dailies: Vec<stock_daily::Model> = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TradeDate.eq(first_date))
+        .filter(stock_daily::Column::TradeDate.eq(end_date))
         .all(conn)
         .await?;
     let limitup_stocks = filter_price_limit_stocks(stock_dailies);
-    info!("limitup_stocks size: {:?}", limitup_stocks.len());
+    info!("past_ndays = {}, start_date = {}, end_date = {}", past_ndays, start_date, end_date);
 
-    let start_date = &cal_dates[cal_dates.len() - 1].cal_date;
     let mut results: Vec<LimitupStock> = vec![];
     for stock in &limitup_stocks {
-        let stock_dailies = get_stock_dailies(&stock.ts_code, start_date, first_date, conn).await?;
+        let stock_dailies = get_stock_dailies(&stock.ts_code, start_date, end_date, conn).await?;
         let limitup_num = get_price_limit_num_of_stock(&stock_dailies).await;
         if limitup_num.continue_limitup_days > 0 {
             let name = crate::stock::get_stock(&stock.ts_code, conn).await?.name.clone().unwrap_or("".into());
@@ -83,7 +84,7 @@ pub async fn filter_continue_price_limit(past_ndays: u64, conn: &DatabaseConnect
     let stocks = LimitupStocks {
         total: results.len(),
         start_date: start_date.clone(),
-        end_date: first_date.clone(),
+        end_date: end_date.clone(),
         stocks: results,
     };
     Ok(stocks)

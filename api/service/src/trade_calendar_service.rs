@@ -1,5 +1,5 @@
 use anyhow::anyhow;
-use chrono::{Datelike, Local, NaiveDate};
+use chrono::{Datelike, Local, NaiveDate, Timelike};
 use tracing::info;
 
 use entity::{stock_daily, trade_calendar};
@@ -14,15 +14,29 @@ use entity::sea_orm::QueryOrder;
 /// 获取过去 day_num 个交易日
 pub async fn get_trade_calendar(day_num: u64, conn: &DatabaseConnection) -> anyhow::Result<Vec<trade_calendar::Model>> {
     let now = Local::now().date_naive().format("%Y%m%d").to_string();
-    let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
+    let mut dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
         .filter(trade_calendar::Column::CalDate.lte(&now))
         .filter(trade_calendar::Column::IsOpen.eq(1))
         .order_by_desc(trade_calendar::Column::CalDate)
         .paginate(conn, day_num)
         .fetch_page(0)
         .await?;
-    info!("get_trade_calendar: required date_num: {}, actual date num: {}, begin date: {}, end date: {}", day_num, dates.len(), &dates[dates.len() - 1].cal_date, &dates[0].cal_date);
-    Ok(dates)
+    if is_today_updated() {
+        Ok(dates)
+    } else {
+        info!("today data is not updated, remove today from calendar");
+        dates.remove(0);
+        Ok(dates)
+    }
+}
+
+fn is_today_updated() -> bool {
+    let time = Local::now();
+    if time.hour() > 20 { // 8点后 数据才更新
+        true
+    } else {
+        false
+    }
 }
 
 pub async fn get_current_trade_calendar(conn: &DatabaseConnection) -> anyhow::Result<trade_calendar::Model> {

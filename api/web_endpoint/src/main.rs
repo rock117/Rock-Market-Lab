@@ -64,6 +64,7 @@ async fn rocket() -> _ {
         .mount("/", routes![
             stock_overview_controller::stock_overview,
             stock_price_limitup_controller::stock_price_limitup,
+            macd_stastic_controller::macd_stastic,
         ])
 }
 

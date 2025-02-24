@@ -16,3 +16,7 @@ pub async fn get_stock(ts_code: &str, conn: &DatabaseConnection) -> anyhow::Resu
     }
 }
 
+pub async fn get_stock_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<stock::Model>> {
+    stock::Entity::find().all(conn).await.map_err(|err| anyhow!("get stock list failed, error: {:?}", err))
+}
+

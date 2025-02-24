@@ -1,0 +1,1 @@
+pub mod macd_stastic_service;
