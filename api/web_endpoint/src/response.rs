@@ -13,4 +13,11 @@ impl<Data> WebResponse<Data> {
             success: true,
         }
     }
+
+    pub fn failed(data: Data) -> Self {
+        Self {
+            data,
+            success: false,
+        }
+    }
 }

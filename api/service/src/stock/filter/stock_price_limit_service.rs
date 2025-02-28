@@ -14,6 +14,8 @@ use entity::sea_orm::QueryOrder;
 use entity::sea_orm::QueryFilter;
 
 use common::finance::*;
+use common::finance::stock::InvestmentPrice;
+use crate::stock::filter::is_price_limitup;
 
 #[derive(Serialize, Debug)]
 pub struct LimitupStocks {
@@ -137,25 +139,6 @@ async fn get_price_limit_num_of_stock(stocks: &[stock_daily::Model]) -> StasticI
 
 fn filter_price_limit_stocks(stocks: Vec<stock_daily::Model>) -> Vec<stock_daily::Model> {
     stocks.into_iter().filter(|s| is_price_limitup(s)).collect()
-}
-
-fn is_price_limitup(stock: &stock_daily::Model) -> bool {
-    let tscode = &stock.ts_code;
-    let pct_chg = stock.pct_chg.map(|v| v.to_f64()).flatten().unwrap_or(0f64);
-    let limitup: f64 = if tscode.ends_with("BJ") {
-        30f64
-    } else if tscode.starts_with("688") {
-        20f64
-    } else if tscode.starts_with("300") {
-        20f64
-    } else {
-        10f64
-    };
-    let delta = pct_chg - limitup;
-    if stock.close == stock.high {
-        // info!("tscode: {}, pct_chg: {}, delta: {}, limitup:{}, close: {}, high: {}, limitup: {}", tscode, pct_chg, delta.abs(), limitup, stock.close , stock.high, delta.abs() < 0.01 && stock.close == stock.high);
-    }
-    delta.abs() < 0.01 && stock.close == stock.high
 }
 
 fn is_price_inc(stock: &stock_daily::Model) -> bool {

@@ -1,4 +1,5 @@
 mod correlation;
+pub mod stock;
 
 /// 计算移动平均线，如 5日线，10日线
 /// # Arguments

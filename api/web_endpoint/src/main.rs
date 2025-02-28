@@ -10,6 +10,8 @@ use crate::resource::AppState;
 use entity::sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use http::header::HeaderName;
 use rocket::{launch, routes, get};
+use rocket::catchers;
+
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::propagate_header::PropagateHeaderLayer;
 use tower_http::request_id::SetRequestIdLayer;
@@ -30,6 +32,7 @@ mod controller;
 mod domain;
 mod response;
 mod request;
+mod error_handlers;
 
 #[tokio::main]
 async fn main1() -> anyhow::Result<()> {
@@ -65,7 +68,9 @@ async fn rocket() -> _ {
             stock_overview_controller::stock_overview,
             stock_price_limitup_controller::stock_price_limitup,
             macd_stastic_controller::macd_stastic,
+            stock_bias_ratio_controller::get_bias_ratio,
         ])
+        .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }
 
 
