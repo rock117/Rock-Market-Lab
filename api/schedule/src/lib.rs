@@ -12,13 +12,13 @@ use crate::task::fetch_index_daily_task::FetchIndexDailyTask;
 use crate::task::fetch_index_monthly_task::FetchIndexMonthlyTask;
 use crate::task::fetch_index_task::FetchIndexTask;
 use crate::task::fetch_index_weekly_task::FetchIndexWeeklyTask;
-use crate::task::fetch_margin_trading_summary_task::FetchMarginTradingSummaryTask;
+use crate::task::fetch_margin_detail_task::FetchMarginDetailTask;
+use crate::task::fetch_margin_task::FetchMarginTask;
 use crate::task::fetch_moneyflow_task::FetchMoneyflowTask;
 use crate::task::fetch_stock_daily_basic_task::FetchStockDailyBasicTask;
 use crate::task::fetch_stock_daily_task::FetchStockDailyTask;
 use crate::task::fetch_stock_holder_number_task::FetchStockHolderNumberTask;
 use crate::task::fetch_stock_list_task::FetchStockListTask;
-use crate::task::fetch_stock_margin_detail_task::FetchStockMarginDetailTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::Task;
 
@@ -27,13 +27,18 @@ mod task;
 pub async fn start_schedule(conn: DatabaseConnection) -> Result<(), Box<dyn Error>> {
     let tasks = get_schedule_jobs(conn);
     for task in tasks {
-        tokio::spawn(async move {
-            let result = task.run().await;
-            if let Err(e) = result {
-                error!("Task executed failed: {:?}", e);
-            }
-        });
+        // tokio::spawn(async move {
+        //     let result = task.run().await;
+        //     if let Err(e) = result {
+        //         error!("Task executed failed: {:?}", e);
+        //     }
+        // });
+        let result = task.run().await;
+        if let Err(e) = result {
+            error!("Task executed failed: {:?}", e);
+        }
     }
+    info!("All tasks executed");
     Ok(())
 }
 
@@ -82,8 +87,10 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ];
     let dailys: Vec<Arc<dyn Task>> = vec![
-        Arc::new(FetchStockDailyTask::new(conn.clone())),
-        Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+        // Arc::new(FetchStockDailyTask::new(conn.clone())),
+        // Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+     //   Arc::new(FetchMarginTask::new(conn.clone())),
+        Arc::new(FetchMarginDetailTask::new(conn.clone())),
         //   Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
     ];
     jobs.extend(dailys);
