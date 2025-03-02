@@ -29,9 +29,9 @@
       >
         <el-option
           v-for="stock in stockList"
-          :key="stock.tsCode"
-          :label="`${stock.name} (${stock.tsCode})`"
-          :value="stock.tsCode"
+          :key="stock.ts_code"
+          :label="`${stock.name} (${stock.ts_code})`"
+          :value="stock.ts_code"
         />
       </el-select>
 
@@ -50,7 +50,7 @@
         :size="size"
       >
         <el-table-column prop="date" label="日期" width="120" sortable />
-        <el-table-column prop="tsCode" label="股票代码" width="120" />
+        <el-table-column prop="ts_code" label="股票代码" width="120" />
         <el-table-column prop="name" label="股票名称" width="120" />
         <el-table-column prop="price" label="价格" width="100" sortable>
           <template #default="scope">
@@ -72,6 +72,11 @@ import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
 import { searchStocks } from '@/mock/stockList.js'
 
+import {
+    searchSecurity,
+  } from "@/service/index.js";
+
+
 const dateRange = ref([])
 const selectedStocks = ref([])
 const displayMode = ref('table')
@@ -90,12 +95,15 @@ const handleSearch = async (query, callback) => {
     loading.value = true
     try {
       // 模拟异步请求延迟
-      await new Promise(resolve => setTimeout(resolve, 300))
-      stockList.value = searchStocks(query).map(item => ({
-        tsCode: item.ts_code,
-        name: item.name
-      }))
-      callback(stockList.value.map(item => ({ value: item.name })))
+      // await new Promise(resolve => setTimeout(resolve, 300))
+      // stockList.value = searchStocks(query).map(item => ({
+      //   ts_code: item.ts_code,
+      //   name: item.name
+      // }))
+      let stocks = await searchSecurity(query)
+      stockList.value = stocks.data   
+
+   //   callback(stockList.value.map(item => ({ value: item.name })))
     } catch (error) {
       console.error('搜索股票失败:', error)
     } finally {
@@ -103,7 +111,7 @@ const handleSearch = async (query, callback) => {
     }
   } else {
     stockList.value = []
-    callback([])
+  //  callback([])
   }
 }
 
@@ -121,10 +129,10 @@ const initChart = () => {
 const updateChart = () => {
   if (!chart || !stockData.value.length) return
 
-  const series = selectedStocks.value.map(tsCode => {
-    const stockInfo = stockList.value.find(s => s.tsCode === tsCode)
+  const series = selectedStocks.value.map(ts_code => {
+    const stockInfo = stockList.value.find(s => s.ts_code === ts_code)
     const data = stockData.value
-      .filter(item => item.tsCode === tsCode)
+      .filter(item => item.ts_code === ts_code)
       .map(item => [item.date, item.price])
     
     return {
@@ -146,8 +154,8 @@ const updateChart = () => {
       }
     },
     legend: {
-      data: selectedStocks.value.map(tsCode => 
-        stockList.value.find(s => s.tsCode === tsCode).name
+      data: selectedStocks.value.map(ts_code => 
+        stockList.value.find(s => s.ts_code === ts_code).name
       )
     },
     grid: {
@@ -202,15 +210,15 @@ const loadStockData = async () => {
   
 
   
-    selectedStocks.value.forEach(tsCode => {
-      const stock = stockList.value.find(s => s.tsCode === tsCode)
-      const baseStockPrice = basePrice[tsCode]
+    selectedStocks.value.forEach(ts_code => {
+      const stock = stockList.value.find(s => s.ts_code === ts_code)
+      const baseStockPrice = basePrice[ts_code]
       // 生成一个基于基础价格上下10%范围内的随机价格
       const randomFactor = 0.9 + Math.random() * 0.2 // 0.9 到 1.1 之间的随机数
       const price = +(baseStockPrice * randomFactor).toFixed(2)
       
       mockData.push({
-        tsCode,
+        ts_code,
         name: stock.name,
         price,
         date: getRandomDate()
