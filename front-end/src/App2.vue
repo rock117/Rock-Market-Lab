@@ -92,6 +92,7 @@
       <Fund v-if="viewType == 'fund'" @selected:fund="handleFundClick" />
       <FundHolding v-if="viewType == 'fund-holding'" :fundCode="fundCode" />
       <MainBusiness v-if="viewType == 'main-business'" />
+      <StockCompare v-if="viewType == 'stock-compare'" />
       <LimitUp v-if="viewType == 'limit-up'" />
       <TestUi v-if="viewType == 'test'" />
     </div>
@@ -118,7 +119,8 @@ import {
   MainBusiness,
   LimitUp,
   StockOverview,
-  TestUi
+  TestUi,
+  StockCompare
 } from "@/components/index.js";
 import Investment from "./components/investment/Investment.vue";
 import Fund from "./components/fund/fund.vue";
@@ -135,6 +137,7 @@ const viewType = ref("stock"); //
 const indexViewMapping = {
   "1-index": "index",
   "1-stock": "stock",
+  "1-stock-compare": "stock-compare",
   "1-sector": "sector",
   "1-concept": "concept",
   "1-investment": "investment",
