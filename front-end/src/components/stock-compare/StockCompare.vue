@@ -168,14 +168,15 @@ const loadStockData = async () => {
   
   // 生成模拟数据
   const mockData = []
-  const currentDate = new Date(startDate)
+  const currentDate = new Date()
   const basePrice = {
     '600001.SH': 14.3,
     '600002.SH': 18.5,
     '600003.SH': 22.1
   }
   
-  while (currentDate <= endDate) {
+
+  
     selectedStocks.value.forEach(tsCode => {
       const stock = stockList.value.find(s => s.tsCode === tsCode)
       const baseStockPrice = basePrice[tsCode]
@@ -187,11 +188,10 @@ const loadStockData = async () => {
         tsCode,
         name: stock.name,
         price,
-        date: currentDate.toISOString().split('T')[0]
+        date: getRandomDate()
       })
     })
-    currentDate.setDate(currentDate.getDate() + 1)
-  }
+  
   
   stockData.value = mockData
   
@@ -236,6 +236,30 @@ const handleResize = () => {
     chart.resize()
   }
 }
+
+const getRandomDate = () => {
+  // 定义起始日期和结束日期
+const startDate = new Date('2020-01-01');
+const endDate = new Date('2024-01-01');
+
+// 计算起始日期和结束日期的时间戳（毫秒数）
+const startTimestamp = startDate.getTime();
+const endTimestamp = endDate.getTime();
+
+// 生成一个随机的时间戳
+const randomTimestamp = startTimestamp + Math.random() * (endTimestamp - startTimestamp);
+
+// 将随机时间戳转换为日期对象
+const randomDate = new Date(randomTimestamp);
+
+// 格式化日期为 YYYY-MM-DD
+const formattedDate = randomDate.toISOString().split('T')[0];
+
+// 输出结果
+return  formattedDate
+}
+
+
 </script>
 
 <style scoped>
