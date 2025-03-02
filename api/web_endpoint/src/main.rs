@@ -69,6 +69,7 @@ async fn rocket() -> _ {
             stock_price_limitup_controller::stock_price_limitup,
             macd_stastic_controller::macd_stastic,
             stock_bias_ratio_controller::get_bias_ratio,
+            stock_search_controller::search_stock,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

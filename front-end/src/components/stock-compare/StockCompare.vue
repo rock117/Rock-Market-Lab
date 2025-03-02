@@ -11,16 +11,19 @@
         @change="handleDateChange"
         :size="size"
       />
-      
+ 
       <el-select
         v-model="selectedStocks"
         multiple
         filterable
+        remote
+        :remote-method="handleSearch"
+        :loading="loading"
         clearable
         collapse-tags
         :max-collapse-tags="1"
         collapse-tags-tooltip
-        placeholder="请选择股票"
+        placeholder="请输入股票代码或名称搜索"
         style="width: 300px; margin-left: 16px"
         :size="size"
       >
@@ -33,8 +36,8 @@
       </el-select>
 
       <el-radio-group v-model="displayMode" style="margin-left: 16px" :size="size">
-        <el-radio-button label="table">表格模式</el-radio-button>
-        <el-radio-button label="chart">图表模式</el-radio-button>
+        <el-radio-button label="table">table</el-radio-button>
+        <el-radio-button label="chart">chart</el-radio-button>
       </el-radio-group>
     </div>
 
@@ -67,6 +70,7 @@
 <script setup>
 import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
 import * as echarts from 'echarts'
+import { searchStocks } from '@/mock/stockList.js'
 
 const dateRange = ref([])
 const selectedStocks = ref([])
@@ -75,12 +79,33 @@ const chartRef = ref(null)
 const size = ref('default')
 let chart = null
 
-// 模拟数据，实际使用时需要替换为真实的API调用
-const stockList = ref([
-  { tsCode: '600001.SH', name: '浦发银行', price: 14.3, date: '2020-05-06' },
-  { tsCode: '600002.SH', name: '齐鲁石化', price: 18.5, date: '2020-05-06' },
-  { tsCode: '600003.SH', name: '上海机电', price: 22.1, date: '2020-05-06' },
-])
+// 股票列表数据
+const stockList = ref([])
+const loading = ref(false)
+
+// 搜索股票
+const searchQuery = ref('')
+const handleSearch = async (query, callback) => {
+  if (query) {
+    loading.value = true
+    try {
+      // 模拟异步请求延迟
+      await new Promise(resolve => setTimeout(resolve, 300))
+      stockList.value = searchStocks(query).map(item => ({
+        tsCode: item.ts_code,
+        name: item.name
+      }))
+      callback(stockList.value.map(item => ({ value: item.name })))
+    } catch (error) {
+      console.error('搜索股票失败:', error)
+    } finally {
+      loading.value = false
+    }
+  } else {
+    stockList.value = []
+    callback([])
+  }
+}
 
 const stockData = ref([])
 
