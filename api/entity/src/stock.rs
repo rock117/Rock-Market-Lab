@@ -31,6 +31,7 @@ pub struct Model {
     pub is_hs: Option<String>,
     pub act_name: Option<String>,
     pub act_ent_type: Option<String>,
+    pub name_py: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -52,6 +53,7 @@ pub enum Column {
     IsHs,
     ActName,
     ActEntType,
+    NamePy,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -90,6 +92,7 @@ impl ColumnTrait for Column {
             Self::IsHs => ColumnType::String(StringLen::N(10u32)).def().null(),
             Self::ActName => ColumnType::String(StringLen::N(20u32)).def().null(),
             Self::ActEntType => ColumnType::String(StringLen::N(20u32)).def().null(),
+            Self::NamePy => ColumnType::String(StringLen::N(25u32)).def().null(),
         }
     }
 }

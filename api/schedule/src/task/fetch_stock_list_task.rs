@@ -24,13 +24,17 @@ impl Task for FetchStockListTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let stocks = tushare::stock_basic().await?;
+        let mut stocks = tushare::stock_basic().await?;
         let tx = self.0.begin().await?;
         let total = stocks.len();
         let mut curr = 0;
-        for stock_m in stocks {
+        for mut stock_m in stocks {
             let ts_code = stock_m.ts_code.clone();
             let old_res = stock::Entity::find_by_id(&ts_code).one(&self.0).await;
+            if let Some(ref name) = stock_m.name {
+                stock_m.name_py = Some(common::get_security_pinyin(name));
+            }
+            info!("name_py = {:?}, name = {:?}", stock_m.name_py, stock_m.name_py);
             if let Ok(None) = old_res {
                 let res = stock::ActiveModel { ..stock_m.clone().into() }.insert(&self.0).await;
                 if res.is_err() {

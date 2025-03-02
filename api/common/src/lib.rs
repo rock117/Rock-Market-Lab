@@ -15,6 +15,7 @@ mod pickup;
 pub mod config;
 pub mod cache;
 pub mod paging;
+mod security_name;
 
 use anyhow::{anyhow, bail};
 pub use data_type::SingleElement;
@@ -26,6 +27,7 @@ use derive_more::Display;
 use serde::Serialize;
 
 use strum_macros::EnumString;
+pub use security_name::get_security_pinyin;
 
 static PY_API: &'static str = "http://localhost:18091/api/pinyin";
 

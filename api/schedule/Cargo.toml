@@ -7,6 +7,7 @@ edition = "2024"
 ext_api = { path = "../ext_api" }
 entity = { path = "../entity" }
 service = { path = "../service" }
+common = { path = "../common" }
 
 tokio-cron-scheduler = "0.13.0"
 chrono = "0.4.38"
