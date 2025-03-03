@@ -55,6 +55,10 @@ const findConsecutiveLimitupStocks = async (days) => {
 }
 
 
+const getStockPrice = async (tsCode, start, end) => {
+    return (await http.get(`/api/stocks/price?ts_code=${tsCode}&start=${start}&end=${end}`)).data
+}
+
 export {
     getStockList,
     getStockDaily,
@@ -66,5 +70,6 @@ export {
     getInvestments,
     getFunds,
     getFundHoldings,
-    findConsecutiveLimitupStocks
+    findConsecutiveLimitupStocks,
+    getStockPrice
 }

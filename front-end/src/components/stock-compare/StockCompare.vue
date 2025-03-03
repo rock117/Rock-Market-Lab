@@ -2,37 +2,13 @@
   <div class="stock-price-chart">
     <!-- 控制区域 -->
     <div class="controls">
-      <el-date-picker
-        v-model="dateRange"
-        type="daterange"
-        range-separator="至"
-        start-placeholder="开始日期"
-        end-placeholder="结束日期"
-        @change="handleDateChange"
-        :size="size"
-      />
- 
-      <el-select
-        v-model="selectedStocks"
-        multiple
-        filterable
-        remote
-        :remote-method="handleSearch"
-        :loading="loading"
-        clearable
-        collapse-tags
-        :max-collapse-tags="1"
-        collapse-tags-tooltip
-        placeholder="请输入股票代码或名称搜索"
-        style="width: 300px; margin-left: 16px"
-        :size="size"
-      >
-        <el-option
-          v-for="stock in stockList"
-          :key="stock.ts_code"
-          :label="`${stock.name} (${stock.ts_code})`"
-          :value="stock.ts_code"
-        />
+      <el-date-picker v-model="startDate" type="date" :size="size" value-format="YYYY-MM-DD" />
+      <el-date-picker v-model="endDate" type="date" :size="size" value-format="YYYY-MM-DD" />
+      <el-select v-model="selectedStocks" multiple filterable remote :remote-method="handleSearch" :loading="loading"
+        clearable collapse-tags :max-collapse-tags="1" collapse-tags-tooltip placeholder="请输入股票代码或名称搜索"
+        style="width: 300px; margin-left: 16px" :size="size">
+        <el-option v-for="stock in stockList" :key="stock.ts_code" :label="`${stock.name} (${stock.ts_code})`"
+          :value="stock.ts_code" />
       </el-select>
 
       <el-radio-group v-model="displayMode" style="margin-left: 16px" :size="size">
@@ -43,12 +19,7 @@
 
     <!-- 表格视图 -->
     <div v-if="displayMode === 'table'" class="table-container">
-      <el-table 
-        :data="stockData" 
-        style="width: 100%" 
-        border
-        :size="size"
-      >
+      <el-table :data="stockData" style="width: 100%" border :size="size">
         <el-table-column prop="date" label="日期" width="120" sortable />
         <el-table-column prop="ts_code" label="股票代码" width="120" />
         <el-table-column prop="name" label="股票名称" width="120" />
@@ -68,16 +39,20 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
-import * as echarts from 'echarts'
-import { searchStocks } from '@/mock/stockList.js'
+import * as echarts from 'echarts';
+import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
+import dayjs from 'dayjs';
 
 import {
-    searchSecurity,
-  } from "@/service/index.js";
+  searchSecurity, getStockPrice
+} from "@/service/index.js";
 
 
-const dateRange = ref([])
+// 初始化日期：结束日期为今天，开始日期为5天前
+const today = dayjs()
+const startDate = ref(today.subtract(5, 'day').format('YYYY-MM-DD'))
+const endDate = ref(today.format('YYYY-MM-DD'))
+
 const selectedStocks = ref([])
 const displayMode = ref('table')
 const chartRef = ref(null)
@@ -89,21 +64,12 @@ const stockList = ref([])
 const loading = ref(false)
 
 // 搜索股票
-const searchQuery = ref('')
-const handleSearch = async (query, callback) => {
+const handleSearch = async (query) => {
   if (query) {
     loading.value = true
     try {
-      // 模拟异步请求延迟
-      // await new Promise(resolve => setTimeout(resolve, 300))
-      // stockList.value = searchStocks(query).map(item => ({
-      //   ts_code: item.ts_code,
-      //   name: item.name
-      // }))
       let stocks = await searchSecurity(query)
-      stockList.value = stocks.data   
-
-   //   callback(stockList.value.map(item => ({ value: item.name })))
+      stockList.value = stocks.data
     } catch (error) {
       console.error('搜索股票失败:', error)
     } finally {
@@ -111,7 +77,6 @@ const handleSearch = async (query, callback) => {
     }
   } else {
     stockList.value = []
-  //  callback([])
   }
 }
 
@@ -134,7 +99,7 @@ const updateChart = () => {
     const data = stockData.value
       .filter(item => item.ts_code === ts_code)
       .map(item => [item.date, item.price])
-    
+
     return {
       name: stockInfo.name,
       type: 'line',
@@ -154,7 +119,7 @@ const updateChart = () => {
       }
     },
     legend: {
-      data: selectedStocks.value.map(ts_code => 
+      data: selectedStocks.value.map(ts_code =>
         stockList.value.find(s => s.ts_code === ts_code).name
       )
     },
@@ -183,51 +148,26 @@ const updateChart = () => {
 
 // 处理日期变化
 const handleDateChange = () => {
-  if (dateRange.value && selectedStocks.value.length > 0) {
+  if (startDate.value && endDate.value && selectedStocks.value.length > 0) {
     loadStockData()
   }
 }
 
 // 加载股票数据
 const loadStockData = async () => {
-  if (!dateRange.value || !selectedStocks.value.length) {
+  if (!startDate.value || !endDate.value || !selectedStocks.value.length) {
     stockData.value = []
     return
   }
 
-  // 这里需要实现从后端API获取数据的逻辑
-  // 临时使用模拟数据
-  const [startDate, endDate] = dateRange.value
-  
-  // 生成模拟数据
   const mockData = []
-  const currentDate = new Date()
-  const basePrice = {
-    '600001.SH': 14.3,
-    '600002.SH': 18.5,
-    '600003.SH': 22.1
+  for (const ts_code of selectedStocks.value) {
+    let data = await getStockPrice(ts_code, startDate.value, endDate.value)
+    console.log("data = ", data)
   }
-  
-
-  
-    selectedStocks.value.forEach(ts_code => {
-      const stock = stockList.value.find(s => s.ts_code === ts_code)
-      const baseStockPrice = basePrice[ts_code]
-      // 生成一个基于基础价格上下10%范围内的随机价格
-      const randomFactor = 0.9 + Math.random() * 0.2 // 0.9 到 1.1 之间的随机数
-      const price = +(baseStockPrice * randomFactor).toFixed(2)
-      
-      mockData.push({
-        ts_code,
-        name: stock.name,
-        price,
-        date: getRandomDate()
-      })
-    })
-  
-  
+   
   stockData.value = mockData
-  
+
   if (displayMode.value === 'chart') {
     nextTick(() => {
       updateChart()
@@ -236,8 +176,8 @@ const loadStockData = async () => {
 }
 
 // 监听选中股票和日期范围变化
-watch([selectedStocks, dateRange], ([newStocks, newDateRange], [oldStocks, oldDateRange]) => {
-  if (newStocks?.length > 0 && newDateRange) {
+watch([selectedStocks, startDate, endDate], ([newStocks, newStartDate, newEndDate]) => {
+  if (newStocks?.length > 0 && newStartDate && newEndDate) {
     loadStockData()
   }
 }, { deep: true })
@@ -269,30 +209,6 @@ const handleResize = () => {
     chart.resize()
   }
 }
-
-const getRandomDate = () => {
-  // 定义起始日期和结束日期
-const startDate = new Date('2020-01-01');
-const endDate = new Date('2024-01-01');
-
-// 计算起始日期和结束日期的时间戳（毫秒数）
-const startTimestamp = startDate.getTime();
-const endTimestamp = endDate.getTime();
-
-// 生成一个随机的时间戳
-const randomTimestamp = startTimestamp + Math.random() * (endTimestamp - startTimestamp);
-
-// 将随机时间戳转换为日期对象
-const randomDate = new Date(randomTimestamp);
-
-// 格式化日期为 YYYY-MM-DD
-const formattedDate = randomDate.toISOString().split('T')[0];
-
-// 输出结果
-return  formattedDate
-}
-
-
 </script>
 
 <style scoped>
