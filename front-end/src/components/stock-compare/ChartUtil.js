@@ -15,7 +15,7 @@ const buildChartOption = (tsCodes, stocksNames, stocksPrices) => {
             trigger: 'axis'
         },
         legend: {
-            data: tsCodes.map(tscode => stocksNames[tscode])
+            data: tsCodes.map(tscode => stocksNames[tscode].name)
         },
         grid: {
             left: '3%',
@@ -44,7 +44,7 @@ const buildChartOption = (tsCodes, stocksNames, stocksPrices) => {
 const createSeries = (tsCodes, stocksNames, stocksPrices) => {
     const series = tsCodes.map((tscode) => {
         return {
-            name: stocksNames[tscode],
+            name: stocksNames[tscode].name,
             type: 'line',
             stack: 'Total',
             data: stocksPrices[tscode].map(v => v.close)

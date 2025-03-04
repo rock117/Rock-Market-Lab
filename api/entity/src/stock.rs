@@ -90,7 +90,7 @@ impl ColumnTrait for Column {
             Self::ListDate => ColumnType::String(StringLen::N(15u32)).def().null(),
             Self::DelistDate => ColumnType::String(StringLen::N(10u32)).def().null(),
             Self::IsHs => ColumnType::String(StringLen::N(10u32)).def().null(),
-            Self::ActName => ColumnType::String(StringLen::N(20u32)).def().null(),
+            Self::ActName => ColumnType::String(StringLen::N(120u32)).def().null(),
             Self::ActEntType => ColumnType::String(StringLen::N(20u32)).def().null(),
             Self::NamePy => ColumnType::String(StringLen::N(25u32)).def().null(),
         }

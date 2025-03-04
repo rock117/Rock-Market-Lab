@@ -66,7 +66,7 @@ const handleSearch = async (query) => {
 
 const initStockName = () => {
   for (const stock of stockList.value) {
-    stocksNames.value[stock.ts_code] = stock.name
+    stocksNames.value[stock.ts_code] = stock
   }
 }
  
@@ -104,7 +104,8 @@ const loadStockData = async () => {
   }
 
   for (const ts_code of selectedStocks.value) {
-    let data = await getStockPrice(ts_code, startDate.value, endDate.value)
+    let type = stocksNames.value[ts_code].type
+    let data = await getStockPrice(type, ts_code, startDate.value, endDate.value)
     data.data.sort((a, b) => a.trade_date.localeCompare(b.trade_date))
     stocksPrices.value[ts_code] = data.data
   }

@@ -27,6 +27,7 @@ pub struct Model {
     pub weight_rule: Option<String>,
     pub desc: Option<String>,
     pub exp_date: Option<String>,
+    pub name_py: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -44,6 +45,7 @@ pub enum Column {
     WeightRule,
     Desc,
     ExpDate,
+    NamePy,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -78,6 +80,7 @@ impl ColumnTrait for Column {
             Self::WeightRule => ColumnType::String(StringLen::N(45u32)).def().null(),
             Self::Desc => ColumnType::String(StringLen::N(2500u32)).def().null(),
             Self::ExpDate => ColumnType::String(StringLen::N(15u32)).def().null(),
+            Self::NamePy => ColumnType::String(StringLen::N(100u32)).def().null(),
         }
     }
 }

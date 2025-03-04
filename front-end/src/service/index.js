@@ -15,8 +15,7 @@ const getTradeStastics = async (start, end, date_type) => {
 }
 
 const searchSecurity = async (code) => {
-    // /api/stocks/search?keyword=pa
-    return (await http.get(`/api/stocks/search?keyword=${code}`)).data
+    return (await http.get(`/api/securities/search?keyword=${code}`)).data
 }
 
 
@@ -55,8 +54,8 @@ const findConsecutiveLimitupStocks = async (days) => {
 }
 
 
-const getStockPrice = async (tsCode, start, end) => {
-    return (await http.get(`/api/stocks/price?ts_code=${tsCode}&start=${start}&end=${end}`)).data
+const getStockPrice = async (type, tsCode, start, end) => {
+    return (await http.get(`/api/securities/price?type=${type}&ts_code=${tsCode}&start=${start}&end=${end}`)).data
 }
 
 export {

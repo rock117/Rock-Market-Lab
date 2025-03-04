@@ -39,7 +39,7 @@ impl Task for FetchIndexDailyTask {
             for index_daily in index_dailys {
                 let res = entity::index_daily::ActiveModel { ..index_daily.clone().into() }.insert(&self.0).await;
                 if let Err(err) = res {
-                    error!("insert index daily failed, ts_code: {}, end_date: {}, error: {:?}, data: {:?}", index.ts_code, end_date, err, index_daily);
+                  //  error!("insert index daily failed, ts_code: {}, end_date: {}, error: {:?}, data: {:?}", index.ts_code, end_date, err, index_daily);
                 }
             }
             tx.commit().await?;

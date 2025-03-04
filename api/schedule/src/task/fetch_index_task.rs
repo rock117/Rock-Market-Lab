@@ -23,8 +23,9 @@ impl Task for FetchIndexTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let indexes = index_basic().await?;
-        for index in indexes  {
+        let mut indexes = index_basic().await?;
+        for mut index in indexes  {
+            index.name_py = index.name.as_ref().map(|name| common::get_security_pinyin(&name));
             let res = index::ActiveModel { ..index.clone().into() }.insert(&self.0).await;
             if let Err(err) = res {
                 error!("insert index failed, error: {:?}", err);
