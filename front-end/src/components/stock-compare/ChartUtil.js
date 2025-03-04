@@ -1,3 +1,4 @@
+import * as NormalizeUtil from './NormalizeUtil.js';
 /**
  * 
  * @param {*} tsCodes ["000001.SZ"]
@@ -47,7 +48,7 @@ const createSeries = (tsCodes, stocksNames, stocksPrices) => {
             name: stocksNames[tscode].name,
             type: 'line',
             stack: 'Total',
-            data: stocksPrices[tscode].map(v => v.close)
+            data: NormalizeUtil.normalize(stocksPrices[tscode].map(v => v.close))
         }
     })
     return series

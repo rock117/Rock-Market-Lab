@@ -3,7 +3,7 @@ use anyhow::anyhow;
 use derive_more::Display;
 use serde::Serialize;
 use entity::sea_orm::prelude::Decimal;
-use entity::{index_daily, stock_daily};
+use entity::{index_daily, index_monthly, stock_daily};
 use crate::security::SecurityType::Stock;
 pub mod security_search_service;
 pub mod security_daily_service;
@@ -38,6 +38,9 @@ pub struct SecurityDaily {
     pub amount: Option<Decimal>,
 }
 
+pub type SecurityMonthly = SecurityDaily;
+
+
 impl SecurityDaily {
     pub fn from_stock_daily(data: stock_daily::Model) -> SecurityDaily {
         SecurityDaily {
@@ -56,6 +59,22 @@ impl SecurityDaily {
     }
 
     pub fn from_index_daily(data: index_daily::Model) -> SecurityDaily {
+        SecurityDaily {
+            ts_code: data.ts_code,
+            trade_date: data.trade_date,
+            open: data.open,
+            high: data.high,
+            low: data.low,
+            close: data.close,
+            pre_close: data.pre_close,
+            change: data.change,
+            pct_chg: data.pct_chg,
+            vol: data.vol,
+            amount: data.amount,
+        }
+    }
+
+    pub fn from_index_monthly(data: index_monthly::Model) -> SecurityDaily {
         SecurityDaily {
             ts_code: data.ts_code,
             trade_date: data.trade_date,

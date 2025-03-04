@@ -11,7 +11,7 @@ use crate::security::{SecurityMonthly, SecurityType};
 pub async fn get_security_monthly_by_years(r#type: SecurityType, ts_code: &str, years: Vec<u32>, conn: &DatabaseConnection) -> anyhow::Result<HashMap<u32, Vec<SecurityMonthly>>> {
     let mut all = HashMap::new();
     for year in years {
-        let (start, end) = get_year_begin_end(year)?;
+        let (start, end) = get_year_begin_end(years[0])?;
         let start = start.format("%Y%m%d").to_string();
         let end = end.format("%Y%m%d").to_string();
         let datas = match r#type {

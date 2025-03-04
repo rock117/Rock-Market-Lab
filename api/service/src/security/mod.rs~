@@ -5,7 +5,6 @@ use serde::Serialize;
 use entity::sea_orm::prelude::Decimal;
 use entity::{index_daily, stock_daily};
 use crate::security::SecurityType::Stock;
-
 pub mod security_search_service;
 pub mod security_daily_service;
 mod security_monthly_service;
@@ -38,6 +37,9 @@ pub struct SecurityDaily {
     pub vol: Option<Decimal>,
     pub amount: Option<Decimal>,
 }
+
+pub type SecurityMonthly = SecurityDaily;
+
 
 impl SecurityDaily {
     pub fn from_stock_daily(data: stock_daily::Model) -> SecurityDaily {
