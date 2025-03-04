@@ -11,28 +11,10 @@
           :value="stock.ts_code" />
       </el-select>
 
-      <el-radio-group v-model="displayMode" style="margin-left: 16px" :size="size">
-        <el-radio-button label="table">table</el-radio-button>
-        <el-radio-button label="chart">chart</el-radio-button>
-      </el-radio-group>
-    </div>
-
-    <!-- 表格视图 -->
-    <div v-if="displayMode === 'table'" class="table-container">
-      <el-table :data="stockData" style="width: 100%" border :size="size">
-        <el-table-column prop="date" label="日期" width="120" sortable />
-        <el-table-column prop="ts_code" label="股票代码" width="120" />
-        <el-table-column prop="name" label="股票名称" width="120" />
-        <el-table-column prop="price" label="价格" width="100" sortable>
-          <template #default="scope">
-            {{ scope.row.price.toFixed(2) }}
-          </template>
-        </el-table-column>
-      </el-table>
     </div>
 
     <!-- 图表视图 -->
-    <div v-else class="chart-container">
+    <div class="chart-container">
       <div ref="chartRef" style="width: 100%; height: 600px"></div>
     </div>
   </div>
@@ -42,6 +24,7 @@
 import * as echarts from 'echarts';
 import { nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import dayjs from 'dayjs';
+import * as ChartUtil from './ChartUtil.js';
 
 import {
   searchSecurity, getStockPrice
@@ -54,7 +37,6 @@ const startDate = ref(today.subtract(5, 'day').format('YYYY-MM-DD'))
 const endDate = ref(today.format('YYYY-MM-DD'))
 
 const selectedStocks = ref([])
-const displayMode = ref('table')
 const chartRef = ref(null)
 const size = ref('default')
 let chart = null
@@ -62,7 +44,8 @@ let chart = null
 // 股票列表数据
 const stockList = ref([])
 const loading = ref(false)
-
+const stocksPrices = ref({})
+const stocksNames = ref({})
 // 搜索股票
 const handleSearch = async (query) => {
   if (query) {
@@ -70,6 +53,7 @@ const handleSearch = async (query) => {
     try {
       let stocks = await searchSecurity(query)
       stockList.value = stocks.data
+      initStockName()
     } catch (error) {
       console.error('搜索股票失败:', error)
     } finally {
@@ -80,7 +64,12 @@ const handleSearch = async (query) => {
   }
 }
 
-const stockData = ref([])
+const initStockName = () => {
+  for (const stock of stockList.value) {
+    stocksNames.value[stock.ts_code] = stock.name
+  }
+}
+ 
 
 // 初始化图表
 const initChart = () => {
@@ -92,57 +81,11 @@ const initChart = () => {
 
 // 更新图表数据
 const updateChart = () => {
-  if (!chart || !stockData.value.length) return
-
-  const series = selectedStocks.value.map(ts_code => {
-    const stockInfo = stockList.value.find(s => s.ts_code === ts_code)
-    const data = stockData.value
-      .filter(item => item.ts_code === ts_code)
-      .map(item => [item.date, item.price])
-
-    return {
-      name: stockInfo.name,
-      type: 'line',
-      data: data,
-      showSymbol: false,
-    }
-  })
-
-  const option = {
-    title: {
-      text: '股票价格走势'
-    },
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      }
-    },
-    legend: {
-      data: selectedStocks.value.map(ts_code =>
-        stockList.value.find(s => s.ts_code === ts_code).name
-      )
-    },
-    grid: {
-      left: '3%',
-      right: '4%',
-      bottom: '3%',
-      containLabel: true
-    },
-    xAxis: {
-      type: 'time',
-      boundaryGap: false
-    },
-    yAxis: {
-      type: 'value',
-      scale: true,
-      splitLine: {
-        show: true
-      }
-    },
-    series
+  if (!chart) {
+    return
   }
 
+  const option = ChartUtil.buildChartOption(selectedStocks.value, stocksNames.value, stocksPrices.value)
   chart.setOption(option)
 }
 
@@ -160,19 +103,15 @@ const loadStockData = async () => {
     return
   }
 
-  const mockData = []
   for (const ts_code of selectedStocks.value) {
     let data = await getStockPrice(ts_code, startDate.value, endDate.value)
-    console.log("data = ", data)
+    data.data.sort((a, b) => a.trade_date.localeCompare(b.trade_date))
+    stocksPrices.value[ts_code] = data.data
   }
-   
-  stockData.value = mockData
 
-  if (displayMode.value === 'chart') {
-    nextTick(() => {
-      updateChart()
-    })
-  }
+  nextTick(() => {
+    updateChart()
+  })
 }
 
 // 监听选中股票和日期范围变化
@@ -182,17 +121,10 @@ watch([selectedStocks, startDate, endDate], ([newStocks, newStartDate, newEndDat
   }
 }, { deep: true })
 
-// 监听显示模式变化
-watch(displayMode, (newMode) => {
-  if (newMode === 'chart' && stockData.value.length > 0) {
-    nextTick(() => {
-      initChart()
-      updateChart()
-    })
-  }
-})
+
 
 onMounted(() => {
+  initChart()
   window.addEventListener('resize', handleResize)
 })
 

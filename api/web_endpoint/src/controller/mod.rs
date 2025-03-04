@@ -6,3 +6,4 @@ pub mod stock_bias_ratio_controller;
 pub mod stock_search_controller;
 mod filter;
 pub mod stock_price_controller;
+mod stock_compare_controller;
