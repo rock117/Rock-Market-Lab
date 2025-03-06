@@ -12,8 +12,21 @@ import TestUi from "./TestUi.vue"
 import StockChart from "./chart/chart.vue"
 import StockOverview from "./stock-overview/StockOverview.vue"
 import StockCompare from "./stock-compare/StockCompare.vue"
-
+import HistoryCompare from "./stock-compare/history-compare/HistoryCompare.vue"
 export {
-    IndexTradeHistory, StockTradeHistory, Sector, StockConcept, StockConceptDetail, Investment,
-    Fund, MainBusiness, LimitUp, StockSearch, TestUi, StockChart, StockOverview, StockCompare
+    IndexTradeHistory,
+    StockTradeHistory,
+    Sector,
+    StockConcept,
+    StockConceptDetail,
+    Investment,
+    Fund,
+    MainBusiness,
+    LimitUp,
+    StockSearch,
+    TestUi,
+    StockChart,
+    StockOverview,
+    StockCompare,
+    HistoryCompare
 }
