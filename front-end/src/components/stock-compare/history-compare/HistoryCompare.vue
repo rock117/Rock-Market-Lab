@@ -12,9 +12,9 @@
       >
         <el-option
           v-for="stock in stockOptions"
-          :key="stock.code"
-          :label="`${stock.code} - ${stock.name}`"
-          :value="stock.code"
+          :key="stock.ts_code"
+          :label="`${stock.ts_code} - ${stock.name}`"
+          :value="stock.ts_code"
         />
       </el-select>
 
@@ -46,7 +46,6 @@
 <script setup>
 import { ref, onMounted, watch } from 'vue'
 import * as echarts from 'echarts'
-import { debounce } from 'lodash-es'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
@@ -80,11 +79,15 @@ const yearOptions = [
   {
     value: 2024,
     label: '2024年'
+  },
+  {
+    value: 2025,
+    label: '2025年'
   }
 ]
 
-// 防抖处理的股票搜索
-const handleSearch = debounce(async (value) => {
+// 股票搜索
+const handleSearch = async (value) => {
   if (!value) {
     stockOptions.value = []
     return
@@ -92,15 +95,15 @@ const handleSearch = debounce(async (value) => {
 
   searching.value = true
   try {
-    const response = await axios.get(`/api/stocks/search?keyword=${encodeURIComponent(value)}`)
-    stockOptions.value = response.data
+    const response = await axios.get(`/api/securities/search?keyword=${encodeURIComponent(value)}`)
+    stockOptions.value = response.data.data
   } catch (error) {
     console.error('搜索股票失败:', error)
     ElMessage.error('搜索股票失败，请重试')
   } finally {
     searching.value = false
   }
-}, 300)
+}
 
 // 处理股票选择变化
 const handleStockChange = (value) => {

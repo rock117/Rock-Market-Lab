@@ -6,12 +6,12 @@ use entity::sea_orm::{QueryFilter, QueryOrder, EntityTrait};
 use entity::index_monthly;
 use entity::sea_orm::{ColumnTrait, DatabaseConnection};
 
-use crate::security::{SecurityMonthly, SecurityType};
+use crate::security::{SecurityMonthly, SecurityType, Year};
 
-pub async fn get_security_monthly_by_years(r#type: SecurityType, ts_code: &str, years: Vec<u32>, conn: &DatabaseConnection) -> anyhow::Result<HashMap<u32, Vec<SecurityMonthly>>> {
+pub async fn get_security_monthly_by_years(r#type: SecurityType, ts_code: &str, years: &[Year], conn: &DatabaseConnection) -> anyhow::Result<HashMap<Year, Vec<SecurityMonthly>>> {
     let mut all = HashMap::new();
     for year in years {
-        let (start, end) = get_year_begin_end(year)?;
+        let (start, end) = get_year_begin_end(*year)?;
         let start = start.format("%Y%m%d").to_string();
         let end = end.format("%Y%m%d").to_string();
         let datas = match r#type {
@@ -26,7 +26,7 @@ pub async fn get_security_monthly_by_years(r#type: SecurityType, ts_code: &str, 
             SecurityType::Stock => unimplemented!(),
             SecurityType::Fund => unimplemented!()
         };
-        all.insert(year, datas);
+        all.insert(*year, datas);
     }
     Ok(all)
 }

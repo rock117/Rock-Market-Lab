@@ -6,15 +6,15 @@ use entity::sea_orm::DatabaseConnection;
 use service::stock::filter::*;
 use crate::response::WebResponse;
 use service::stock::filter::stock_price_limit_service::*;
-
+use crate::result::{IntoResult, Result};
 // #[derive(Debug, Deserialize, FromForm)]
 // pub struct FilterParams {
 //
 // }
 
 #[get("/api/stocks/filter?<past_ndays>")]
-pub async fn stock_price_limitup(past_ndays: u64, conn: &State<DatabaseConnection>) -> Json<WebResponse<LimitupStocks>> {
+pub async fn stock_price_limitup(past_ndays: u64, conn: &State<DatabaseConnection>) -> Result<WebResponse<LimitupStocks>> {
     let conn = conn as &DatabaseConnection;
-    let data = stock_price_limit_service::filter_continue_price_limit(past_ndays, &conn).await.unwrap();
-    Json(WebResponse::new(data))
+    let data = stock_price_limit_service::filter_continue_price_limit(past_ndays, &conn).await?;
+    WebResponse::new(data).into_result()
 }

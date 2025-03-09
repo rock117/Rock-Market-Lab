@@ -6,7 +6,7 @@ use entity::stock::Model as Stock;
 use entity::stock;
 use entity::sea_orm::EntityTrait;
 use entity::sea_orm::ActiveModelTrait;
-use entity::stock_holder_number::Model as StockHolderNumber;
+
 use entity::stock_holder_number;
 use ext_api::tushare;
 use crate::task::Task;

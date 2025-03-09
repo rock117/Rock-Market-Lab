@@ -114,7 +114,6 @@ import { getTradeStastics } from "@/service/index.js";
 import { getNowStr } from "./util/util.ts";
 import {
   IndexTradeHistory,
-  StockTradeHistory,
   Sector,
   StockConcept,
   StockConceptDetail,
@@ -122,7 +121,8 @@ import {
   LimitUp,
   StockOverview,
   TestUi,
-  StockCompare
+  StockCompare,
+  HistoryCompare
 } from "@/components/index.js";
 import Investment from "./components/investment/Investment.vue";
 import Fund from "./components/fund/fund.vue";

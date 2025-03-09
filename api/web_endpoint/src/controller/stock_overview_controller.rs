@@ -10,6 +10,7 @@ use rocket::State;
 use serde_derive::Deserialize;
 use tracing::info;
 use crate::response::WebResponse;
+use crate::result::{IntoResult, Result};
 
 #[derive(Debug, Deserialize, FromForm)]
 struct StockQueryParams {
@@ -20,9 +21,9 @@ struct StockQueryParams {
 }
 
 #[get("/api/stocks?<params..>")]
-pub async fn stock_overview(params: StockQueryParams, conn: &State<DatabaseConnection>) -> Json<WebResponse<StockOverviewResponse>> {
+pub async fn stock_overview(params: StockQueryParams, conn: &State<DatabaseConnection>) -> Result<WebResponse<StockOverviewResponse>> {
     info!("stock_overview params: {:?}", params);
     let conn = conn as &DatabaseConnection;
-    let data = get_stock_overviews(params.page, params.page_size, &params.order_by, &params.order, &conn).await.unwrap();
-    Json(WebResponse::new(data))
+    let data = get_stock_overviews(params.page, params.page_size, &params.order_by, &params.order, &conn).await?;
+    WebResponse::new(data).into_result()
 }

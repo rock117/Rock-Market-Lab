@@ -1,15 +1,15 @@
 use std::str::FromStr;
 use anyhow::anyhow;
 use derive_more::Display;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use entity::sea_orm::prelude::Decimal;
 use entity::{index_daily, index_monthly, stock_daily};
 use crate::security::SecurityType::Stock;
 pub mod security_search_service;
 pub mod security_daily_service;
-mod security_monthly_service;
+pub mod security_monthly_service;
 
-#[derive(Debug, Copy, Clone, Serialize, Display)]
+#[derive(Debug, Copy, Clone, Deserialize, Serialize, Display)]
 pub enum SecurityType {
     Index,
     Stock,
@@ -38,6 +38,7 @@ pub struct SecurityDaily {
     pub amount: Option<Decimal>,
 }
 
+pub type Year = u32;
 pub type SecurityMonthly = SecurityDaily;
 
 

@@ -33,6 +33,7 @@ mod domain;
 mod response;
 mod request;
 mod error_handlers;
+mod result;
 
 #[tokio::main]
 async fn main1() -> anyhow::Result<()> {
