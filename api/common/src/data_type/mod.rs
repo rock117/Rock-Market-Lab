@@ -2,6 +2,7 @@ mod date_format;
 mod date_range;
 mod num_or_string;
 mod range;
+pub mod period;
 
 pub use self::date_range::{DateRange, StartEnd};
 pub use self::num_or_string::NumOrString;

@@ -58,6 +58,15 @@ const getStockPrice = async (type, tsCode, start, end) => {
     return (await http.get(`/api/securities/price?type=${type}&ts_code=${tsCode}&start=${start}&end=${end}`)).data
 }
 
+const getSecurityHistoryCompare = async (type, tsCode, years, period) => {
+    return (await http.post(`/api/securities/history/compare`, {
+        type,
+        tsCode,
+        years,
+        period
+    })).data
+}
+
 export {
     getStockList,
     getStockDaily,
@@ -70,5 +79,6 @@ export {
     getFunds,
     getFundHoldings,
     findConsecutiveLimitupStocks,
-    getStockPrice
+    getStockPrice,
+    getSecurityHistoryCompare
 }

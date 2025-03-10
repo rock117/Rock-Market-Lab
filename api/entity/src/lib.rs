@@ -23,5 +23,7 @@ pub mod stock_daily;
 pub mod stock_daily_basic;
 pub mod stock_holder_number;
 pub mod stock_holder_trade;
+pub mod stock_monthly;
+pub mod stock_weekly;
 pub mod trade_calendar;
 pub use sea_orm;

@@ -7,9 +7,9 @@ use entity::sea_orm::EntityTrait;
 use entity::sea_orm::QueryFilter;
 use entity::sea_orm::QueryOrder;
 
-use crate::security::{SecurityDaily, SecurityType};
+use crate::security::{SecurityPrice, SecurityType};
 
-pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &NaiveDate, end: &NaiveDate, conn: &DatabaseConnection) -> anyhow::Result<Vec<SecurityDaily>> {
+pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &NaiveDate, end: &NaiveDate, conn: &DatabaseConnection) -> anyhow::Result<Vec<SecurityPrice>> {
     let start = start.format("%Y%m%d").to_string();
     let end = end.format("%Y%m%d").to_string();
     let datas = match r#type {
@@ -19,7 +19,7 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
                 .filter(stock_daily::Column::TradeDate.gte(&start))
                 .filter(stock_daily::Column::TradeDate.lte(&end))
                 .order_by_desc(stock_daily::Column::TradeDate)
-                .all(conn).await?.into_iter().map(|d| SecurityDaily::from_stock_daily(d)).collect()
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_stock_daily(d)).collect()
         }
         SecurityType::Index => {
             index_daily::Entity::find()
@@ -27,7 +27,7 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
                 .filter(index_daily::Column::TradeDate.gte(&start))
                 .filter(index_daily::Column::TradeDate.lte(&end))
                 .order_by_desc(index_daily::Column::TradeDate)
-                .all(conn).await?.into_iter().map(|d| SecurityDaily::from_index_daily(d)).collect()
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_index_daily(d)).collect()
         }
         SecurityType::Fund => unimplemented!()
     };

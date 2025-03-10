@@ -32,6 +32,20 @@
           :value="year.value"
         />
       </el-select>
+
+      <el-select
+        v-model="selectedPeriod"
+        placeholder="选择周期"
+        style="width: 300px"
+        :disabled="!selectedStock"
+      >
+        <el-option
+          v-for="period in periodOptions"
+          :key="period.value"
+          :label="period.label"
+          :value="period.value"
+        />
+      </el-select>
     </div>
 
     <div class="chart-container" ref="chartContainer">
@@ -48,9 +62,11 @@ import { ref, onMounted, watch } from 'vue'
 import * as echarts from 'echarts'
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
-
+import { getSecurityHistoryCompare } from '@/service/index.js'
+import { normalizeStockPrices } from '@/components/stock-compare/stockPriceNormalizer.js'
 const searching = ref(false)
 const loading = ref(false)
+const selectedPeriod = ref('Day')
 const selectedStock = ref('')
 const selectedYears = ref([])
 const stockOptions = ref([])
@@ -58,7 +74,6 @@ const chartInstance = ref(null)
 const chartContainer = ref(null)
 
 // 生成年份选项，从2015年到当前年份
-const currentYear = new Date().getFullYear()
 const yearOptions = [
   {
     value: 2020,
@@ -83,6 +98,21 @@ const yearOptions = [
   {
     value: 2025,
     label: '2025年'
+  }
+]
+
+const periodOptions = [
+  {
+    value: 'Day',
+    label: '日线'
+  },  
+  {
+    value: 'Week',
+    label: '周线'
+  },
+  {
+    value: 'Month',
+    label: '月线'
   }
 ]
 
@@ -120,20 +150,23 @@ const handleYearChange = async (years) => {
   
   loading.value = true
   try {
-    const promises = years.map(year => 
-      axios.get(`/api/stocks/${selectedStock.value}/history/${year}`)
-    )
-    const responses = await Promise.all(promises)
-    updateChart(responses.map((res, index) => ({
-      year: years[index],
-      data: res.data
-    })))
+    const response = await getSecurityHistoryCompare('Stock', selectedStock.value, years, selectedPeriod.value)
+    buildData(response, selectedYears.value)
+    //updateChart(buildData(response, years))
   } catch (error) {
     console.error('获取历史数据失败:', error)
     ElMessage.error('获取历史数据失败，请重试')
   } finally {
     loading.value = false
   }
+}
+
+const buildData = (data, years) => {
+  const datas = data.data
+  const result = []
+  const yearDatas = years.map(year => datas[year])
+  const { trade_dates, normalizedPrices } = normalizeStockPrices(...yearDatas)
+  return{ trade_dates, normalizedPrices }
 }
 
 // 初始化图表
@@ -176,19 +209,21 @@ const initChart = () => {
 const updateChart = (yearDataList) => {
   if (!chartInstance.value) return
 
-  const series = yearDataList.map(({ year, data }) => ({
-    name: `${year}年`,
-    type: 'line',
-    data: data.map(item => item.price),
-    smooth: true
-  }))
+  const series = yearDataList.flatMap(({ year, prices }) => 
+    prices.map((priceArray, index) => ({
+      name: `${year}年-数据${index + 1}`,
+      type: 'line',
+      data: priceArray.map(item => item.close || null),
+      smooth: true
+    }))
+  );
 
   const option = {
     legend: {
-      data: yearDataList.map(({ year }) => `${year}年`)
+      data: series.map(s => s.name)
     },
     xAxis: {
-      data: yearDataList[0].data.map((_, index) => `第${index + 1}个交易日`)
+      data: yearDataList[0].trade_dates
     },
     series
   }
