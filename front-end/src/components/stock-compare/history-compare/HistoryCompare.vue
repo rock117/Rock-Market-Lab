@@ -1,58 +1,27 @@
 <template>
   <div class="history-compare">
     <div class="search-section">
-      <el-select
-        v-model="selectedStock"
-        filterable
-        remote
-        :remote-method="handleSearch"
-        :loading="searching"
-        placeholder="搜索股票"
-        style="width: 300px; margin-right: 16px"
-      >
-        <el-option
-          v-for="stock in stockOptions"
-          :key="stock.ts_code"
-          :label="`${stock.ts_code} - ${stock.name}`"
-          :value="stock.ts_code"
-        />
+      <el-select v-model="selectedStock" filterable remote :remote-method="handleSearch" :loading="searching"
+        placeholder="搜索股票" style="width: 300px; margin-right: 16px">
+        <el-option v-for="stock in stockOptions" :key="stock.ts_code" :label="`${stock.ts_code} - ${stock.name}`"
+          :value="stock.ts_code" />
       </el-select>
 
-      <el-select
-        v-model="selectedYears"
-        multiple
-        placeholder="选择年份"
-        style="width: 300px"
-        :disabled="!selectedStock"
-      >
-        <el-option
-          v-for="year in yearOptions"
-          :key="year.value"
-          :label="year.label"
-          :value="year.value"
-        />
+      <el-select v-model="selectedYears" multiple placeholder="选择年份" style="width: 300px" :disabled="!selectedStock">
+        <el-option v-for="year in yearOptions" :key="year.value" :label="year.label" :value="year.value" />
       </el-select>
 
-      <el-select
-        v-model="selectedPeriod"
-        placeholder="选择周期"
-        style="width: 300px"
-        :disabled="!selectedStock"
-      >
-        <el-option
-          v-for="period in periodOptions"
-          :key="period.value"
-          :label="period.label"
-          :value="period.value"
-        />
+      <el-select v-model="selectedPeriod" placeholder="选择周期" style="width: 300px" :disabled="!selectedStock">
+        <el-option v-for="period in periodOptions" :key="period.value" :label="period.label" :value="period.value" />
       </el-select>
     </div>
 
-    <div class="chart-container" ref="chartContainer">
-      <div v-if="!selectedStock" class="empty-hint">请先选择股票</div>
-      <div v-else-if="loading" class="loading">
+    <div class="chart-container">
+      <!-- <div v-if="!selectedStock" class="empty-hint">请先选择股票</div> -->
+      <!-- <div v-else-if="loading" class="loading">
         <el-loading :fullscreen="false" />
-      </div>
+      </div> -->
+      <div class="chart" ref="chartContainer" style="width: 100%; height: 600px"></div>
     </div>
   </div>
 </template>
@@ -70,9 +39,8 @@ const selectedPeriod = ref('Day')
 const selectedStock = ref('')
 const selectedYears = ref([])
 const stockOptions = ref([])
-const chartInstance = ref(null)
 const chartContainer = ref(null)
-
+let chart = null
 // 生成年份选项，从2015年到当前年份
 const yearOptions = [
   {
@@ -105,7 +73,7 @@ const periodOptions = [
   {
     value: 'Day',
     label: '日线'
-  },  
+  },
   {
     value: 'Week',
     label: '周线'
@@ -147,12 +115,12 @@ const handleStockChange = (value) => {
 // 处理年份选择变化
 const handleYearChange = async (years) => {
   if (!selectedStock.value || !years.length) return
-  
+
   loading.value = true
   try {
     const response = await getSecurityHistoryCompare('Stock', selectedStock.value, years, selectedPeriod.value)
-    buildData(response, selectedYears.value)
-    //updateChart(buildData(response, years))
+    const { trade_dates, yearDataMap } = buildData(response, selectedYears.value)
+    updateChart(selectedYears.value, trade_dates, yearDataMap)
   } catch (error) {
     console.error('获取历史数据失败:', error)
     ElMessage.error('获取历史数据失败，请重试')
@@ -163,28 +131,46 @@ const handleYearChange = async (years) => {
 
 const buildData = (data, years) => {
   const datas = data.data
-  const result = []
   const yearDatas = years.map(year => datas[year])
   const { trade_dates, normalizedPrices } = normalizeStockPrices(...yearDatas)
-  return{ trade_dates, normalizedPrices }
+  const yearDataMap = {}
+  for (let i = 0; i < normalizedPrices.length; i++) {
+    let year = parseYear(normalizedPrices[i])
+    yearDataMap[year] = normalizedPrices[i]
+  }
+  return { trade_dates, yearDataMap }
+}
+
+const parseYear = (normalizedPrices) => {
+  const targets = normalizedPrices.filter(price => price && price.trade_date)
+  const date = targets[0].trade_date.substring(0, 4)
+  return date
 }
 
 // 初始化图表
 const initChart = () => {
-  if (chartInstance.value) {
-    chartInstance.value.dispose()
+  if (chart) {
+    chart.dispose()
   }
+  chart = echarts.init(chartContainer.value)
+}
+
+// 更新图表数据
+const updateChart = (years, dates, yearDatas) => {
+  if (!chart) return
+  const series = years.map(year => ({
+    name: year + "",
+    type: 'line',
+    data: yearDatas[year].map(item => item.close),
   
-  chartInstance.value = echarts.init(chartContainer.value)
-  const option = {
-    tooltip: {
-      trigger: 'axis',
-      axisPointer: {
-        type: 'cross'
-      }
+  }))
+
+  let option = {
+    title: {
+      text: '股票价格走势'
     },
     legend: {
-      data: []
+      data: years.map(y => y)
     },
     grid: {
       left: '3%',
@@ -194,46 +180,23 @@ const initChart = () => {
     },
     xAxis: {
       type: 'category',
-      data: []
+      boundaryGap: false,
+      data: dates
     },
     yAxis: {
       type: 'value',
-      scale: true
-    },
-    series: []
-  }
-  chartInstance.value.setOption(option)
-}
-
-// 更新图表数据
-const updateChart = (yearDataList) => {
-  if (!chartInstance.value) return
-
-  const series = yearDataList.flatMap(({ year, prices }) => 
-    prices.map((priceArray, index) => ({
-      name: `${year}年-数据${index + 1}`,
-      type: 'line',
-      data: priceArray.map(item => item.close || null),
-      smooth: true
-    }))
-  );
-
-  const option = {
-    legend: {
-      data: series.map(s => s.name)
-    },
-    xAxis: {
-      data: yearDataList[0].trade_dates
+      name: "股价"
     },
     series
   }
 
-  chartInstance.value.setOption(option)
+  console.log("history compare option = ", option)
+  chart.setOption(option)
 }
 
 // 监听窗口大小变化
 window.addEventListener('resize', () => {
-  chartInstance.value?.resize()
+  chart.resize()
 })
 
 // 监听股票和年份变化
@@ -245,6 +208,7 @@ watch([() => selectedStock.value, () => selectedYears.value], ([stock, years]) =
 
 onMounted(() => {
   // 组件加载完成后的初始化工作
+  initChart()
 })
 </script>
 
@@ -260,12 +224,10 @@ onMounted(() => {
 }
 
 .chart-container {
-  width: 100%;
-  height: 600px;
-  background: #fff;
+  margin-top: 20px;
+  border: 1px solid var(--el-border-color);
   border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
-  position: relative;
+  padding: 20px;
 }
 
 .empty-hint {

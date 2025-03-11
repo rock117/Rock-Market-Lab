@@ -24,10 +24,20 @@ export function normalizeStockPrices(...priceArrays) {
         new Map(prices.map(price => [price.trade_date.slice(-4), price]))
     );
 
-    // Create normalized arrays
-    const normalizedPrices = priceMaps.map(priceMap =>
-        trade_dates.map(date => priceMap.get(date) || {})
-    );
+    // Create normalized arrays with previous day data for missing dates
+    const normalizedPrices = priceMaps.map(priceMap => {
+        let prevPrice = null;
+        return trade_dates.map(date => {
+            const currentPrice = priceMap.get(date);
+            if (currentPrice) {
+                prevPrice = currentPrice;
+                return currentPrice;
+            } else {
+                // If no data for current date, use previous day's data
+                return prevPrice ? { ...prevPrice, trade_date: prevPrice.trade_date.slice(0, 4) + date } : {};
+            }
+        });
+    });
 
     return {
         trade_dates,

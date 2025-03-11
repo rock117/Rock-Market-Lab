@@ -87,6 +87,7 @@ const updateChart = () => {
   }
 
   const option = ChartUtil.buildChartOption(selectedStocks.value, stocksNames.value, stocksPrices.value)
+  console.log('chart option = ', option)
   chart.setOption(option)
 }
 
