@@ -25,6 +25,7 @@ pub mod fetch_index_monthly_task;
 pub mod fetch_stock_daily_basic_task;
 pub mod fetch_margin_task;
 pub mod fetch_margin_detail_task;
+pub mod fetch_stock_monthly_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {

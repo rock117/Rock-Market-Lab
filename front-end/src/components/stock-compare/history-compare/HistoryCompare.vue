@@ -157,12 +157,13 @@ const initChart = () => {
 
 // 更新图表数据
 const updateChart = (years, dates, yearDatas) => {
+  dates = dates.map(date => date.substring(0, 2) + "/" + date.substring(2, 4))
   if (!chart) return
   const series = years.map(year => ({
-    name: year + "",
+    name: year + "年",
     type: 'line',
     data: yearDatas[year].map(item => item.close),
-  
+
   }))
 
   let option = {
@@ -170,7 +171,10 @@ const updateChart = (years, dates, yearDatas) => {
       text: '股票价格走势'
     },
     legend: {
-      data: years.map(y => y)
+      data: years.map(y => y + "年")
+    },
+    tooltip: {
+      trigger: 'axis'
     },
     grid: {
       left: '3%',
