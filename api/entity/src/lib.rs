@@ -8,6 +8,7 @@ pub mod cashflow;
 pub mod finance_indicator;
 pub mod finance_main_business;
 pub mod fund;
+pub mod fund_daily;
 pub mod income;
 pub mod index;
 pub mod index_daily;

@@ -88,17 +88,21 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ];
     let dailys: Vec<Arc<dyn Task>> = vec![
-        Arc::new(FetchStockDailyTask::new(conn.clone())),
-        Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+        // Arc::new(FetchStockDailyTask::new(conn.clone())),
+        // Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
 
        // Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
       //  Arc::new(FetchStockMonthlyTask::new(conn.clone())),
         //    Arc::new(FetchIndexDailyTask::new(conn.clone())),
-        //   Arc::new(FetchIndexTask::new(conn.clone())),
+     //     Arc::new(FetchIndexTask::new(conn.clone())),
         //   Arc::new(FetchStockListTask::new(conn.clone())),
         //   Arc::new(FetchMarginTask::new(conn.clone())),
         //  Arc::new(FetchMarginDetailTask::new(conn.clone())),
         //   Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
+
+        // Arc::new(FetchStockListTask::new(conn.clone())),
+        // Arc::new(FetchFundTask::new(conn.clone())),
+        // Arc::new(FetchIndexTask::new(conn.clone())),
     ];
     jobs.extend(dailys);
     jobs

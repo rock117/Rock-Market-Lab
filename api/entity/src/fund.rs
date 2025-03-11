@@ -39,6 +39,7 @@ pub struct Model {
     pub purc_startdate: Option<String>,
     pub redm_startdate: Option<String>,
     pub market: Option<String>,
+    pub name_py: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -68,6 +69,7 @@ pub enum Column {
     PurcStartdate,
     RedmStartdate,
     Market,
+    NamePy,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -114,6 +116,7 @@ impl ColumnTrait for Column {
             Self::PurcStartdate => ColumnType::String(StringLen::N(25u32)).def().null(),
             Self::RedmStartdate => ColumnType::String(StringLen::N(25u32)).def().null(),
             Self::Market => ColumnType::String(StringLen::N(25u32)).def().null(),
+            Self::NamePy => ColumnType::String(StringLen::N(100u32)).def().null(),
         }
     }
 }

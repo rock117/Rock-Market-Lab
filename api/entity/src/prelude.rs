@@ -6,6 +6,7 @@ pub use super::cashflow::Entity as Cashflow;
 pub use super::finance_indicator::Entity as FinanceIndicator;
 pub use super::finance_main_business::Entity as FinanceMainBusiness;
 pub use super::fund::Entity as Fund;
+pub use super::fund_daily::Entity as FundDaily;
 pub use super::income::Entity as Income;
 pub use super::index::Entity as Index;
 pub use super::index_daily::Entity as IndexDaily;

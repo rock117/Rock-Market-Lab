@@ -87,10 +87,8 @@ const periodOptions = [
 // 股票搜索
 const handleSearch = async (value) => {
   if (!value) {
-    stockOptions.value = []
     return
   }
-
   searching.value = true
   try {
     const response = await axios.get(`/api/securities/search?keyword=${encodeURIComponent(value)}`)
@@ -120,7 +118,8 @@ const handleYearChange = async (years) => {
 
   loading.value = true
   try {
-    const response = await getSecurityHistoryCompare('Stock', selectedStock.value, years, selectedPeriod.value)
+    const type = stockOptions.value.filter(v => v.ts_code == selectedStock.value)[0].type
+    const response = await getSecurityHistoryCompare(type, selectedStock.value, years, selectedPeriod.value)
     const { trade_dates, yearDataMap } = buildData(response, selectedYears.value)
     updateChart(selectedYears.value, trade_dates, yearDataMap)
   } catch (error) {
@@ -168,9 +167,10 @@ const updateChart = (years, dates, yearDatas) => {
 
   }))
 
+  const name = stockOptions.value.filter(v => v.ts_code == selectedStock.value)[0].name
   let option = {
     title: {
-      text: '股票价格走势'
+      text: name
     },
     legend: {
       data: years.map(y => y + "年")
@@ -191,7 +191,6 @@ const updateChart = (years, dates, yearDatas) => {
     },
     yAxis: {
       type: 'value',
-      name: "股价"
     },
     series
   }

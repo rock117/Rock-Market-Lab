@@ -28,7 +28,7 @@ impl Task for FetchIndexTask {
             index.name_py = index.name.as_ref().map(|name| common::get_security_pinyin(&name));
             let res = index::ActiveModel { ..index.clone().into() }.insert(&self.0).await;
             if let Err(err) = res {
-                error!("insert index failed, error: {:?}", err);
+              //  error!("insert index failed, error: {:?}", err);
             }
         }
         info!("fetch index complete");
