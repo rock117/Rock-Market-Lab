@@ -116,7 +116,6 @@ fn init_log_context() -> anyhow::Result<()> {
 async fn start(conn: DatabaseConnection) -> anyhow::Result<()> {
     let host = env::var("SERVER.HOST").expect("SERVER.HOST is not set in .env file");
     let port = env::var("SERVER.PORT").expect("SERVER.PORT is not set in .env file");
-    let server_url = format!("{host}:{port}");
     Ok(())
 }
 

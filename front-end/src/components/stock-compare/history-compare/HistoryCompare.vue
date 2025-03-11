@@ -114,7 +114,9 @@ const handleStockChange = (value) => {
 
 // 处理年份选择变化
 const handleYearChange = async (years) => {
-  if (!selectedStock.value || !years.length) return
+  if (!selectedStock.value) {
+    return
+  }
 
   loading.value = true
   try {
@@ -195,7 +197,7 @@ const updateChart = (years, dates, yearDatas) => {
   }
 
   console.log("history compare option = ", option)
-  chart.setOption(option)
+  chart.setOption(option, true)
 }
 
 // 监听窗口大小变化
@@ -204,9 +206,9 @@ window.addEventListener('resize', () => {
 })
 
 // 监听股票和年份变化
-watch([() => selectedStock.value, () => selectedYears.value], ([stock, years]) => {
+watch([() => selectedStock.value, () => selectedYears.value, () => selectedPeriod.value], ([stock, years, period]) => {
   if (stock && years?.length) {
-    handleYearChange(years)
+    handleYearChange(years, period)
   }
 })
 
