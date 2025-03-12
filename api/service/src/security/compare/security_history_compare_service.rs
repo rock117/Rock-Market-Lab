@@ -4,7 +4,7 @@ use chrono::NaiveDate;
 use common::data_type::period::Period;
 use entity::sea_orm::{QueryFilter, QueryOrder, EntityTrait};
 
-use entity::{index_daily, index_monthly, index_weekly, stock_daily, stock_monthly, stock_weekly};
+use entity::{fund_daily, index_daily, index_monthly, index_weekly, stock_daily, stock_monthly, stock_weekly};
 use entity::sea_orm::{ColumnTrait, DatabaseConnection};
 
 use crate::security::{SecurityPrice, SecurityType, Year};
@@ -18,7 +18,7 @@ pub async fn get_security_by_years(r#type: SecurityType, ts_code: &str, period: 
         let datas = match r#type {
             SecurityType::Index => get_index_history(ts_code, period, &start, &end, conn).await?,
             SecurityType::Stock => get_stock_history(ts_code, period, &start, &end, conn).await?,
-            SecurityType::Fund => unimplemented!()
+            SecurityType::Fund => get_fund_history(ts_code, period, &start, &end, conn).await?
         };
         all.insert(*year, datas);
     }
@@ -65,6 +65,36 @@ async fn get_index_history(ts_code: &str, period: Period, start: &str, end: &str
                 .filter(index_daily::Column::TradeDate.lte(end))
                 .order_by_desc(index_daily::Column::TradeDate)
                 .all(conn).await?.into_iter().map(|d| SecurityPrice::from_index_daily(d)).collect()
+        }
+        Period::Week => {
+            index_weekly::Entity::find()
+                .filter(index_weekly::Column::TsCode.eq(ts_code))
+                .filter(index_weekly::Column::TradeDate.gte(start))
+                .filter(index_weekly::Column::TradeDate.lte(end))
+                .order_by_desc(index_weekly::Column::TradeDate)
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_index_weekly(d)).collect()
+        }
+        Period::Month => {
+            index_monthly::Entity::find()
+                .filter(index_monthly::Column::TsCode.eq(ts_code))
+                .filter(index_monthly::Column::TradeDate.gte(start))
+                .filter(index_monthly::Column::TradeDate.lte(end))
+                .order_by_desc(index_monthly::Column::TradeDate)
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_index_monthly(d)).collect()
+        }
+    };
+    Ok(data)
+}
+
+async fn get_fund_history(ts_code: &str, period: Period, start: &str, end: &str, conn: &DatabaseConnection) -> anyhow::Result<Vec<SecurityPrice>> {
+    let data = match period {
+        Period::Day => {
+            fund_daily::Entity::find()
+                .filter(fund_daily::Column::TsCode.eq(ts_code))
+                .filter(fund_daily::Column::TradeDate.gte(start))
+                .filter(fund_daily::Column::TradeDate.lte(end))
+                .order_by_desc(fund_daily::Column::TradeDate)
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_fund_daily(d)).collect()
         }
         Period::Week => {
             index_weekly::Entity::find()
