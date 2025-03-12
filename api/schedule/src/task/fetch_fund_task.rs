@@ -31,9 +31,10 @@ impl Task for FetchFundTask {
                 continue;
             }
 
-            let funds = res?;
+            let mut funds = res?;
             let tx = self.0.begin().await?;
-            for fund in &funds {
+            for mut fund in funds {
+                fund.name_py = fund.name.as_ref().map(|name| common::get_security_pinyin(&name));
                 let old_res = fund::Entity::find_by_id(&fund.ts_code).one(&self.0).await;
                 if let Ok(None) = old_res {
                     let res = entity::fund::ActiveModel { ..fund.clone().into() }.insert(&self.0).await;

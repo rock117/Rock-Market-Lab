@@ -11,6 +11,7 @@ use common::util::csv_util;
 pub enum Api {
     stock_basic,
     fund_basic,
+    fund_daily,
     fund_portfolio,
     daily,       // 日线行情
     daily_basic, // 每日指标

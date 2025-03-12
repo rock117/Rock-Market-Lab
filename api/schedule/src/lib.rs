@@ -6,6 +6,7 @@ use entity::sea_orm::DatabaseConnection;
 use crate::task::fetch_balancesheet_task::FetchBalancesheetTask;
 use crate::task::fetch_cashflow_task::FetchCashflowTask;
 use crate::task::fetch_finance_indicator_task::FetchFinanceIndicatorTask;
+use crate::task::fetch_fund_daily_task::FetchFundDailyTask;
 use crate::task::fetch_fund_task::FetchFundTask;
 use crate::task::fetch_income_task::FetchIncomeTask;
 use crate::task::fetch_index_daily_task::FetchIndexDailyTask;
@@ -88,6 +89,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ];
     let dailys: Vec<Arc<dyn Task>> = vec![
+        Arc::new(FetchFundTask::new(conn.clone())),
+       // Arc::new(FetchFundDailyTask::new(conn.clone())),
         // Arc::new(FetchStockDailyTask::new(conn.clone())),
         // Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
 

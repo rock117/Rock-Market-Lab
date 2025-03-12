@@ -4,3 +4,4 @@ mod trade_calendar_service;
 pub mod stastic;
 mod stock_daily_service;
 pub mod security;
+mod fund;

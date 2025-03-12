@@ -5,7 +5,7 @@ use futures::FutureExt;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 use entity::sea_orm::prelude::Decimal;
-use entity::{index_daily, index_monthly, index_weekly, stock_daily, stock_monthly, stock_weekly};
+use entity::{fund_daily, index_daily, index_monthly, index_weekly, stock_daily, stock_monthly, stock_weekly};
 use crate::security::SecurityType::Stock;
 pub use compare::security_history_compare_service;
 
@@ -45,6 +45,23 @@ pub struct SecurityPrice {
 pub type Year = u32;
 
 impl SecurityPrice {
+
+    pub fn from_fund_daily(data: fund_daily::Model) -> SecurityPrice {
+        SecurityPrice {
+            ts_code: data.ts_code,
+            trade_date: data.trade_date,
+            open: data.open.to_f64(),
+            high: data.high.to_f64(),
+            low: data.low.to_f64(),
+            close: data.close.to_f64(),
+            pre_close: data.pre_close.map(|v| v.to_f64()).flatten(),
+            change: data.change.map(|v| v.to_f64()).flatten(),
+            pct_chg: data.pct_chg.map(|v| v.to_f64()).flatten(),
+            vol:data.vol.to_f64(),
+            amount: data.amount.to_f64(),
+        }
+    }
+
     pub fn from_stock_daily(data: stock_daily::Model) -> SecurityPrice {
         SecurityPrice {
             ts_code: data.ts_code,
