@@ -495,6 +495,7 @@ dependencies = [
  "once_cell",
  "pinyin",
  "reqwest",
+ "rocket",
  "scraper",
  "serde",
  "serde_json",

@@ -11,8 +11,8 @@ import LimitUp from "./limit-up/LimitUp.vue"
 import TestUi from "./TestUi.vue"
 import StockChart from "./chart/chart.vue"
 import StockOverview from "./stock-overview/StockOverview.vue"
-import StockCompare from "./stock-compare/StockCompare.vue"
 import HistoryCompare from "./stock-compare/history-compare/HistoryCompare.vue"
+import SecurityCompare from "./stock-compare/security-compare/SecurityCompare.vue"
 export {
     IndexTradeHistory,
     StockTradeHistory,
@@ -27,6 +27,6 @@ export {
     TestUi,
     StockChart,
     StockOverview,
-    StockCompare,
-    HistoryCompare
+    HistoryCompare,
+    SecurityCompare
 }

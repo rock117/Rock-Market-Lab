@@ -53,8 +53,15 @@ const findConsecutiveLimitupStocks = async (days) => {
     return (await http.get(`api/stock-picking/consecutive-limitup?days=${days}`)).data
 }
 
+const getAreas = async () => {
+    return (await http.get(`/api/stocks/areas`)).data
+}
 
-const getStockPrice = async (type, tsCode, start, end) => {
+const getIndustries = async () => {
+    return (await http.get(`/api/stocks/industries`)).data
+}
+
+const getSecurityPrice = async (type, tsCode, start, end) => {
     return (await http.get(`/api/securities/price?type=${type}&ts_code=${tsCode}&start=${start}&end=${end}`)).data
 }
 
@@ -79,6 +86,8 @@ export {
     getFunds,
     getFundHoldings,
     findConsecutiveLimitupStocks,
-    getStockPrice,
-    getSecurityHistoryCompare
+    getSecurityPrice,
+    getSecurityHistoryCompare,
+    getAreas,
+    getIndustries
 }

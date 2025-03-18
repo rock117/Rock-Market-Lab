@@ -13,12 +13,13 @@ use entity::sea_orm::QueryOrder;
 use itertools::Itertools;
 use num_traits::ToPrimitive;
 use tracing::info;
-use common::data_type::TsCode;
+use common::data_type::{AllSingle, TsCode};
 use entity::sea_orm::prelude::Decimal;
 
 use common::finance::*;
 use entity::sea_orm::sqlx::encode::IsNull::No;
 use crate::trade_calendar_service;
+use common::web::request::{StockQueryParams};
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct StockOverviewResponse {
@@ -62,10 +63,11 @@ pub struct StockOverView {
 }
 
 
-pub async fn get_stock_overviews(page: usize, page_size: usize, sort_by: &str, order: &str, conn: &DatabaseConnection) -> anyhow::Result<StockOverviewResponse> {
+pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnection) -> anyhow::Result<StockOverviewResponse> {
+    
     let data: Option<Vec<StockOverView>> = get_from_cache()?;
     if let Some(mut data) = data {
-        return Ok(get_paging_data(&mut data, page, page_size, sort_by, order))
+        return Ok(get_paging_data(data, param))
     }
     let tx = conn.begin().await?;
     let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
@@ -114,7 +116,7 @@ pub async fn get_stock_overviews(page: usize, page_size: usize, sort_by: &str, o
     }
     tx.commit().await?;
     save_to_cache(&views)?;
-    Ok(get_paging_data(&mut views, page, page_size, sort_by, order))
+    Ok(get_paging_data(views, param))
 }
 
 fn get_from_cache() -> anyhow::Result<Option<Vec<StockOverView>>> {
@@ -134,10 +136,36 @@ fn save_to_cache(views: &Vec<StockOverView>) -> anyhow::Result<()> {
     std::fs::write(&file, serde_json::to_string(views)?)?;
     Ok(())
 }
-fn get_paging_data(views: &mut [StockOverView], page: usize, page_size: usize, sort_by: &str, order: &str) -> StockOverviewResponse {
-    sort(views, sort_by, order);
-    let data = common::paging::get_paging_data(views, page, page_size);
-    StockOverviewResponse {total: views.len(), data}
+fn get_paging_data(mut views: Vec<StockOverView>, param: &StockQueryParams) -> StockOverviewResponse {
+    sort(&mut views, &param.order_by, &param.order);
+    views = filter_stocks(views, param);
+    let views = common::paging::get_paging_data(&views, param.page, param.page_size);
+    StockOverviewResponse {total: views.len(), data: views}
+}
+
+fn filter_stocks(views: Vec<StockOverView>, param: &StockQueryParams) -> Vec<StockOverView> {
+    let views = views.into_iter().filter(|v| area_eq(&v.area, &param.area) && industry_eq(&v.industry, &param.industry)).collect::<Vec<StockOverView>>();
+    views
+}
+
+fn area_eq(area: &Option<String>, area2: &AllSingle<String>) -> bool {
+    if area2 == &AllSingle::All {
+        return true;
+    }
+    if let (Some(a1), AllSingle::Single(a2)) = (area, area2) {
+        return a1 == a2;
+    }
+    false
+}
+
+fn industry_eq(ins1: &Option<String>, ins2: &AllSingle<String>) -> bool {
+    if ins2 == &AllSingle::All {
+        return true;
+    }
+    if let (Some(ins1), AllSingle::Single(ins2)) = (ins1, ins2) {
+        return ins1 == ins2;
+    }
+    false
 }
 
 fn sort(views: &mut [StockOverView], sort_by: &str, order: &str) { // ascending descending

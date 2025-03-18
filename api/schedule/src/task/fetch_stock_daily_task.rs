@@ -74,7 +74,7 @@ impl Task for FetchStockDailyTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let dates = super::get_calendar_dates(30, &self.0).await?;
+        let dates = super::get_calendar_dates(10, &self.0).await?;
         for date in &dates {
             let res = self.fetch_data_by_date(date).await;
             if let Err(e) = res {

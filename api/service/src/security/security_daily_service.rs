@@ -1,6 +1,6 @@
 use chrono::NaiveDate;
 
-use entity::{index_daily, stock_daily};
+use entity::{fund_daily, index_daily, stock_daily};
 use entity::sea_orm::{ColumnTrait, DatabaseConnection};
 use entity::sea_orm::ActiveModelTrait;
 use entity::sea_orm::EntityTrait;
@@ -29,8 +29,14 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
                 .order_by_desc(index_daily::Column::TradeDate)
                 .all(conn).await?.into_iter().map(|d| SecurityPrice::from_index_daily(d)).collect()
         }
-        SecurityType::Fund => unimplemented!()
+        SecurityType::Fund => {
+            fund_daily::Entity::find()
+                .filter(fund_daily::Column::TsCode.eq(ts_code))
+                .filter(fund_daily::Column::TradeDate.gte(&start))
+                .filter(fund_daily::Column::TradeDate.lte(&end))
+                .order_by_desc(fund_daily::Column::TradeDate)
+                .all(conn).await?.into_iter().map(|d| SecurityPrice::from_fund_daily(d)).collect()
+        }
     };
     Ok(datas)
-
 }

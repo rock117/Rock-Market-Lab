@@ -43,7 +43,7 @@
 
               <el-menu-item index="1-stock">股票</el-menu-item>
               <el-menu-item index="1-fund">基金</el-menu-item>
-              <el-menu-item index="1-stock-compare">股票对比</el-menu-item>
+              <el-menu-item index="1-security-compare">股票对比</el-menu-item>
               <el-menu-item index="1-history-compare">历史比较</el-menu-item>
               <el-menu-item
                 index="1-fund-holding"
@@ -93,7 +93,7 @@
       <Fund v-if="viewType == 'fund'" @selected:fund="handleFundClick" />
       <FundHolding v-if="viewType == 'fund-holding'" :fundCode="fundCode" />
       <MainBusiness v-if="viewType == 'main-business'" />
-      <StockCompare v-if="viewType == 'stock-compare'" />
+      <SecurityCompare v-if="viewType == 'security-compare'" />
       <HistoryCompare v-if="viewType == 'history-compare'" />
       <LimitUp v-if="viewType == 'limit-up'" />
       <TestUi v-if="viewType == 'test'" />
@@ -121,8 +121,8 @@ import {
   LimitUp,
   StockOverview,
   TestUi,
-  StockCompare,
-  HistoryCompare
+  HistoryCompare,
+  SecurityCompare
 } from "@/components/index.js";
 import Investment from "./components/investment/Investment.vue";
 import Fund from "./components/fund/fund.vue";
@@ -140,7 +140,7 @@ const indexViewMapping = {
   "1-index": "index",
   "1-stock": "stock",
   "1-history-compare": "history-compare",
-  "1-stock-compare": "stock-compare",
+  "1-security-compare": "security-compare",
   "1-sector": "sector",
   "1-concept": "concept",
   "1-investment": "investment",

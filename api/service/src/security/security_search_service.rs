@@ -33,8 +33,12 @@ pub async fn search_securities(keyword: &str, conn: &DatabaseConnection) -> anyh
     let funds: Vec<Security> = funds.into_iter().map(|s| Security { ts_code: s.ts_code.clone(), name: s.name.clone(), r#type: SecurityType::Fund }).collect();
 
     let mut all = vec![];
-    all.extend(stocks);
-    all.extend(indexes);
-    all.extend(funds);
+    all.extend(take(stocks, 100));
+    all.extend(take(indexes, 100));
+    all.extend(take(funds, 100));
     Ok(all)
+}
+
+fn take(datas: Vec<Security>, n: usize) -> Vec<Security> {
+    datas[0..n.min(datas.len())].into_iter().map(|v| v.clone()).collect::<Vec<Security>>()
 }

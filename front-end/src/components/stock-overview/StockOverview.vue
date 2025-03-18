@@ -28,7 +28,7 @@
       </el-checkbox>
     </template>
     <el-option
-      v-for="item in cities"
+      v-for="item in exchanges"
       :key="item.value"
       :label="item.label"
       :value="item.value"
@@ -111,6 +111,7 @@ import {
   amountTo100Million,
 } from "@/util/util.ts";
 import * as dayjs from "dayjs";
+import { getAreas, getIndustries } from "@/service/index.js";
 
 // 自定义下拉菜单的头部
 // https://element-plus.org/zh-CN/component/select.html
@@ -119,36 +120,29 @@ const loading = ref(true);
 const tableData = ref([]);
 const date = ref(getDate());
 
-
- 
-
 const checkAll = ref(false)
 const indeterminate = ref(false)
 const value = ref([])
-const cities = ref([
+const exchanges = ref([
   {
-    value: 'Beijing',
-    label: 'Beijing',
+    value: 'all',
+    label: '全部',
   },
   {
-    value: 'Shanghai',
-    label: 'Shanghai',
+    value: '主板',
+    label: '主板',
   },
   {
-    value: 'Nanjing',
-    label: 'Nanjing',
+    value: '创业板',
+    label: '创业板',
   },
   {
-    value: 'Chengdu',
-    label: 'Chengdu',
+    value: '科创板',
+    label: '科创板',
   },
   {
-    value: 'Shenzhen',
-    label: 'Shenzhen',
-  },
-  {
-    value: 'Guangzhou',
-    label: 'Guangzhou',
+    value: '北交所',
+    label: '北交所',
   },
 ])
 
@@ -156,7 +150,7 @@ watch(value, (val) => {
   if (val.length === 0) {
     checkAll.value = false
     indeterminate.value = false
-  } else if (val.length === cities.value.length) {
+  } else if (val.length === exchanges.value.length) {
     checkAll.value = true
     indeterminate.value = false
   } else {
@@ -167,7 +161,7 @@ watch(value, (val) => {
 const handleCheckAll = (val) => {
   indeterminate.value = false
   if (val) {
-    value.value = cities.value.map((_) => _.value)
+    value.value = exchanges.value.map((_) => _.value)
   } else {
     value.value = []
   }
@@ -298,6 +292,14 @@ const handlePageChange = (page) => {
     currentPage.value = page;
     loadData(); // 重新获取数据
 }
+
+const loadAreasAndIndustries = async () => {
+  const areas = await getAreas();
+  const industries = await getIndustries();
+  areas.value = areas;
+  industries.value = industries;
+}
+
 </script>
 
 <style scoped>

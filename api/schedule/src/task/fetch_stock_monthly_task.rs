@@ -37,7 +37,7 @@ impl Task for FetchStockMonthlyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
-        let start_date = NaiveDate::from_ymd_opt(2020, 1, 1).ok_or(anyhow!("date none"))?;
+        let start_date = NaiveDate::from_ymd_opt(2025, 3, 1).ok_or(anyhow!("date none"))?;
         let end_date = chrono::Local::now().date_naive();
         let mut curr = 0;
         for stock in &stocks {

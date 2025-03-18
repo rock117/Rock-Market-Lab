@@ -3,6 +3,7 @@ mod date_range;
 mod num_or_string;
 mod range;
 pub mod period;
+mod all_single;
 
 pub use self::date_range::{DateRange, StartEnd};
 pub use self::num_or_string::NumOrString;
@@ -10,6 +11,7 @@ use crate::ToAnyHowResult;
 use anyhow::anyhow;
 pub use date_format::DateFormat;
 use serde::{Deserialize, Serialize};
+pub use all_single::AllSingle;
 
 /// such as 600051.SH
 pub type TsCode = String;

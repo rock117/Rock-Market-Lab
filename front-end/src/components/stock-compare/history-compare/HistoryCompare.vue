@@ -101,15 +101,6 @@ const handleSearch = async (value) => {
   }
 }
 
-// 处理股票选择变化
-const handleStockChange = (value) => {
-  selectedStock.value = value
-  selectedYears.value = [] // 清空已选年份
-  if (value) {
-    initChart() // 初始化图表
-  }
-}
-
 // 处理年份选择变化
 const handleYearChange = async (years) => {
   if (!selectedStock.value) {

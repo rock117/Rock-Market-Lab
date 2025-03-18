@@ -17,7 +17,3 @@ pub async fn get_security_price(r#type: &str, ts_code: &str, start: &str, end: &
     let data = security_daily_service::get_security_daily(t, ts_code, &start, &end, &conn).await?;
     WebResponse::new(data).into_result()
 }
-
-fn test() {
-    let v = 3;
-}
