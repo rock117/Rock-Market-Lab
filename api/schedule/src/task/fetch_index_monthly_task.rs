@@ -25,8 +25,7 @@ impl Task for FetchIndexMonthlyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let indexes: Vec<index::Model> = index::Entity::find().all(&self.0).await?;
-        let start_date = NaiveDate::from_ymd_opt(2025, 3, 1).ok_or(anyhow!("date none"))?;
-        let end_date = chrono::Local::now().date_naive();
+        let (start_date, end_date) = super::get_start_end_date_from_default()?;
         let mut curr = 0;
         for index in &indexes {
             let res = ext_api::tushare::index_monthly(&index.ts_code, &start_date, &end_date).await;

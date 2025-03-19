@@ -34,6 +34,17 @@ pub trait Task: Send + Sync {
     async fn run(&self) -> anyhow::Result<()>;
 }
 
+fn get_start_end_date_from_default() -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    let today = Local::now();
+    let start = Local::now().checked_sub_days(Days::new(10)).ok_or(anyhow!("failed to sub days"))?;
+    Ok((start.date_naive(), today.date_naive()))
+}
+
+fn get_start_end_date_from_now(days_num_before_today: u64) -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    let today = Local::now();
+    let start = Local::now().checked_sub_days(Days::new(days_num_before_today)).ok_or(anyhow!("failed to sub days"))?;
+    Ok((start.date_naive(), today.date_naive()))
+}
 
 fn get_start_end_date(days_num_before_today: u64) -> anyhow::Result<(String, String)> {
     let today = Local::now().format("%Y%m%d").to_string();

@@ -25,8 +25,7 @@ impl Task for FetchFundDailyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let funds: Vec<fund::Model> = fund::Entity::find().all(&self.0).await?;
-        let start_date = NaiveDate::from_ymd_opt(2025, 3, 1).ok_or(anyhow!("date none"))?;
-        let end_date = chrono::Local::now().date_naive();
+        let (start_date, end_date) = super::get_start_end_date_from_default()?;
         let mut curr = 0;
         for fund in &funds {
             let res = ext_api::tushare::fund_daily(&fund.ts_code, &start_date, &end_date).await;
