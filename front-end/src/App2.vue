@@ -40,7 +40,7 @@
                 <el-menu-item index="1-1-hot-stocks">热门股</el-menu-item>
                 <el-menu-item index="1-1-hot-concepts">热门概念</el-menu-item>
               </el-sub-menu>
-
+              <el-menu-item index="1-security-historical-price">证券历史价格</el-menu-item>
               <el-menu-item index="1-stock">股票</el-menu-item>
               <el-menu-item index="1-fund">基金</el-menu-item>
               <el-menu-item index="1-security-compare">股票对比</el-menu-item>
@@ -97,6 +97,7 @@
       <HistoryCompare v-if="viewType == 'history-compare'" />
       <LimitUp v-if="viewType == 'limit-up'" />
       <TestUi v-if="viewType == 'test'" />
+      <SecurityHistoricalPrice v-if="viewType == 'security-historical-price'" />
     </div>
   </div>
 </template>
@@ -122,7 +123,8 @@ import {
   StockOverview,
   TestUi,
   HistoryCompare,
-  SecurityCompare
+  SecurityCompare,
+  SecurityHistoricalPrice
 } from "@/components/index.js";
 import Investment from "./components/investment/Investment.vue";
 import Fund from "./components/fund/fund.vue";
@@ -138,6 +140,7 @@ const conceptName = ref("");
 const viewType = ref("stock"); //
 const indexViewMapping = {
   "1-index": "index",
+  "1-security-historical-price": "security-historical-price",
   "1-stock": "stock",
   "1-history-compare": "history-compare",
   "1-security-compare": "security-compare",

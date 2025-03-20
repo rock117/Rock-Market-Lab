@@ -13,6 +13,7 @@ import StockChart from "./chart/chart.vue"
 import StockOverview from "./stock-overview/StockOverview.vue"
 import HistoryCompare from "./stock-compare/history-compare/HistoryCompare.vue"
 import SecurityCompare from "./stock-compare/security-compare/SecurityCompare.vue"
+import SecurityHistoricalPrice from "./security-historical-price/SecurityHistoricalPrice.vue"
 export {
     IndexTradeHistory,
     StockTradeHistory,
@@ -28,5 +29,6 @@ export {
     StockChart,
     StockOverview,
     HistoryCompare,
-    SecurityCompare
+    SecurityCompare,
+    SecurityHistoricalPrice
 }
