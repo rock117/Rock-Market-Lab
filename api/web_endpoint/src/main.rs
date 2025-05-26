@@ -25,7 +25,7 @@ use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use controller::*;
-
+use controller::security::stock;
 mod resource;
 mod template;
 mod controller;
@@ -74,6 +74,10 @@ async fn rocket() -> _ {
             stock_price_controller::stock_price,
             security::security_price_controller::get_security_price,
             security::security_history_compare_controller::security_history_compare,
+
+            stock::get_stock_areas,
+            stock::get_stock_industries,
+            filter::stock_volumn_filter_controller::filter_by_volumn,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

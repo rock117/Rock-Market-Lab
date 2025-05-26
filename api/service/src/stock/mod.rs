@@ -1,4 +1,6 @@
+use std::collections::HashSet;
 use anyhow::anyhow;
+use tracing::info;
 
 use entity::sea_orm::DatabaseConnection;
 use entity::sea_orm::EntityTrait;
@@ -26,14 +28,16 @@ pub async fn get_stock_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<sto
     stock::Entity::find().all(conn).await.map_err(|err| anyhow!("get stock list failed, error: {:?}", err))
 }
 
-pub async fn get_stock_area_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
-    let areas: Vec<stock::Model> = stock::Entity::find().select_only().column(stock::Column::Area).all(conn).await.map_err(|err| anyhow!("get stock area list failed, error: {:?}", err))?;
-    let areas = areas.into_iter().map(|v| v.area).collect::<Option<Vec<String>>>();
+pub async fn get_stock_area_list(conn: &DatabaseConnection) -> anyhow::Result<HashSet<String>> {
+    let areas: Vec<stock::Model> = stock::Entity::find().all(conn).await.map_err(|err| anyhow!("get stock area list failed, error: {:?}", err))?;
+    println!("areas num: {}", areas.len());
+    let areas = areas.into_iter().filter(|v| v.area.is_some()).map(|v| v.area.or(Some("null".into()))).collect::<Option<HashSet<String>>>();
     areas.ok_or(anyhow!("get stock area list failed"))
 }
 
-pub async fn get_stock_industry_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<String>> {
-    let industries: Vec<stock::Model> = stock::Entity::find().select_only().column(stock::Column::Industry).all(conn).await.map_err(|err| anyhow!("get stock industry list failed, error: {:?}", err))?;
-    let industries = industries.into_iter().map(|v| v.area).collect::<Option<Vec<String>>>();
+pub async fn get_stock_industry_list(conn: &DatabaseConnection) -> anyhow::Result<HashSet<String>> {
+    let industries: Vec<stock::Model> = stock::Entity::find().all(conn).await.map_err(|err| anyhow!("get stock industry list failed, error: {:?}", err))?;
+    println!("industries num: {}", industries.len());
+    let industries = industries.into_iter().map(|v| v.industry.or(Some("null".into()))).collect::<Option<HashSet<String>>>();
     industries.ok_or(anyhow!("get stock industry list failed"))
 }

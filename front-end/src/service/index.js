@@ -2,8 +2,8 @@ import {
     http
 } from "@/util/index.js";
 
-async function getStockList(page, pageSize, orderBy, order = 'desc') {
-    return (await http.get(`/api/stocks?page=${page}&page_size=${pageSize}&order_by=${orderBy}&order=${order}`)).data
+async function getStockList(page, pageSize, orderBy, order = 'desc', market = 'All', area = 'All', industry = 'All') {
+    return (await http.get(`/api/stocks?page=${page}&page_size=${pageSize}&order_by=${orderBy}&order=${order}&market=${market}&area=${area}&industry=${industry}`)).data
 }
 
 async function getStockDaily(code, start, end, dateType, period = 'Daily') {
@@ -17,7 +17,6 @@ const getTradeStastics = async (start, end, date_type) => {
 const searchSecurity = async (code) => {
     return (await http.get(`/api/securities/search?keyword=${code}`)).data
 }
-
 
 const searchSecurityByPrice = async (data) => {
     return (await http.post(`/api/securities/price/search`, data)).data
@@ -54,11 +53,11 @@ const findConsecutiveLimitupStocks = async (days) => {
 }
 
 const getAreas = async () => {
-    return (await http.get(`/api/stocks/areas`)).data
+    return (await http.get(`/api/stock/areas`)).data
 }
 
 const getIndustries = async () => {
-    return (await http.get(`/api/stocks/industries`)).data
+    return (await http.get(`/api/stock/industries`)).data
 }
 
 const getSecurityPrice = async (type, tsCode, start, end) => {

@@ -10,6 +10,8 @@ pub struct StockQueryParams {
     pub order_by: String,
     pub order: String, // prop: 'pct_chg', order: 'ascending' descending
     #[serde(deserialize_with = "deserialize_all_single")]
+    pub market: AllSingle<String>,
+    #[serde(deserialize_with = "deserialize_all_single")]
     pub area: AllSingle<String>,
     #[serde(deserialize_with = "deserialize_all_single")]
     pub industry: AllSingle<String>,

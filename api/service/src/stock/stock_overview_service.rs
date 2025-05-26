@@ -46,9 +46,7 @@ pub struct StockOverView {
     pub pct_chg10: Option<f64>,
     pub pct_chg20: Option<f64>,
     pub pct_chg60: Option<f64>,
-    pub pct_chg250: Option<f64>,
     pub pct_chg_from_this_year: Option<f64>, // 今年涨跌幅
-    pub pct_chg_from_list_date: Option<f64>, // 上市以来涨跌幅
 
     pub ma5: Option<f64>,
     pub ma10: Option<f64>,
@@ -62,16 +60,16 @@ pub struct StockOverView {
     pub circ_mv: Option<f64>, // 流通市值
 }
 
-
 pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnection) -> anyhow::Result<StockOverviewResponse> {
     
     let data: Option<Vec<StockOverView>> = get_from_cache()?;
-    if let Some(mut data) = data {
+    if let Some(data) = data {
         return Ok(get_paging_data(data, param))
     }
     let tx = conn.begin().await?;
     let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
     let dates = trade_calendar_service::get_trade_calendar(250, conn).await?;
+    info!("stock overview, dates len: {}, start_date: {}, end_date: {}", dates.len(), dates[dates.len() - 1].cal_date, dates[0].cal_date);
     let year_begin = trade_calendar_service::get_year_begin_trade_calendar(conn).await?;
 
     let start_date_call = dates.last();
@@ -81,6 +79,12 @@ pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnec
     };
     let start_date = &start_date_call.cal_date;
     let end_date = &end_date_call.cal_date;
+    let start_date = if start_date < &year_begin {
+        start_date
+    } else {
+        &year_begin
+    };
+
     let mut views = vec![];
     let mut curr = 0;
     for stock in &stocks {
@@ -100,15 +104,12 @@ pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnec
         let prices = stock_prices.iter().map(|v| v.close.to_f64()).collect::<Option<Vec<f64>>>().ok_or(anyhow!("stock_prices {} is None", tscode))?;
         let finance_indicator: Option<finance_indicator::Model> = get_finance_indicator(tscode, conn).await?;
         let stock_daily_basic: stock_daily_basic::Model = get_stock_daily_basic(tscode, conn).await?;
-        let list_date_price = get_price(tscode, &stock.list_date.clone().unwrap_or("".into()), conn).await?;
-        let this_year_begin_price = get_price(tscode, &year_begin, conn).await?;
-        if list_date_price.is_none() {
-            info!("list_date_price is None: tscode -> {}, list date -> {:?}", tscode, stock.list_date);
-        }
+        let this_year_begin_price = get_price_of_date(&year_begin, &stock_prices).await;
+
         if this_year_begin_price.is_none() {
             info!("this_year_begin_price is None: tscode -> {}, year_begin -> {}", tscode, year_begin);
         }
-        views.push(create_stock_overview(&stock, &stock_daily_basic, &finance_indicator, &prices, this_year_begin_price, list_date_price, pct_chg, amount, low, high));
+        views.push(create_stock_overview(&stock, &stock_daily_basic, finance_indicator.as_ref(), &prices, this_year_begin_price, pct_chg, amount, low, high));
         curr += 1;
         if curr % 50 == 0 {
             info!("get_stock_overviews process {} / {}", curr, stocks.len());
@@ -137,35 +138,25 @@ fn save_to_cache(views: &Vec<StockOverView>) -> anyhow::Result<()> {
     Ok(())
 }
 fn get_paging_data(mut views: Vec<StockOverView>, param: &StockQueryParams) -> StockOverviewResponse {
-    sort(&mut views, &param.order_by, &param.order);
+    info!("before filter, views num: {}", views.len());
     views = filter_stocks(views, param);
-    let views = common::paging::get_paging_data(&views, param.page, param.page_size);
-    StockOverviewResponse {total: views.len(), data: views}
+    info!("after filter, views num: {}", views.len());
+    sort(&mut views, &param.order_by, &param.order);
+    let result_views = common::paging::get_paging_data(&views, param.page, param.page_size);
+    StockOverviewResponse {total: views.len(), data: result_views}
 }
 
 fn filter_stocks(views: Vec<StockOverView>, param: &StockQueryParams) -> Vec<StockOverView> {
-    let views = views.into_iter().filter(|v| area_eq(&v.area, &param.area) && industry_eq(&v.industry, &param.industry)).collect::<Vec<StockOverView>>();
+    let views = views.into_iter().filter(|v| filter_selected(&v.market, &param.market) && filter_selected(&v.area, &param.area) && filter_selected(&v.industry, &param.industry)).collect::<Vec<StockOverView>>();
     views
 }
 
-fn area_eq(area: &Option<String>, area2: &AllSingle<String>) -> bool {
-    if area2 == &AllSingle::All {
-        return true;
+fn filter_selected(data: &Option<String>, selected: &AllSingle<String>) -> bool {
+    match (data, selected) {
+        (_, AllSingle::All) => true,
+        (None, _) => false,
+        (Some(v), AllSingle::Single(s)) => v == s
     }
-    if let (Some(a1), AllSingle::Single(a2)) = (area, area2) {
-        return a1 == a2;
-    }
-    false
-}
-
-fn industry_eq(ins1: &Option<String>, ins2: &AllSingle<String>) -> bool {
-    if ins2 == &AllSingle::All {
-        return true;
-    }
-    if let (Some(ins1), AllSingle::Single(ins2)) = (ins1, ins2) {
-        return ins1 == ins2;
-    }
-    false
 }
 
 fn sort(views: &mut [StockOverView], sort_by: &str, order: &str) { // ascending descending
@@ -216,17 +207,6 @@ fn sort(views: &mut [StockOverView], sort_by: &str, order: &str) { // ascending 
     if sort_by == "pct_chg60" {
         views.sort_by(|a, b| {
             match (a.pct_chg60, b.pct_chg60) {
-                (None, None) => std::cmp::Ordering::Equal,
-                (None, Some(_)) => std::cmp::Ordering::Greater,
-                (Some(_), None) => std::cmp::Ordering::Less,
-                (Some(chg1), Some(chg2)) => if order == "ascending" {chg1.partial_cmp(&chg2).unwrap_or(std::cmp::Ordering::Equal)} else {chg2.partial_cmp(&chg1).unwrap_or(std::cmp::Ordering::Equal)},
-            }
-        });
-    }
-
-    if sort_by == "pct_chg250" {
-        views.sort_by(|a, b| {
-            match (a.pct_chg250, b.pct_chg250) {
                 (None, None) => std::cmp::Ordering::Equal,
                 (None, Some(_)) => std::cmp::Ordering::Greater,
                 (Some(_), None) => std::cmp::Ordering::Less,
@@ -307,8 +287,8 @@ async fn get_finance_indicator(ts_code: &str, conn: &DatabaseConnection) -> anyh
     Ok(finance_indicators.first().cloned())
 }
 
-fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_basic::Model, finance_indicator: &Option<finance_indicator::Model>, stock_prices: &[f64],
-                         this_year_begin_price: Option<f64>, list_date_price: Option<f64>,
+fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_basic::Model, finance_indicator: Option<&finance_indicator::Model>, stock_prices: &[f64],
+                         this_year_begin_price: Option<f64>,
                          pct_chgv: Option<f64>,
                          amount: Option<f64>,
                          low: Option<f64>,
@@ -321,12 +301,6 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
     };
     let pct_chg_from_this_year = if let Some(this_year_begin_price) = this_year_begin_price {
         Some(common::finance::pct_chg(this_year_begin_price, stock_daily_basic.close.unwrap().to_f64().unwrap()))
-    } else {
-        None
-    };
-
-    let pct_chg_from_list_date = if let Some(list_date_price) = list_date_price {
-        Some(common::finance::pct_chg(list_date_price, stock_daily_basic.close.unwrap().to_f64().unwrap()))
     } else {
         None
     };
@@ -348,9 +322,7 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
         pct_chg10: pct_chg(stock_prices, 10),
         pct_chg20: pct_chg(stock_prices, 20),
         pct_chg60: pct_chg(stock_prices, 60),
-        pct_chg250: pct_chg(stock_prices, 250),
         pct_chg_from_this_year,
-        pct_chg_from_list_date,
         ma5: ma::<5>(stock_prices),
         ma10: ma::<10>(stock_prices),
         ma20: ma::<20>(stock_prices),
@@ -364,12 +336,13 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
     overview
 }
 
-async fn get_price(ts_code: &str, date: &str, conn: &DatabaseConnection) -> anyhow::Result<Option<f64>> {
-    let stock_daily: Option<stock_daily::Model> = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TsCode.eq(ts_code))
-        .filter(stock_daily::Column::TradeDate.eq(date))
-        .one(conn).await?;
-    Ok(stock_daily.map(|v| v.close.to_f64()).flatten())
+async fn get_price_of_date(date: &str, stock_dailies : &Vec<stock_daily::Model>) -> Option<f64> {
+    for stock_daily in stock_dailies {
+        if stock_daily.trade_date.as_str() >= date {
+            return stock_daily.close.to_f64()
+        }
+    }
+    None
 }
 
 
@@ -381,8 +354,3 @@ fn pct_chg(stock_prices: &[f64], n: usize) -> Option<f64> {
     let prev = stock_prices[n];
     Some(common::finance::pct_chg(prev, curr))
 }
-
-
-
-
-

@@ -28,7 +28,7 @@ impl Task for FetchFinanceIndicatorTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let end_date = Local::now().date_naive();
-        let start_date = Local::now().date_naive().checked_sub_days(Days::new(60)).ok_or(anyhow!("no value"))?;
+        let start_date = Local::now().date_naive().checked_sub_days(Days::new(3650)).ok_or(anyhow!("no value"))?;
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {
