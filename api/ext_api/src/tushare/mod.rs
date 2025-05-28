@@ -93,10 +93,6 @@ async fn call_tushare_api<'a, const N: u64>(param: &ApiParam<'a>) -> anyhow::Res
     // limiter.wait_until_ready().await; // 等待限流器许可
     tokio::time::sleep(Duration::from_millis(N)).await;
 
-    debug!(
-        "calling Tushare API, url: {}, param: {:?}",
-        TUSHARE_API, serde_json::to_string(param)
-    );
     let inst = Instant::now();
     let mut resp = get_data(param, 3).await;
     let cost = inst.elapsed().as_secs();

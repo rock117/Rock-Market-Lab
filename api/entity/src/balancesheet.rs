@@ -15,12 +15,12 @@ impl EntityName for Entity {
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
     pub ts_code: String,
-    pub ann_date: Option<String>,
+    pub ann_date: String,
     pub f_ann_date: Option<String>,
     pub end_date: String,
-    pub report_type: Option<String>,
-    pub comp_type: Option<String>,
-    pub end_type: Option<String>,
+    pub report_type: String,
+    pub comp_type: String,
+    pub end_type: String,
     pub total_share: Option<Decimal>,
     pub cap_rese: Option<Decimal>,
     pub undistr_porfit: Option<Decimal>,
@@ -342,10 +342,14 @@ pub enum Column {
 pub enum PrimaryKey {
     TsCode,
     EndDate,
+    AnnDate,
+    ReportType,
+    CompType,
+    EndType,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = (String, String);
+    type ValueType = (String, String, String, String, String, String);
     fn auto_increment() -> bool {
         false
     }
@@ -359,12 +363,12 @@ impl ColumnTrait for Column {
     fn def(&self) -> ColumnDef {
         match self {
             Self::TsCode => ColumnType::String(StringLen::N(10u32)).def(),
-            Self::AnnDate => ColumnType::String(StringLen::N(10u32)).def().null(),
+            Self::AnnDate => ColumnType::String(StringLen::N(10u32)).def(),
             Self::FAnnDate => ColumnType::String(StringLen::N(10u32)).def().null(),
             Self::EndDate => ColumnType::String(StringLen::N(10u32)).def(),
-            Self::ReportType => ColumnType::String(StringLen::N(10u32)).def().null(),
-            Self::CompType => ColumnType::String(StringLen::N(10u32)).def().null(),
-            Self::EndType => ColumnType::String(StringLen::N(10u32)).def().null(),
+            Self::ReportType => ColumnType::String(StringLen::N(10u32)).def(),
+            Self::CompType => ColumnType::String(StringLen::N(10u32)).def(),
+            Self::EndType => ColumnType::String(StringLen::N(10u32)).def(),
             Self::TotalShare => ColumnType::Decimal(None).def().null(),
             Self::CapRese => ColumnType::Decimal(None).def().null(),
             Self::UndistrPorfit => ColumnType::Decimal(None).def().null(),
@@ -380,7 +384,7 @@ impl ColumnTrait for Column {
             Self::IntReceiv => ColumnType::Decimal(None).def().null(),
             Self::Inventories => ColumnType::Decimal(None).def().null(),
             Self::AmorExp => ColumnType::Decimal(None).def().null(),
-            Self::NcaWithin1y => ColumnType::Decimal(None).def().null(),
+            Self::NcaWithinY1 => ColumnType::Decimal(None).def().null(),
             Self::SettRsrv => ColumnType::Decimal(None).def().null(),
             Self::LoantoOthBankFi => ColumnType::Decimal(None).def().null(),
             Self::PremiumReceiv => ColumnType::Decimal(None).def().null(),
@@ -450,7 +454,7 @@ impl ColumnTrait for Column {
             Self::RsrvInsurCont => ColumnType::Decimal(None).def().null(),
             Self::ActingTradingSec => ColumnType::Decimal(None).def().null(),
             Self::ActingUwSec => ColumnType::Decimal(None).def().null(),
-            Self::NonCurLiabDue1y => ColumnType::Decimal(None).def().null(),
+            Self::NonCurLiabDueY1 => ColumnType::Decimal(None).def().null(),
             Self::OthCurLiab => ColumnType::Decimal(None).def().null(),
             Self::TotalCurLiab => ColumnType::Decimal(None).def().null(),
             Self::BondPayable => ColumnType::Decimal(None).def().null(),

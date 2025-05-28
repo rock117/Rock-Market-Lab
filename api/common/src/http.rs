@@ -63,13 +63,6 @@ pub async fn post<T: Into<Body> + Debug>(
     let data = req_builder.send().await;
     match data {
         Ok(data) => {
-            log_response::<()>(
-                "POST",
-                url,
-                instant.elapsed().as_millis(),
-                data.status().as_u16(),
-                None,
-            );
             Ok(data)
         }
         Err(e) => {
