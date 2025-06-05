@@ -25,3 +25,6 @@ pub use super::stock_holder_trade::Entity as StockHolderTrade;
 pub use super::stock_monthly::Entity as StockMonthly;
 pub use super::stock_weekly::Entity as StockWeekly;
 pub use super::trade_calendar::Entity as TradeCalendar;
+pub use super::us_basic::Entity as UsBasic;
+pub use super::us_daily::Entity as UsDaily;
+pub use super::us_tradecal::Entity as UsTradecal;
