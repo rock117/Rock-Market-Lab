@@ -51,4 +51,29 @@ mod tests {
         dbg!(data);
         //dbg!(data).unwrap();
     }
+
+
+
+    #[derive(Debug, Deserialize)]
+    pub struct Income {
+        pub ts_code: String,
+        pub ann_date: Option<String>,
+    }
+
+
+    #[test]
+    fn test_parse() {
+        let data = r#"
+ts_code,ann_date
+000001.SZ,20250419
+        "#;
+
+        let mut data = String::new();
+        data.push_str("ts_code,ann_date\n");
+        data.push_str("000001.SZ,20250419");
+
+        let data = csv_to_structs::<Income>(&data);
+        dbg!(data);
+        //dbg!(data).unwrap();
+    }
 }
