@@ -39,6 +39,9 @@ pub enum Api {
     index_daily_basic,
     moneyflow,
     moneyflow_industry_ths,
+
+    us_basic,
+    us_daily
 }
 
 
@@ -102,6 +105,10 @@ impl Data {
             }).collect::<Vec<String>>()
         }).collect::<Vec<Vec<String>>>();
         let csv = csv_util::to_csv(&self.fields, &items)?;
-        csv_util::csv_to_structs::<T>(csv.as_str())
+        let res = csv_util::csv_to_structs::<T>(csv.as_str());
+        if res.is_err() {
+            panic!("csv: {} to structs error: {}", csv, res.err().unwrap());
+        }
+        res
     }
 }

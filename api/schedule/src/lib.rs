@@ -22,6 +22,8 @@ use crate::task::fetch_stock_holder_number_task::FetchStockHolderNumberTask;
 use crate::task::fetch_stock_list_task::FetchStockListTask;
 use crate::task::fetch_stock_monthly_task::FetchStockMonthlyTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
+use crate::task::fetch_us_basic_task::FetchUsBasicTask;
+use crate::task::fetch_us_daily_task::FetchUsDailyTask;
 use crate::task::Task;
 
 mod task;
@@ -117,7 +119,12 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         Arc::new(FetchCashflowTask::new(conn.clone())),
        Arc::new(FetchBalancesheetTask::new(conn.clone()))
     ];
-    jobs.extend(dailys);
+    let us: Vec<Arc<dyn Task>> = vec![
+       // Arc::new(FetchUsBasicTask::new(conn.clone())),
+        Arc::new(FetchUsDailyTask::new(conn.clone())),
+    ];
+   // jobs.extend(dailys);
     // jobs.extend(finances);
+    jobs.extend(us);
     jobs
 }
