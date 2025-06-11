@@ -49,6 +49,7 @@ pub use moneyflow_ind_ths::*;
 pub use margin_detail::*;
 pub use us_basic::*;
 pub use us_daily::*;
+use crate::resp_to_string;
 
 use crate::tushare::model::{Api, ApiParam, TushareApiResp};
 
@@ -142,10 +143,6 @@ async fn call_tushare_api_as<const N: u64, T: DeserializeOwned>(api: Api, params
     };
     let res = call_tushare_api::<N>(&param).await?;
     res.data.ok_or(anyhow!("no data in margin resp"))?.to_structs::<T>()
-}
-
-async fn resp_to_string(resp: Response) -> anyhow::Result<String> {
-    String::from_utf8(resp.bytes().await?.as_ref().to_vec()).map_err(|e| anyhow!(e))
 }
 
 async fn get_data<'a>(param: &ApiParam<'a>, retry_num: u32) -> anyhow::Result<Response> {

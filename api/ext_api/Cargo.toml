@@ -32,5 +32,8 @@ bytes = "1.7.1"
 governor = "0.8.0"
 tokio = "1.36.0"
 
+quick-xml = { version = "0.37.2", features = ["serialize"] }
+
+
 [dev-dependencies]
 tokio = "1.36.0"
