@@ -20,6 +20,8 @@ use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 use entity::sea_orm::prelude::Decimal;
 
+const DAYS_AGO: u64 = 120;
+
 pub struct FetchStockDailyTask(DatabaseConnection);
 
 impl FetchStockDailyTask {
@@ -74,7 +76,7 @@ impl Task for FetchStockDailyTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let dates = super::get_calendar_dates(90, &self.0).await?;
+        let dates = super::get_calendar_dates(DAYS_AGO, &self.0).await?;
         for date in &dates {
             let res = self.fetch_data_by_date(date).await;
             if let Err(e) = res {

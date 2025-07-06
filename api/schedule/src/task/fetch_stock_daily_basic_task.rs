@@ -19,6 +19,8 @@ use tokio::sync::{mpsc, Semaphore};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 
+const DAYS_AGO: u64 = 120;
+
 pub struct FetchStockDailyBasicTask(DatabaseConnection);
 
 impl FetchStockDailyBasicTask {
@@ -69,7 +71,7 @@ impl Task for FetchStockDailyBasicTask {
 
 
     async fn run(&self) -> anyhow::Result<()> {
-        let dates = super::get_calendar_dates(90, &self.0).await?;
+        let dates = super::get_calendar_dates(DAYS_AGO, &self.0).await?;
         for date in &dates {
             let res = self.fetch_data_by_date(date).await;
             if let Err(e) = res {
