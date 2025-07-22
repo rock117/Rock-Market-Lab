@@ -2,7 +2,7 @@ use async_trait::async_trait;
 use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set, EntityTrait, InsertResult};
 use crate::task::Task;
 use entity::ths_index;
-use tracing::{info};
+use tracing::{info, error};
 use entity::sea_orm::sea_query::OnConflict;
 
 
@@ -26,22 +26,18 @@ impl Task for FetchThsIndexTask {
         let tx = self.0.begin().await?;
         info!("fetch ths index count: {}", indexes.len());
         for index in indexes {
-            let active_model = ths_index::ActiveModel {
-                ts_code: Set(index.ts_code.clone()),
-                name: Set(index.name.clone()),
-                count: Set(index.count),
-                exchange: Set(index.exchange.clone()),
-                list_date: Set(index.list_date.clone()),
-                r#type: Set(index.r#type.clone()),
-            };
+            let active_model = ths_index::ActiveModel { ..index.clone().into() };
             let on_conflict = OnConflict::columns([ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate])
                 .update_columns([ths_index::Column::Name, ths_index::Column::Count])
                 .to_owned();
             
-            ths_index::Entity::insert(active_model)
+            let ts_code = index.ts_code.clone();
+            if let Err(e) = ths_index::Entity::insert(active_model)
                 .on_conflict(on_conflict)
                 .exec(&tx)
-                .await?;
+                .await {
+                error!("insert ths_index failed, ts_code: {}, error: {:?}", ts_code, e);
+            }
             curr += 1;
         }
         tx.commit().await?;
