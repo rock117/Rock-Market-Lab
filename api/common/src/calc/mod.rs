@@ -1,11 +1,15 @@
 use std::iter::Sum;
 use std::slice::Iter;
 use chrono::{Datelike, NaiveDate};
-use itertools::{GroupBy, Itertools};
+use itertools::Itertools;
 
+mod volatility;
+pub use volatility::*;
+
+#[derive(Debug, Clone)]
 pub struct Vol {
     pub vol: f64,
-    date: NaiveDate,
+    pub date: NaiveDate,
 }
 
 ///
