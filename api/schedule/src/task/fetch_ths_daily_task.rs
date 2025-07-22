@@ -49,7 +49,7 @@ impl Task for FetchThsDailyTask {
             }
             tx.commit().await?;
             curr += 1;
-            info!("insert ths_index complete: {}, member num: {}, {}/{}", index.ts_code, daily.len(), curr, indexes.len());
+            info!("insert ths_index complete: {}, daily num: {}, {}/{}", index.ts_code, daily.len(), curr, indexes.len());
         }
 
         info!("fetch ths daily task complete");
