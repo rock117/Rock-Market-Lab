@@ -21,7 +21,7 @@ use crate::task::fetch_stock_daily_task::FetchStockDailyTask;
 use crate::task::fetch_stock_holder_number_task::FetchStockHolderNumberTask;
 use crate::task::fetch_stock_list_task::FetchStockListTask;
 use crate::task::fetch_stock_monthly_task::FetchStockMonthlyTask;
-use crate::task::fetch_ths_index::FetchThsIndexTask;
+use crate::task::fetch_ths_index_task::FetchThsIndexTask;
 use crate::task::fetch_ths_member_task::FetchThsMemberTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::fetch_us_basic_task::FetchUsBasicTask;
