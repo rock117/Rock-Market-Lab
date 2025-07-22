@@ -56,6 +56,7 @@ async fn main3() -> anyhow::Result<()> {
 #[launch]
 async fn rocket() -> _ {
     dotenvy::dotenv().ok();
+    init_log_context().expect("Failed to init log context");
     let conn = get_db_conn().await;
     let conn_schedule = conn.clone();
     info!("start schedule");

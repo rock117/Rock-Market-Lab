@@ -19,7 +19,7 @@ pub struct Model {
     pub count: Option<i32>,
     pub exchange: String,
     pub list_date: String,
-    pub r#type: i32,
+    pub r#type: String,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -41,7 +41,7 @@ pub enum PrimaryKey {
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = (String, String, i32, String);
+    type ValueType = (String, String, String, String);
     fn auto_increment() -> bool {
         false
     }
@@ -59,7 +59,7 @@ impl ColumnTrait for Column {
             Self::Count => ColumnType::Integer.def().null(),
             Self::Exchange => ColumnType::String(StringLen::N(10u32)).def(),
             Self::ListDate => ColumnType::String(StringLen::N(20u32)).def(),
-            Self::Type => ColumnType::Integer.def(),
+            Self::Type => ColumnType::String(StringLen::N(20u32)).def(),
         }
     }
 }
