@@ -31,6 +31,7 @@ pub mod fetch_us_basic_task;
 pub mod fetch_us_daily_task;
 pub mod fetch_ths_index_task;
 pub mod fetch_ths_member_task;
+pub mod fetch_ths_daily_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {

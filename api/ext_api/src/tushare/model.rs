@@ -28,6 +28,7 @@ pub enum Api {
     stk_holdernumber,
     ths_index, // 同花顺概念列表
     ths_member,
+    ths_daily,
     ths_hot,
     fina_mainbz,
     fina_mainbz_vip,
