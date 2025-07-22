@@ -58,6 +58,7 @@ async fn rocket() -> _ {
     dotenvy::dotenv().ok();
     let conn = get_db_conn().await;
     let conn_schedule = conn.clone();
+    info!("start schedule");
     tokio::spawn(async move {
         schedule::start_schedule(conn_schedule)
             .await

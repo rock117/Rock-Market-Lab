@@ -17,6 +17,7 @@ pub mod cache;
 pub mod paging;
 mod security_name;
 pub mod web;
+pub mod domain;
 
 use anyhow::{anyhow, bail};
 pub use data_type::SingleElement;

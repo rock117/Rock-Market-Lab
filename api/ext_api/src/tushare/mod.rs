@@ -49,6 +49,7 @@ pub use moneyflow_ind_ths::*;
 pub use margin_detail::*;
 pub use us_basic::*;
 pub use us_daily::*;
+pub use ths_index::*;
 use crate::resp_to_string;
 
 use crate::tushare::model::{Api, ApiParam, TushareApiResp};
