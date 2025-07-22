@@ -1,6 +1,5 @@
 use async_trait::async_trait;
-use entity::sea_orm::{DatabaseConnection, TransactionTrait};
-use entity::sea_orm::query::UpdateOnConflict;
+use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set};
 use crate::task::Task;
 use entity::ths_index;
 use chrono::{Local, NaiveDate};
@@ -29,7 +28,15 @@ impl Task for FetchThsIndexTask {
         let tx = self.0.begin().await?;
         info!("fetch ths index count: {}", indexes.len());
         for index in indexes {
-
+            let active_model = ths_index::ActiveModel {
+                ts_code: Set(index.ts_code.clone()),
+                name: Set(index.name.clone()),
+                count: Set(index.count),
+                exchange: Set(index.exchange.clone()),
+                list_date: Set(index.list_date.clone()),
+                r#type: Set(index.r#type.clone()),
+            };
+            active_model.insert(&tx).await?;
             curr += 1;
         }
         tx.commit().await?;
