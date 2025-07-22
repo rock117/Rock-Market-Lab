@@ -87,20 +87,29 @@ const DAILY_VOLATILITY_WEIGHT: f64 = 0.2;     // 日波动率权重 - 反映日�
 const VOLUME_WEIGHT: f64 = 0.3;               // 成交量加权波动率权重 - 考虑成交量对波动的影响
 
 impl VolatilityMetrics {
+    /// 计算波动性综合得分
+    /// 
+    /// 使用加权方式计算波动性的综合得分，权重分配为：
+    /// - 变异系数: 30% - 取值范围 [0, +∞)
+    /// - 最大价格波动: 20% - 取值范围 [0, +∞)，以百分比表示
+    /// - 平均日波动率: 20% - 取值范围 [0, +∞)，以百分比表示
+    /// - 成交量加权波动率: 30% - 取值范围 [0, +∞)，以百分比表示
+    /// 
+    /// 波动性得分是一个非负数，没有上限。得分越高表示股票的波动性越大。
+    fn calculate_score(&self) -> f64 {
+        self.cv * VARIATION_COEFFICIENT_WEIGHT + 
+        self.max_price_swing * PRICE_SWING_WEIGHT + 
+        self.avg_daily_volatility * DAILY_VOLATILITY_WEIGHT + 
+        self.volume_weighted_volatility * VOLUME_WEIGHT
+    }
+
     /// 比较两个股票的波动性
     /// 返回值 > 0 表示 self 波动性更大
     /// 返回值 < 0 表示 other 波动性更大
     /// 返回值 = 0 表示波动性相同
     pub fn compare(&self, other: &VolatilityMetrics) -> i8 {
-        // 使用综合评分方法，考虑多个指标
-        let self_score = self.cv * VARIATION_COEFFICIENT_WEIGHT + 
-            self.max_price_swing * PRICE_SWING_WEIGHT + 
-            self.avg_daily_volatility * DAILY_VOLATILITY_WEIGHT + 
-            self.volume_weighted_volatility * VOLUME_WEIGHT;
-        let other_score = other.cv * VARIATION_COEFFICIENT_WEIGHT + 
-            other.max_price_swing * PRICE_SWING_WEIGHT + 
-            other.avg_daily_volatility * DAILY_VOLATILITY_WEIGHT + 
-            other.volume_weighted_volatility * VOLUME_WEIGHT;
+        let self_score = self.calculate_score();
+        let other_score = other.calculate_score();
         
         if (self_score - other_score).abs() < 1e-6 {
             0
@@ -154,11 +163,6 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
     let mut total_changes = 0.0;
     let mut changes_count = 0;
     
-    // 首先计算最小成交量，用于计算成交量权重
-    let min_volume = prices.windows(2)
-        .map(|w| (w[0].volume + w[1].volume) / 2.0)
-        .fold(f64::INFINITY, f64::min);
-
     // 计算普通日波动率和成交量加权波动率
     let mut weighted_changes = 0.0;
     let mut total_weights = 0.0;
@@ -169,13 +173,9 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
         
         total_changes += price_change;
         
-        // 使用成交量与最小成交量的比值作为权重
-        // 这样可以确保所有权重都大于等于1.0
-        let volume_weight = if min_volume > 0.0 {
-            avg_volume / min_volume
-        } else {
-            1.0
-        };
+        // 使用成交量的对数作为权重，这样可以减小成交量差异过大带来的影响
+        // 使用 1 + ln(volume) 确保权重始终大于1
+        let volume_weight = 1.0 + avg_volume.ln().max(0.0);
         
         weighted_changes += price_change * volume_weight;
         total_weights += volume_weight;
@@ -188,7 +188,7 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
         0.0
     };
 
-    // 成交量加权波动率：使用相对成交量作为权重
+    // 成交量加权波动率：使用成交量的对数作为权重
     let volume_weighted_volatility = if total_weights > 0.0 && changes_count > 0 {
         weighted_changes / total_weights
     } else {
