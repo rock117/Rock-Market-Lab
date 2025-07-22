@@ -25,7 +25,7 @@ impl Task for FetchThsIndexTask {
         let indexes = ext_api::tushare::ths_index(None, Some("A"), None).await?;
         let tx = self.0.begin().await?;
         info!("fetch ths index count: {}", indexes.len());
-        for index in indexes {
+        for index in &indexes {
             let active_model = ths_index::ActiveModel { ..index.clone().into() };
             let on_conflict = OnConflict::columns([ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate])
                 .update_columns([ths_index::Column::Name, ths_index::Column::Count])
@@ -39,6 +39,7 @@ impl Task for FetchThsIndexTask {
                 error!("insert ths_index failed, ts_code: {}, error: {:?}", ts_code, e);
             }
             curr += 1;
+            info!("insert ths_index complete: {}, {}/{}", ts_code, curr, indexes.len());
         }
         tx.commit().await?;
         info!("fetch ths index task complete");
