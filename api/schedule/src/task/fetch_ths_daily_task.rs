@@ -26,7 +26,7 @@ impl Task for FetchThsDailyTask {
         let indexes = ths_index::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         let end_date = Local::now().date_naive();
-        let start_date = end_date.checked_sub_days(Days::new(60)).unwrap();
+        let start_date = end_date.checked_sub_days(Days::new(1000)).unwrap();
         let start_date = start_date.format("%Y%m%d").to_string();
         let end_date = end_date.format("%Y%m%d").to_string();
 

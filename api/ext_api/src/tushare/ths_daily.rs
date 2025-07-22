@@ -28,7 +28,7 @@ pub async fn ths_daily(ts_code: Option<&str>, trade_date: Option<&str>, start_da
         params.insert("end_date", end_date);
     }
 
-    call_tushare_api_as::<500, ThsDaily>(Api::ths_daily,
+    call_tushare_api_as::<50, ThsDaily>(Api::ths_daily,
                                       &params,
                                       &vec![
                                           "ts_code",
