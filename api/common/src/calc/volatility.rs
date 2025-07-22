@@ -16,19 +16,27 @@
 //! # 使用示例
 //! 
 //! ```rust
-//! use crate::calc::volatility::{PricePoint, calculate_volatility, rank_by_volatility};
+//! use crate::calc::volatility::{DailyTradeRecord, calculate_volatility, rank_by_volatility};
 //! 
 //! // 计算单个股票的波动性
-//! let price_points = vec![
-//!     PricePoint { date: date1, price: 10.0 },
-//!     PricePoint { date: date2, price: 10.5 },
+//! let trade_records = vec![
+//!     DailyTradeRecord { 
+//!         date: date1, 
+//!         price: 10.0,
+//!         volume: 1000.0,
+//!     },
+//!     DailyTradeRecord { 
+//!         date: date2, 
+//!         price: 10.5,
+//!         volume: 2000.0,
+//!     },
 //! ];
-//! let volatility = calculate_volatility(&price_points);
+//! let volatility = calculate_volatility(&trade_records);
 //! 
 //! // 比较多个股票的波动性
 //! let stocks = vec![
-//!     ("000001.SZ", &price_points1[..]),
-//!     ("000002.SZ", &price_points2[..])
+//!     ("000001.SZ", &trade_records1[..]),
+//!     ("000002.SZ", &trade_records2[..])
 //! ];
 //! let rankings = rank_by_volatility(&stocks);
 //! ```
@@ -143,27 +151,46 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
     };
 
     // 计算日波动率和成交量加权日波动率
-    let (daily_changes, volume_weighted_changes): (Vec<f64>, Vec<f64>) = prices.windows(2)
-        .map(|w| {
-            let price_change = ((w[1].price - w[0].price) / w[0].price).abs() * 100.0;
-            let avg_volume = (w[0].volume + w[1].volume) / 2.0;
-            (price_change, price_change * avg_volume)
-        })
-        .unzip();
+    let mut total_changes = 0.0;
+    let mut changes_count = 0;
+    
+    // 首先计算最小成交量，用于计算成交量权重
+    let min_volume = prices.windows(2)
+        .map(|w| (w[0].volume + w[1].volume) / 2.0)
+        .fold(f64::INFINITY, f64::min);
 
-    let avg_daily_volatility = if !daily_changes.is_empty() {
-        daily_changes.iter().sum::<f64>() / daily_changes.len() as f64
+    // 计算普通日波动率和成交量加权波动率
+    let mut weighted_changes = 0.0;
+    let mut total_weights = 0.0;
+
+    for w in prices.windows(2) {
+        let price_change = ((w[1].price - w[0].price) / w[0].price).abs() * 100.0;
+        let avg_volume = (w[0].volume + w[1].volume) / 2.0;
+        
+        total_changes += price_change;
+        
+        // 使用成交量与最小成交量的比值作为权重
+        // 这样可以确保所有权重都大于等于1.0
+        let volume_weight = if min_volume > 0.0 {
+            avg_volume / min_volume
+        } else {
+            1.0
+        };
+        
+        weighted_changes += price_change * volume_weight;
+        total_weights += volume_weight;
+        changes_count += 1;
+    }
+
+    let avg_daily_volatility = if changes_count > 0 {
+        total_changes / changes_count as f64
     } else {
         0.0
     };
 
-    // 计算成交量加权波动率
-    let total_volume: f64 = prices.windows(2)
-        .map(|w| (w[0].volume + w[1].volume) / 2.0)
-        .sum();
-
-    let volume_weighted_volatility = if total_volume > 0.0 && !volume_weighted_changes.is_empty() {
-        volume_weighted_changes.iter().sum::<f64>() / total_volume
+    // 成交量加权波动率：使用相对成交量作为权重
+    let volume_weighted_volatility = if total_weights > 0.0 && changes_count > 0 {
+        weighted_changes / total_weights
     } else {
         0.0
     };
@@ -190,11 +217,10 @@ pub fn rank_by_volatility<'a>(stocks: &[(&'a str, &[DailyTradeRecord])]) -> Vec<
     let mut results: Vec<(&'a str, VolatilityMetrics)> = stocks
         .iter()
         .map(|(code, prices)| {
-            (code, calculate_volatility(prices))
+            (*code, calculate_volatility(prices))
         })
         .collect();
 
-    // 按波动性从大到小排序
     results.sort_by(|a, b| b.1.compare(&a.1).cmp(&0));
     results
 }
@@ -211,12 +237,12 @@ mod tests {
                 price: 10.0,
                 volume: 1000.0,
             },
-            PricePoint {
+            DailyTradeRecord {
                 date: NaiveDate::from_ymd_opt(2025, 1, 2).unwrap(),
                 price: 10.5,  // +5%
                 volume: 2000.0,
             },
-            PricePoint {
+            DailyTradeRecord {
                 date: NaiveDate::from_ymd_opt(2025, 1, 3).unwrap(),
                 price: 10.2,  // -2.86%
                 volume: 1500.0,
