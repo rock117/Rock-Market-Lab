@@ -8,34 +8,40 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "trade_calendar"
+        "ths_index"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
+    pub ts_code: String,
+    pub name: Option<String>,
+    pub count: Option<i32>,
     pub exchange: String,
-    pub cal_date: String,
-    pub is_open: i16,
-    pub pretrade_date: Option<String>,
+    pub list_date: String,
+    pub r#type: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
+    TsCode,
+    Name,
+    Count,
     Exchange,
-    CalDate,
-    IsOpen,
-    PretradeDate,
+    ListDate,
+    Type,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
 pub enum PrimaryKey {
-    CalDate,
+    TsCode,
     Exchange,
+    Type,
+    ListDate,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
-    type ValueType = (String, String);
+    type ValueType = (String, String, i32, String);
     fn auto_increment() -> bool {
         false
     }
@@ -48,10 +54,12 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Exchange => ColumnType::String(StringLen::N(200u32)).def(),
-            Self::CalDate => ColumnType::String(StringLen::N(200u32)).def(),
-            Self::IsOpen => ColumnType::SmallInteger.def(),
-            Self::PretradeDate => ColumnType::String(StringLen::N(200u32)).def().null(),
+            Self::TsCode => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::Name => ColumnType::String(StringLen::N(100u32)).def().null(),
+            Self::Count => ColumnType::Integer.def().null(),
+            Self::Exchange => ColumnType::String(StringLen::N(10u32)).def(),
+            Self::ListDate => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::Type => ColumnType::Integer.def(),
         }
     }
 }

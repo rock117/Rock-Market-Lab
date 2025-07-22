@@ -7,7 +7,6 @@ use tracing::info;
 use crate::tushare::call_tushare_api_as;
 use crate::tushare::model::Api;
 use entity::income;
-use entity::prelude::Income;
 use entity::sea_orm::prelude::{BigDecimal, Decimal};
 
 /// 利润表

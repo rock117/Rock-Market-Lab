@@ -8,30 +8,36 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "trade_calendar"
+        "ths_member"
     }
 }
 
 #[derive(Clone, Debug, PartialEq, DeriveModel, DeriveActiveModel, Eq, Serialize, Deserialize)]
 pub struct Model {
-    pub exchange: String,
-    pub cal_date: String,
-    pub is_open: i16,
-    pub pretrade_date: Option<String>,
+    pub ts_code: String,
+    pub con_code: String,
+    pub con_name: Option<String>,
+    pub weight: Option<Decimal>,
+    pub in_date: Option<String>,
+    pub out_date: Option<String>,
+    pub is_new: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
-    Exchange,
-    CalDate,
-    IsOpen,
-    PretradeDate,
+    TsCode,
+    ConCode,
+    ConName,
+    Weight,
+    InDate,
+    OutDate,
+    IsNew,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
 pub enum PrimaryKey {
-    CalDate,
-    Exchange,
+    TsCode,
+    ConCode,
 }
 
 impl PrimaryKeyTrait for PrimaryKey {
@@ -48,10 +54,13 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::Exchange => ColumnType::String(StringLen::N(200u32)).def(),
-            Self::CalDate => ColumnType::String(StringLen::N(200u32)).def(),
-            Self::IsOpen => ColumnType::SmallInteger.def(),
-            Self::PretradeDate => ColumnType::String(StringLen::N(200u32)).def().null(),
+            Self::TsCode => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::ConCode => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::ConName => ColumnType::String(StringLen::N(100u32)).def().null(),
+            Self::Weight => ColumnType::Decimal(None).def().null(),
+            Self::InDate => ColumnType::String(StringLen::N(20u32)).def().null(),
+            Self::OutDate => ColumnType::String(StringLen::N(20u32)).def().null(),
+            Self::IsNew => ColumnType::String(StringLen::N(1u32)).def().null(),
         }
     }
 }

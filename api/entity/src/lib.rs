@@ -30,4 +30,8 @@ pub mod trade_calendar;
 pub mod us_basic;
 pub mod us_daily;
 pub mod us_tradecal;
+pub mod ths_index;
+pub mod ths_member;
+pub mod ths_daily;
+pub mod dc_index;
 pub use sea_orm;

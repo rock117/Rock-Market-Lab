@@ -8,7 +8,7 @@ pub struct Entity;
 
 impl EntityName for Entity {
     fn table_name(&self) -> &str {
-        "stock_daily"
+        "ths_daily"
     }
 }
 
@@ -16,30 +16,36 @@ impl EntityName for Entity {
 pub struct Model {
     pub ts_code: String,
     pub trade_date: String,
+    pub close: Decimal,
     pub open: Decimal,
     pub high: Decimal,
     pub low: Decimal,
-    pub close: Decimal,
     pub pre_close: Option<Decimal>,
+    pub avg_price: Option<Decimal>,
     pub change: Option<Decimal>,
-    pub pct_chg: Option<Decimal>,
+    pub pct_change: Option<Decimal>,
     pub vol: Decimal,
-    pub amount: Decimal,
+    pub turnover_rate: Option<Decimal>,
+    pub total_mv: Option<Decimal>,
+    pub float_mv: Option<Decimal>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     TsCode,
     TradeDate,
+    Close,
     Open,
     High,
     Low,
-    Close,
     PreClose,
+    AvgPrice,
     Change,
-    PctChg,
+    PctChange,
     Vol,
-    Amount,
+    TurnoverRate,
+    TotalMv,
+    FloatMv,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -62,17 +68,20 @@ impl ColumnTrait for Column {
     type EntityName = Entity;
     fn def(&self) -> ColumnDef {
         match self {
-            Self::TsCode => ColumnType::String(StringLen::N(45u32)).def(),
-            Self::TradeDate => ColumnType::String(StringLen::N(45u32)).def(),
+            Self::TsCode => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::TradeDate => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::Close => ColumnType::Decimal(None).def(),
             Self::Open => ColumnType::Decimal(None).def(),
             Self::High => ColumnType::Decimal(None).def(),
             Self::Low => ColumnType::Decimal(None).def(),
-            Self::Close => ColumnType::Decimal(None).def(),
             Self::PreClose => ColumnType::Decimal(None).def().null(),
+            Self::AvgPrice => ColumnType::Decimal(None).def().null(),
             Self::Change => ColumnType::Decimal(None).def().null(),
-            Self::PctChg => ColumnType::Decimal(None).def().null(),
+            Self::PctChange => ColumnType::Decimal(None).def().null(),
             Self::Vol => ColumnType::Decimal(None).def(),
-            Self::Amount => ColumnType::Decimal(None).def(),
+            Self::TurnoverRate => ColumnType::Decimal(None).def().null(),
+            Self::TotalMv => ColumnType::Decimal(None).def().null(),
+            Self::FloatMv => ColumnType::Decimal(None).def().null(),
         }
     }
 }

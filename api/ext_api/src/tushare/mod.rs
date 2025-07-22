@@ -78,6 +78,7 @@ mod monthly;
 mod fund_daily;
 mod us_basic;
 mod us_daily;
+mod ths_index;
 
 static TUSHARE_TOKEN: Lazy<String> =  Lazy::new(|| common::config::AppConfig::new().expect("failed to get config").tushare_token());
 
