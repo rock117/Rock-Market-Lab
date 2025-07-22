@@ -43,7 +43,7 @@ pub use index_weekly::*;
 pub use index_monthly::*;
 pub use monthly::*;
 pub use fund_daily::*;
-
+pub use ths_member::*;
 pub use moneyflow::*;
 pub use moneyflow_ind_ths::*;
 pub use margin_detail::*;
@@ -80,6 +80,7 @@ mod fund_daily;
 mod us_basic;
 mod us_daily;
 mod ths_index;
+mod ths_member;
 
 static TUSHARE_TOKEN: Lazy<String> =  Lazy::new(|| common::config::AppConfig::new().expect("failed to get config").tushare_token());
 

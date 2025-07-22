@@ -20,7 +20,7 @@ pub async fn ths_member(ts_code: Option<&str>, conn_code: Option<&str>) -> anyho
         params.insert("conn_code", conn_code);
     }
 
-    call_tushare_api_as::<500, ThsMember>(Api::ths_member,
+    call_tushare_api_as::<50, ThsMember>(Api::ths_member,
                                       &params,
                                       &vec![
                                           "ts_code",
