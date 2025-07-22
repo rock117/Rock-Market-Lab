@@ -1,12 +1,10 @@
 use async_trait::async_trait;
-use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set};
+use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set, EntityTrait, InsertResult};
 use crate::task::Task;
 use entity::ths_index;
-use chrono::{Local, NaiveDate};
-use tracing::{error, info};
-use entity::sea_orm::EntityTrait;
-use entity::sea_orm::ActiveModelTrait;
+use tracing::{info};
 use entity::sea_orm::sea_query::OnConflict;
+
 
 pub struct FetchThsIndexTask(DatabaseConnection);
 
@@ -36,7 +34,14 @@ impl Task for FetchThsIndexTask {
                 list_date: Set(index.list_date.clone()),
                 r#type: Set(index.r#type.clone()),
             };
-            active_model.insert(&tx).await?;
+            let on_conflict = OnConflict::columns([ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate])
+                .update_columns([ths_index::Column::Name, ths_index::Column::Count])
+                .to_owned();
+            
+            ths_index::Entity::insert(active_model)
+                .on_conflict(on_conflict)
+                .exec(&tx)
+                .await?;
             curr += 1;
         }
         tx.commit().await?;
