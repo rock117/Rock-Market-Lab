@@ -1,5 +1,5 @@
-use anyhow::bail;
-use chrono::{DateTime, Datelike, IsoWeek, Local, NaiveDate, NaiveDateTime};
+use anyhow::{anyhow, bail};
+use chrono::{DateTime, Datelike, IsoWeek, Local, NaiveDate, NaiveDateTime, Days};
 use itertools::Itertools;
 
 pub fn group_days_by_year(dates: Vec<&'static str>) -> Vec<(i32, Vec<String>)> {
@@ -69,4 +69,12 @@ pub fn format_date(timestamp: u64, format: &str) -> anyhow::Result<String> {
         bail!("can't parse to datetime for {}", timestamp)
     };
     Ok(time.format(format).to_string())
+}
+
+
+/// 获取当前时间和n天前的日期
+pub fn get_start_end_from_now(days_ago: u64) -> anyhow::Result<(NaiveDate, NaiveDate)> {
+    let end = Local::now().date_naive();
+    let start = end.checked_sub_days(Days::new(days_ago)).ok_or(anyhow!("can't get start date"))?;
+    Ok((start, end))
 }

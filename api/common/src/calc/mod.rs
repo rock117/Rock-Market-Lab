@@ -4,6 +4,7 @@ use chrono::{Datelike, NaiveDate};
 use itertools::Itertools;
 
 mod volatility;
+
 pub use volatility::*;
 
 #[derive(Debug, Clone)]

@@ -10,7 +10,7 @@ pub mod json;
 pub mod stastics;
 mod to_param;
 pub mod util;
-mod calc;
+pub mod calc;
 mod pickup;
 pub mod config;
 pub mod cache;

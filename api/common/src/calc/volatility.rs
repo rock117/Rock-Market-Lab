@@ -63,6 +63,7 @@ pub struct DailyTradeRecord {
     pub volume: f64,
 }
 
+
 /// 波动性分析结果
 #[derive(Debug, Clone)]
 pub struct VolatilityMetrics {
