@@ -2,7 +2,7 @@ use anyhow::anyhow;
 use chrono::NaiveDate;
 use derive_more::Display;
 use num_traits::ToPrimitive;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use common::calc::{DailyTradeRecord, calculate_volatility};
 use entity::stock_daily::Model as StockDaily;
 use entity::sea_orm::DatabaseConnection;
@@ -13,9 +13,11 @@ use entity::stock;
 
 use super::super::stock_price_service;
 
-#[derive(Debug, Deserialize, Copy, Clone, Display)]
+#[derive(Debug, Deserialize, Copy, Clone, Display, PartialEq)]
+#[serde(rename_all = "lowercase")]
 enum Sort {
-    asc, desc
+    Asc,
+    Desc
 }
 #[derive(Debug, Deserialize, Copy, Clone, Display)]
 enum Type {
@@ -29,8 +31,18 @@ pub struct VolatilityFilter {
     pub sort: Sort, // asc: 波动性小，desc: 波动性大
     pub r#type: Type, // 类型 Stock, Fund, Index, ThsIndex
 }
+impl VolatilityFilter {
+    pub fn new(num: u64, days: u64, sort: Sort, r#type: Type) -> Self {
+        Self {
+            num,
+            days,
+            sort,
+            r#type,
+        }
+    }
+}
 
-#[derive(Debug, Deserialize, Clone)]
+#[derive(Debug, Serialize, Clone)]
 pub struct SecurityVolatility {
     ts_code: String,
     volatility: f64,
@@ -49,15 +61,36 @@ fn from_stock_daily(stock_daily: &StockDaily) -> anyhow::Result<DailyTradeRecord
 pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> anyhow::Result<Vec<SecurityVolatility>> {
     let stocks = stock::Entity::find().all(conn).await?;
     let (start, end) = common::util::date_util::get_start_end_from_now(filter.days).map_err(|e| anyhow!(e))?;
+    
+    // 收集所有股票代码
+    let ts_codes: Vec<String> = stocks.iter().map(|s| s.ts_code.clone()).collect();
+    
+    // 批量查询所有股票的价格数据
+    let all_prices = stock_price_service::get_stock_prices_batch(&ts_codes, &start, &end, conn).await?;
+    
+    // 按股票代码分组处理数据
+    use itertools::Itertools;
     let mut volatilities = Vec::new();
-    for stock in stocks {
-        let prices = stock_price_service::get_stock_prices(&stock.ts_code, &start, &end, conn).await?;
-        let records = prices.into_iter().map(|v| from_stock_daily(&v)).collect::<anyhow::Result<Vec<DailyTradeRecord>>>()?;
-        let metrics = calculate_volatility(&records);
-        volatilities.push(SecurityVolatility {
-            ts_code: stock.ts_code,
-            volatility: metrics.avg_daily_volatility,
-        });
+    
+    for (ts_code, prices) in all_prices.into_iter().group_by(|p| p.ts_code.clone()).into_iter() {
+        let records = prices
+            .map(|p| from_stock_daily(&p))
+            .collect::<anyhow::Result<Vec<DailyTradeRecord>>>()?;
+        
+        if !records.is_empty() {
+            let metrics = calculate_volatility(&records);
+            volatilities.push(SecurityVolatility {
+                ts_code,
+                volatility: metrics.avg_daily_volatility,
+            });
+        }
     }
-    Ok(volatilities)
+
+    if filter.sort == Sort::Asc {
+        volatilities.sort_by(|a, b| a.volatility.partial_cmp(&b.volatility).unwrap());
+    } else {
+        volatilities.sort_by(|a, b| b.volatility.partial_cmp(&a.volatility).unwrap());
+    }
+
+    Ok(volatilities.into_iter().take(filter.num as usize).collect())
 }

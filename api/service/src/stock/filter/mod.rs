@@ -2,7 +2,7 @@ pub mod stock_price_limit_service;
 mod macd_filter_service;
 mod stock_price_filter_service;
 pub mod stock_volumn_filter_service;
-mod security_volatility_service;
+pub mod security_volatility_service;
 
 use num_traits::ToPrimitive;
 use common::finance::stock;
