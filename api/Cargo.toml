@@ -1,6 +1,6 @@
 [workspace]
 members = [
-    "web_endpoint",
+    "web_api",
     "common",
     "entity",
     "service",

@@ -4652,7 +4652,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "web_endpoint"
+name = "web_api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
