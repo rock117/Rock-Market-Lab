@@ -67,3 +67,8 @@ where
 pub fn get_ths_member_update_columns(exclude_columns: &[entity::ths_member::Column]) -> Vec<entity::ths_member::Column> {
     get_entity_update_columns::<entity::ths_member::Entity>(exclude_columns)
 }
+
+/// 针对 ths_index 表的便捷函数（使用动态列获取）
+pub fn get_ths_index_update_columns(exclude_columns: &[entity::ths_index::Column]) -> Vec<entity::ths_index::Column> {
+    get_entity_update_columns::<entity::ths_index::Entity>(exclude_columns)
+}

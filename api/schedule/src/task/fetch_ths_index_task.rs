@@ -1,11 +1,10 @@
 use async_trait::async_trait;
 use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set, EntityTrait, InsertResult};
 use crate::task::Task;
-use entity::{ths_index, ths_member};
+use entity::{ths_index};
 use tracing::{info, error};
-use common::db::get_entity_update_columns;
 use entity::sea_orm::sea_query::OnConflict;
-
+use common::db::get_ths_index_update_columns;
 
 pub struct FetchThsIndexTask(DatabaseConnection);
 
@@ -31,8 +30,8 @@ impl Task for FetchThsIndexTask {
             let pks = [
                 ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate
             ];
-            let update_columns = get_entity_update_columns(&pks);
-            let on_conflict = OnConflict::columns(&pks)
+            let update_columns = get_ths_index_update_columns(&pks);
+            let on_conflict = OnConflict::columns(pks)
                 .update_columns(update_columns)
                 .to_owned();
             
