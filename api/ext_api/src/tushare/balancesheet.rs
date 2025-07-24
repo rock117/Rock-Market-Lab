@@ -102,7 +102,6 @@ pub async fn balancesheet(ts_code: &str, report_type: &str, start_date: &NaiveDa
                             "rsrv_insur_cont",
                             "acting_trading_sec",
                             "acting_uw_sec",
-                            "non_cur_liab_due_1y",
                             "oth_cur_liab",
                             "total_cur_liab",
                             "bond_payable",
