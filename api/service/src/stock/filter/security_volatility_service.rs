@@ -14,6 +14,7 @@ use entity::stock_daily;
 use entity::stock;
 
 use super::super::stock_price_service;
+use crate::trade_calendar_service;
 
 #[derive(Debug, Deserialize, Copy, Clone, Display, PartialEq)]
 #[serde(rename_all = "lowercase")]
@@ -46,6 +47,15 @@ pub struct SecurityVolatility {
     min_price: f64,
 }
 
+
+#[derive(Debug, Serialize, Clone)]
+pub struct VolatilityResponse {
+    total: u64,
+    securities: Vec<SecurityVolatility>,
+    start_date: String,
+    end_date: String,
+}
+
 fn from_stock_daily(stock_daily: &StockDaily) -> anyhow::Result<DailyTradeRecord> {
     let record = DailyTradeRecord {
         date: NaiveDate::parse_from_str(&stock_daily.trade_date, "%Y%m%d").map_err(|e| anyhow!(e))?,
@@ -56,17 +66,21 @@ fn from_stock_daily(stock_daily: &StockDaily) -> anyhow::Result<DailyTradeRecord
 }
 
 
-pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> anyhow::Result<Vec<SecurityVolatility>> {
+pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> anyhow::Result<VolatilityResponse> {
     let stocks = stock::Entity::find().all(conn).await?;
-    let (start, end) = common::util::date_util::get_start_end_from_now(filter.days).map_err(|e| anyhow!(e))?;
-    
+
+
+    let dates = trade_calendar_service::get_trade_calendar(filter.days, conn).await?.into_iter().map(|c| c.cal_date).collect::<Vec<String>>();
+    let start =  NaiveDate::parse_from_str(&dates[dates.len() - 1].clone(), "%Y%m%d").unwrap();
+    let end = NaiveDate::parse_from_str(&dates[0].clone(), "%Y%m%d").unwrap();
+
     // 收集所有股票代码
     let ts_codes: Vec<String> = stocks.iter().map(|s| s.ts_code.clone()).collect();
 
     // 批量查询所有股票的价格数据
     let instant = Instant::now();
     let grouped_prices = stock_price_service::get_stock_prices_batch(&ts_codes, &start, &end, conn).await?;
-    info!("get stock prices batch cost: {:?}", instant.elapsed());
+    info!("get stock prices batch cost: {:?}, start: {:?}, end: {:?}", instant.elapsed(), start, end);
     
     // 处理每个股票的价格数据
     let mut volatilities = Vec::new();
@@ -101,6 +115,7 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
     } else {
         volatilities.sort_by(|a, b| b.volatility.partial_cmp(&a.volatility).unwrap());
     }
+    let mut volatilities =  volatilities.into_iter().take(filter.num as usize).collect::<Vec<SecurityVolatility>>();
     for v in volatilities.iter_mut() {
         let stock = stock::Entity::find_by_id(&v.ts_code)
             .one(conn)
@@ -108,5 +123,11 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
             .ok_or(anyhow!("stock not found"))?;
         v.name = stock.name.unwrap_or_default();
     }
-    Ok(volatilities.into_iter().take(filter.num as usize).collect())
+    let resp = VolatilityResponse {
+        total: volatilities.len() as u64,
+        securities: volatilities,
+        start_date: start.format("%Y%m%d").to_string(),
+        end_date: end.format("%Y%m%d").to_string(),
+    };
+    Ok(resp)
 }
