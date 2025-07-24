@@ -5,7 +5,7 @@ use entity::ths_member;
 use entity::ths_index;
 use tracing::{info, error};
 use entity::sea_orm::sea_query::OnConflict;
-use common::db::get_ths_member_update_columns;
+use common::db::get_entity_update_columns;
 
 pub struct FetchThsMemberTask(DatabaseConnection);
 
@@ -35,7 +35,7 @@ impl Task for FetchThsMemberTask {
                     ths_member::Column::TsCode,
                     ths_member::Column::ConCode,
                 ];
-                let update_columns = get_ths_member_update_columns(&pks);
+                let update_columns = get_entity_update_columns::<ths_member::Entity>(&pks);
                 let on_conflict = OnConflict::columns(pks)
                     .update_columns(update_columns)
                     .to_owned();
