@@ -176,7 +176,7 @@ pub struct Model {
     pub update_flag: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TsCode,
     AnnDate,
