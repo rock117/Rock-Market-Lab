@@ -77,7 +77,7 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
             .map(|p| from_stock_daily(p))
             .collect::<anyhow::Result<Vec<DailyTradeRecord>>>()?;
         
-        if !records.is_empty() {
+        if records.len() > 1 {
             let metrics = calculate_volatility(&records);
             volatilities.push(SecurityVolatility {
                 ts_code,
