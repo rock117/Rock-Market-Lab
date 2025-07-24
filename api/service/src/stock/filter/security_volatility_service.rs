@@ -66,22 +66,22 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
     let ts_codes: Vec<String> = stocks.iter().map(|s| s.ts_code.clone()).collect();
     
     // 批量查询所有股票的价格数据
-    let all_prices = stock_price_service::get_stock_prices_batch(&ts_codes, &start, &end, conn).await?;
+    let grouped_prices = stock_price_service::get_stock_prices_batch(&ts_codes, &start, &end, conn).await?;
     
-    // 按股票代码分组处理数据
-    use itertools::Itertools;
+    // 处理每个股票的价格数据
     let mut volatilities = Vec::new();
     
-    for (ts_code, prices) in all_prices.into_iter().group_by(|p| p.ts_code.clone()).into_iter() {
+    for (ts_code, prices) in grouped_prices {
         let records = prices
-            .map(|p| from_stock_daily(&p))
+            .iter()
+            .map(|p| from_stock_daily(p))
             .collect::<anyhow::Result<Vec<DailyTradeRecord>>>()?;
         
         if !records.is_empty() {
             let metrics = calculate_volatility(&records);
             volatilities.push(SecurityVolatility {
                 ts_code,
-                volatility: metrics.avg_daily_volatility,
+                volatility: metrics.calculate_score(),
             });
         }
     }

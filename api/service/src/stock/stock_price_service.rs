@@ -2,6 +2,7 @@ use chrono::NaiveDate;
 use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, Condition};
 use entity::stock_daily;
 use futures::stream::{StreamExt, TryStreamExt};
+use std::collections::HashMap;
 
 pub async fn get_stock_prices(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate, conn: &DatabaseConnection) -> anyhow::Result<Vec<stock_daily::Model>> {
     let start = start_date.format(common::date::FORMAT).to_string();
@@ -28,7 +29,7 @@ pub async fn get_stock_prices(ts_code: &str, start_date: &NaiveDate, end_date: &
 /// 批量查询的分片大小，避免 IN 子句元素过多
 const BATCH_SIZE: usize = 500;
 
-pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate, end_date: &NaiveDate, conn: &DatabaseConnection) -> anyhow::Result<Vec<stock_daily::Model>> {
+pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate, end_date: &NaiveDate, conn: &DatabaseConnection) -> anyhow::Result<HashMap<String, Vec<stock_daily::Model>>> {
 
     let start = start_date.format(common::date::FORMAT).to_string();
     let end = end_date.format(common::date::FORMAT).to_string();
@@ -67,5 +68,11 @@ pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate,
         })
         .await?;
 
-    Ok(all_prices)
+    // 按 ts_code 分组
+    let mut grouped_prices: HashMap<String, Vec<stock_daily::Model>> = HashMap::new();
+    for price in all_prices {
+        grouped_prices.entry(price.ts_code.clone()).or_insert_with(Vec::new).push(price);
+    }
+
+    Ok(grouped_prices)
 }

@@ -51,6 +51,7 @@
 //! 这种设计可以让不同价格区间的股票进行公平比较，同时兼顾了短期和长期的波动特征。
 
 use chrono::NaiveDate;
+use tracing::warn;
 
 /// 每日交易记录
 #[derive(Debug, Clone)]
@@ -97,11 +98,13 @@ impl VolatilityMetrics {
     /// - 成交量加权波动率: 30% - 取值范围 [0, +∞)，以百分比表示
     /// 
     /// 波动性得分是一个非负数，没有上限。得分越高表示股票的波动性越大。
-    fn calculate_score(&self) -> f64 {
-        self.cv * VARIATION_COEFFICIENT_WEIGHT + 
-        self.max_price_swing * PRICE_SWING_WEIGHT + 
-        self.avg_daily_volatility * DAILY_VOLATILITY_WEIGHT + 
-        self.volume_weighted_volatility * VOLUME_WEIGHT
+    pub fn calculate_score(&self) -> f64 {
+        // self.cv * VARIATION_COEFFICIENT_WEIGHT +
+        // self.max_price_swing * PRICE_SWING_WEIGHT +
+        // self.avg_daily_volatility * DAILY_VOLATILITY_WEIGHT +
+        // self.volume_weighted_volatility * VOLUME_WEIGHT
+        //
+        self.cv
     }
 
     /// 比较两个股票的波动性
@@ -141,7 +144,9 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
 
     // 计算平均价格
     let avg_price: f64 = prices.iter().map(|p| p.price).sum::<f64>() / prices.len() as f64;
-
+    if avg_price == 0f64 {
+        warn!("===> avg_price is 0, prices: {:?}", prices);
+    }
     // 计算标准差
     let variance: f64 = prices.iter()
         .map(|p| (p.price - avg_price).powi(2))
@@ -150,7 +155,9 @@ pub fn calculate_volatility(prices: &[DailyTradeRecord]) -> VolatilityMetrics {
 
     // 计算变异系数 (CV)
     let cv = if avg_price != 0.0 { std_dev / avg_price } else { 0.0 };
-
+    if cv == 0f64 {
+        warn!("===> cv is 0, prices: {:?}", prices);
+    }
     // 计算最大价格波动幅度
     let max_price = prices.iter().map(|p| p.price).fold(f64::NEG_INFINITY, f64::max);
     let min_price = prices.iter().map(|p| p.price).fold(f64::INFINITY, f64::min);
