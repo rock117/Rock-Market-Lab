@@ -23,7 +23,7 @@ pub struct Model {
     pub is_new: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TsCode,
     ConCode,

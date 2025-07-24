@@ -486,6 +486,7 @@ dependencies = [
  "csv",
  "dashmap 7.0.0-rc1",
  "derive_more",
+ "entity",
  "flate2",
  "futures",
  "itertools",

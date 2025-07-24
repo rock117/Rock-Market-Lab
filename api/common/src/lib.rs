@@ -15,6 +15,7 @@ mod pickup;
 pub mod config;
 pub mod cache;
 pub mod paging;
+pub mod db;
 mod security_name;
 pub mod web;
 pub mod domain;

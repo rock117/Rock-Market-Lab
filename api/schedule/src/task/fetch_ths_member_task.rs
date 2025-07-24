@@ -1,11 +1,11 @@
 use async_trait::async_trait;
-use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set, EntityTrait, InsertResult};
+use entity::sea_orm::{DatabaseConnection, TransactionTrait, EntityTrait};
 use crate::task::Task;
 use entity::ths_member;
 use entity::ths_index;
 use tracing::{info, error};
 use entity::sea_orm::sea_query::OnConflict;
-
+use common::db::get_ths_member_update_columns;
 
 pub struct FetchThsMemberTask(DatabaseConnection);
 
@@ -13,7 +13,6 @@ impl FetchThsMemberTask {
     pub fn new(db: DatabaseConnection) -> Self {
         Self(db)
     }
-
 }
 
 #[async_trait]
@@ -32,9 +31,12 @@ impl Task for FetchThsMemberTask {
             let members = ext_api::tushare::ths_member(None, Some(&index.ts_code)).await?;
             for member in &members {
                 let active_model = ths_member::ActiveModel { ..member.clone().into() };
+                let update_columns = get_ths_member_update_columns(&[
+                    ths_member::Column::TsCode, 
+                    ths_member::Column::ConCode
+                ]);
                 let on_conflict = OnConflict::columns([ths_member::Column::TsCode, ths_member::Column::ConCode])
-                    .update_columns([ths_member::Column::ConName, ths_member::Column::Weight, ths_member::Column::IsNew,
-                        ths_member::Column::InDate, ths_member::Column::OutDate])
+                    .update_columns(update_columns)
                     .to_owned();
 
                 if let Err(e) = ths_member::Entity::insert(active_model)
