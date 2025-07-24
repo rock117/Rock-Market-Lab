@@ -1,8 +1,10 @@
+use std::time::Instant;
 use anyhow::anyhow;
 use chrono::NaiveDate;
 use derive_more::Display;
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
+use tracing::info;
 use common::calc::{DailyTradeRecord, calculate_volatility};
 use entity::stock_daily::Model as StockDaily;
 use entity::sea_orm::DatabaseConnection;
@@ -30,22 +32,18 @@ pub struct VolatilityFilter {
     pub days: u64, // n个交易日
     pub sort: Sort, // asc: 波动性小，desc: 波动性大
     pub r#type: Type, // 类型 Stock, Fund, Index, ThsIndex
-}
-impl VolatilityFilter {
-    pub fn new(num: u64, days: u64, sort: Sort, r#type: Type) -> Self {
-        Self {
-            num,
-            days,
-            sort,
-            r#type,
-        }
-    }
+    pub max_price_swing: f64, // 最大价格波动幅度
 }
 
 #[derive(Debug, Serialize, Clone)]
 pub struct SecurityVolatility {
     ts_code: String,
+    name: String,
     volatility: f64,
+    max_price_swing: f64,
+    avg_price: f64,
+    max_price: f64,
+    min_price: f64,
 }
 
 fn from_stock_daily(stock_daily: &StockDaily) -> anyhow::Result<DailyTradeRecord> {
@@ -64,13 +62,16 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
     
     // 收集所有股票代码
     let ts_codes: Vec<String> = stocks.iter().map(|s| s.ts_code.clone()).collect();
-    
+
     // 批量查询所有股票的价格数据
+    let instant = Instant::now();
     let grouped_prices = stock_price_service::get_stock_prices_batch(&ts_codes, &start, &end, conn).await?;
+    info!("get stock prices batch cost: {:?}", instant.elapsed());
     
     // 处理每个股票的价格数据
     let mut volatilities = Vec::new();
-    
+
+    let instant = Instant::now();
     for (ts_code, prices) in grouped_prices {
         let records = prices
             .iter()
@@ -78,19 +79,34 @@ pub async fn filter(filter: &VolatilityFilter, conn: &DatabaseConnection) -> any
             .collect::<anyhow::Result<Vec<DailyTradeRecord>>>()?;
         
         if records.len() > 1 {
+            let name: String = "".into();
             let metrics = calculate_volatility(&records);
-            volatilities.push(SecurityVolatility {
-                ts_code,
-                volatility: metrics.calculate_score(),
-            });
+            if metrics.max_price_swing <= filter.max_price_swing {
+                volatilities.push(SecurityVolatility {
+                    ts_code,
+                    name,
+                    volatility: metrics.volatility(),   
+                    max_price_swing: metrics.max_price_swing,
+                    avg_price: metrics.avg_price,
+                    max_price: metrics.max_price,
+                    min_price: metrics.min_price,
+                });
+            }
         }
     }
+    info!("calculate volatility cost: {:?}", instant.elapsed());
 
     if filter.sort == Sort::Asc {
         volatilities.sort_by(|a, b| a.volatility.partial_cmp(&b.volatility).unwrap());
     } else {
         volatilities.sort_by(|a, b| b.volatility.partial_cmp(&a.volatility).unwrap());
     }
-
+    for v in volatilities.iter_mut() {
+        let stock = stock::Entity::find_by_id(&v.ts_code)
+            .one(conn)
+            .await?
+            .ok_or(anyhow!("stock not found"))?;
+        v.name = stock.name.unwrap_or_default();
+    }
     Ok(volatilities.into_iter().take(filter.num as usize).collect())
 }
