@@ -25,7 +25,7 @@ use strum::IntoEnumIterator;
 ///     &[ths_member::Column::TsCode, ths_member::Column::ConCode] // 排除主键
 /// );
 /// ```
-pub fn get_update_columns_excluding<T>(all_columns: &[T], exclude_columns: &[T]) -> Vec<T>
+fn get_update_columns_excluding<T>(all_columns: &[T], exclude_columns: &[T]) -> Vec<T>
 where
     T: Clone + PartialEq,
 {

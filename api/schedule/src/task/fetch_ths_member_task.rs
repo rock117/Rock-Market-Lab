@@ -31,11 +31,12 @@ impl Task for FetchThsMemberTask {
             let members = ext_api::tushare::ths_member(None, Some(&index.ts_code)).await?;
             for member in &members {
                 let active_model = ths_member::ActiveModel { ..member.clone().into() };
-                let update_columns = get_ths_member_update_columns(&[
-                    ths_member::Column::TsCode, 
-                    ths_member::Column::ConCode
-                ]);
-                let on_conflict = OnConflict::columns([ths_member::Column::TsCode, ths_member::Column::ConCode])
+                let pks = [
+                    ths_member::Column::TsCode,
+                    ths_member::Column::ConCode,
+                ];
+                let update_columns = get_ths_member_update_columns(&pks);
+                let on_conflict = OnConflict::columns(pks)
                     .update_columns(update_columns)
                     .to_owned();
 

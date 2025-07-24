@@ -1,8 +1,9 @@
 use async_trait::async_trait;
 use entity::sea_orm::{DatabaseConnection, TransactionTrait, Set, EntityTrait, InsertResult};
 use crate::task::Task;
-use entity::ths_index;
+use entity::{ths_index, ths_member};
 use tracing::{info, error};
+use common::db::get_entity_update_columns;
 use entity::sea_orm::sea_query::OnConflict;
 
 
@@ -27,8 +28,12 @@ impl Task for FetchThsIndexTask {
         info!("fetch ths index count: {}", indexes.len());
         for index in &indexes {
             let active_model = ths_index::ActiveModel { ..index.clone().into() };
-            let on_conflict = OnConflict::columns([ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate])
-                .update_columns([ths_index::Column::Name, ths_index::Column::Count])
+            let pks = [
+                ths_index::Column::TsCode, ths_index::Column::Exchange, ths_index::Column::Type, ths_index::Column::ListDate
+            ];
+            let update_columns = get_entity_update_columns(&pks);
+            let on_conflict = OnConflict::columns(&pks)
+                .update_columns(update_columns)
                 .to_owned();
             
             let ts_code = index.ts_code.clone();
