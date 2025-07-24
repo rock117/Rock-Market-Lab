@@ -34,7 +34,7 @@ pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate,
     let end = end_date.format(common::date::FORMAT).to_string();
 
     // 将股票代码列表分批处理
-    let chunks: Vec<_> = ts_codes.chunks(BATCH_SIZE).collect();
+    let chunks: Vec<Vec<String>> = ts_codes.chunks(BATCH_SIZE).map(|c| c.to_vec()).collect();
     
     // 使用并发流处理每个分片
     let all_prices = futures::stream::iter(chunks)
