@@ -9,3 +9,4 @@ pub mod stock_price_controller;
 mod stock_compare_controller;
 pub mod security;
 mod stock_market_summary_controller;
+pub mod stock_asset_controller;

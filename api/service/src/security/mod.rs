@@ -12,6 +12,7 @@ pub use compare::security_history_compare_service;
 pub mod security_search_service;
 pub mod security_daily_service;
 mod compare;
+pub mod stock_asset_service;
 
 #[derive(Debug, Copy, Clone, Deserialize, Serialize, Display)]
 pub enum SecurityType {
