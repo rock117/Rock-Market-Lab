@@ -38,6 +38,8 @@ impl Task for FetchBalancesheetTask {
                 let pks = [
                     entity::balancesheet::Column::TsCode,
                     entity::balancesheet::Column::EndDate,
+                    entity::balancesheet::Column::AnnDate,
+                    entity::balancesheet::Column::FAnnDate,
                 ];
                 let update_columns = get_entity_update_columns::<entity::balancesheet::Entity>(&pks);
                 let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)

@@ -33,7 +33,6 @@ pub async fn balancesheet(ts_code: &str, report_type: &str, start_date: &NaiveDa
                             "int_receiv",
                             "inventories",
                             "amor_exp",
-                            "nca_within_1y",
                             "sett_rsrv",
                             "loanto_oth_bank_fi",
                             "premium_receiv",
