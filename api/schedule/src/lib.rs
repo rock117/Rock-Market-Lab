@@ -1,8 +1,4 @@
-use std::error::Error;
-use std::sync::Arc;
-use tokio_cron_scheduler::{Job, JobScheduler};
-use tracing::{error, info};
-use entity::sea_orm::DatabaseConnection;
+use crate::task::Task;
 use crate::task::fetch_balancesheet_task::FetchBalancesheetTask;
 use crate::task::fetch_cashflow_task::FetchCashflowTask;
 use crate::task::fetch_finance_indicator_task::FetchFinanceIndicatorTask;
@@ -27,7 +23,11 @@ use crate::task::fetch_ths_member_task::FetchThsMemberTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::fetch_us_basic_task::FetchUsBasicTask;
 use crate::task::fetch_us_daily_task::FetchUsDailyTask;
-use crate::task::Task;
+use entity::sea_orm::DatabaseConnection;
+use std::error::Error;
+use std::sync::Arc;
+use tokio_cron_scheduler::{Job, JobScheduler};
+use tracing::{error, info};
 
 mod task;
 
@@ -95,12 +95,10 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let dailys: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchFundTask::new(conn.clone())),
-
         Arc::new(FetchStockDailyTask::new(conn.clone())),
         Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
         // Arc::new(FetchIndexDailyTask::new(conn.clone())),
         // Arc::new(FetchStockMonthlyTask::new(conn.clone())),
-
 
         // Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
         // Arc::new(FetchFundDailyTask::new(conn.clone())),
@@ -116,7 +114,6 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchIndexTask::new(conn.clone())),
     ];
 
-
     let finances: Vec<Arc<dyn Task>> = vec![
         //   Arc::new(FetchIncomeTask::new(conn.clone())),
         // Arc::new(FetchCashflowTask::new(conn.clone())),
@@ -128,13 +125,13 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let others: Vec<Arc<dyn Task>> = vec![
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
-      //  Arc::new(FetchMarginTask::new(conn.clone())),
-     //   Arc::new(FetchThsIndexTask::new(conn.clone())),
-     //   Arc::new(FetchThsMemberTask::new(conn.clone())),
+        //  Arc::new(FetchMarginTask::new(conn.clone())),
+        Arc::new(FetchThsIndexTask::new(conn.clone())),
+        Arc::new(FetchThsMemberTask::new(conn.clone())),
         Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
-    jobs.extend(dailys);
-    // jobs.extend(others);
+    //    jobs.extend(dailys);
+    jobs.extend(others);
     // jobs.extend(finances);
     // jobs.extend(us);
     println!("total task: {:?}", jobs.len());

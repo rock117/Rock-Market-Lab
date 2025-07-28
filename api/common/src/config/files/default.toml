@@ -1,5 +1,5 @@
 [database]
-url = "postgres://postgres:123456@127.0.0.1/investment_research"
+url = "postgres://postgres:123456@127.0.0.1:15432/investment_research"
 
 [tushare]
 token = "xxx"
