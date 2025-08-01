@@ -1,22 +1,18 @@
-use std::collections::HashMap;
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
-use anyhow::{anyhow, bail};
+use anyhow::anyhow;
 use async_rate_limit::sliding_window::SlidingWindowRateLimiter;
 use once_cell::sync::Lazy;
 use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
 use tokio::sync::Semaphore;
-use tracing::warn;
+use tushare_api::{FromTushareData, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
 
-use common::http;
-use common::json::from_json;
-
-use crate::resp_to_string;
 pub use balancesheet::*;
 pub use cashflow::*;
+use common::http;
 pub use daily::*;
 pub use daily_basic::*;
 pub use fina_indicator::*;
@@ -42,7 +38,7 @@ pub use trade_cal::*;
 pub use us_basic::*;
 pub use us_daily::*;
 
-use crate::tushare::model::{Api, ApiParam, TushareApiResp};
+use crate::tushare::model::ApiParam;
 
 mod balancesheet;
 mod cashflow;
@@ -79,8 +75,6 @@ static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
         .tushare_token()
 });
 
-static TUSHARE_API: &'static str = "http://api.tushare.pro";
-static TOKEN: Lazy<String> = Lazy::new(|| "token".to_string());
 static CALL_LIMI: Lazy<Arc<Mutex<SlidingWindowRateLimiter>>> = Lazy::new(|| {
     Arc::new(Mutex::new(SlidingWindowRateLimiter::new(
         Duration::from_secs(60),
@@ -92,84 +86,21 @@ static max_requests_per_minute: usize = 500;
 static semaphore: Lazy<Arc<Semaphore>> =
     Lazy::new(|| Arc::new(Semaphore::new(max_requests_per_minute)));
 
-/// add rate limit TODO
-async fn call_tushare_api<'a, const N: u64>(
-    param: &ApiParam<'a>,
-) -> anyhow::Result<TushareApiResp> {
-    // let limiter = CALL_LIMI.clone();
-    // let mut limiter = limiter.lock().map_err(|e| anyhow!(e.to_string()))?;
-    // limiter.wait_until_ready().await; // 等待限流器许可
-    tokio::time::sleep(Duration::from_millis(N)).await;
+static TUSHARE_CLIENT: Lazy<TushareClient> = Lazy::new(|| {
+    TushareClient::builder()
+        .with_token(TUSHARE_TOKEN.as_str())
+        .with_log_level(LogLevel::Info)
+        .log_requests(true)
+        .log_responses(false)
+        .log_sensitive_data(false) // 生产环境建议设为 false
+        .log_performance(true)
+        .with_connect_timeout(Duration::from_secs(300))
+        .with_timeout(Duration::from_secs(300))
+        .build()
+        .unwrap()
+});
 
-    let inst = Instant::now();
-    let mut resp = get_data(param, 3).await;
-    let cost = inst.elapsed().as_secs();
-    if cost >= 10 {
-        warn!("tushare api call is slow, cost: {}s", cost);
-    }
-    let resp = resp?;
-    if resp.status() != StatusCode::OK {
-        bail!(
-            "http status not ok: {}, header: {:?}, body: {}",
-            resp.status(),
-            resp.headers().clone(),
-            resp_to_string(resp).await?
-        );
-    }
-    let resp = resp_to_string(resp).await?;
-    let resp = from_json::<TushareApiResp>(resp.as_str())?;
 
-    if !resp.is_success() {
-        bail!(
-            "tushare api failed, code: {}, msg: {:?}",
-            resp.code,
-            resp.msg
-        )
-    }
-    if resp.data.is_none() {
-        bail!(
-            "tushare api tushare-resp is null, code: {}, msg: {:?}",
-            resp.code,
-            resp.msg
-        )
-    }
-    Ok(resp)
-}
-
-async fn call_tushare_api_as<const N: u64, T: DeserializeOwned>(
-    api: Api,
-    params: &HashMap<&str, &str>,
-    fields: &[&str],
-) -> anyhow::Result<Vec<T>> {
-    let param = ApiParam {
-        api_name: api,
-        token: &TUSHARE_TOKEN,
-        params,
-        fields,
-    };
-    let res = call_tushare_api::<N>(&param).await?;
-    res.data
-        .ok_or(anyhow!("no data in margin resp"))?
-        .to_structs::<T>()
-}
-
-async fn get_data<'a>(param: &ApiParam<'a>, retry_num: u32) -> anyhow::Result<Response> {
-    let mut resp_opt: Option<anyhow::Result<Response>> = None;
-    for i in 0..retry_num {
-        let resp = http::post(TUSHARE_API, Some(serde_json::to_string(param)?), None).await;
-        if let Err(e) = resp {
-            resp_opt = Some(Err(e));
-            continue;
-        }
-        let resp = resp?;
-        if resp.status() == StatusCode::GATEWAY_TIMEOUT || resp.status() == StatusCode::BAD_GATEWAY
-        {
-            continue;
-        }
-        return Ok(resp);
-    }
-    resp_opt.ok_or(anyhow!(
-        "retry {} times to call tushare_api, but failed",
-        retry_num
-    ))?
+pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData, {
+    TUSHARE_CLIENT.call_api_as::<T>(request).await
 }

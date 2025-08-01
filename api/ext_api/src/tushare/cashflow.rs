@@ -1,15 +1,15 @@
 use chrono::NaiveDate;
 use map_macro::hash_map;
 use entity::cashflow;
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, LogLevel, params, request, TushareRequest};
+use crate::tushare::call_api_as;
 
 pub async fn cashflow(ts_code: &str, report_type: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<cashflow::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    call_tushare_api_as::<500, cashflow::Model>(Api::cashflow,
-                        &hash_map! {"ts_code" => ts_code, "report_type" => report_type, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
-                        &[
+    let res = call_api_as::<cashflow::Model, 500>(request!(Api::Cashflow,
+                        {"ts_code" => ts_code, "report_type" => report_type, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
+                        [
                             "ts_code",
                             "ann_date",
                             "f_ann_date",
@@ -107,6 +107,7 @@ pub async fn cashflow(ts_code: &str, report_type: &str, start_date: &NaiveDate, 
                             "end_bal_cash_equ",
                             "beg_bal_cash_equ",
                             "update_flag"
-                        ],
-    ).await
+                        ]
+    )).await?;
+    return Ok(res.items)
 }

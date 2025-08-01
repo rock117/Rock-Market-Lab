@@ -3,8 +3,8 @@ use common::domain::ThsIndexType;
 
 use entity::ths_index::Model as ThsIndex;
 
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
 
 /// # 获取同花顺指数数据
 ///
@@ -26,15 +26,21 @@ pub async fn ths_index(ts_code: Option<&str>, exchange: Option<&str>, type_: Opt
         params.insert("type", t);
     }
 
-    call_tushare_api_as::<500, ThsIndex>(Api::ths_index,
-                                      &params,
-                                      &vec![
+    let params = params.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect::<HashMap<String, String>>();
+    let fields = fields![
                                           "ts_code",
                                           "name",
                                           "count",
                                           "exchange",
                                           "list_date",
                                           "type"
-                                      ]).await
+                                          ];
+    let req = TushareRequest {
+        api_name: Api::ThsIndex,
+        params,
+        fields,
+    };
+    let res = call_api_as::<ThsIndex, 500>(req).await?;
+    Ok(res.items)
 }
 

@@ -1,16 +1,15 @@
 use chrono::NaiveDate;
-use map_macro::hash_map;
 use entity::balancesheet;
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, LogLevel, params, request, TushareRequest};
+use crate::tushare::call_api_as;
 
 /// 资产负债表
 pub async fn balancesheet(ts_code: &str, report_type: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<balancesheet::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    call_tushare_api_as::<500, balancesheet::Model>(Api::balancesheet,
-                        &hash_map! {"ts_code" => ts_code, "report_type" => report_type, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
-                        &[
+    let res = call_api_as::<balancesheet::Model, 500>( request!(Api::Balancesheet,
+                       {"ts_code" => ts_code, "report_type" => report_type, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
+                        [
                             "ts_code",
                             "ann_date",
                             "f_ann_date",
@@ -167,5 +166,7 @@ pub async fn balancesheet(ts_code: &str, report_type: &str, start_date: &NaiveDa
                             "oth_rcv_total",
                             "fix_assets_total",
                             "update_flag"
-                        ]).await
+                        ])).await?;
+    return Ok(res.items)
+
 }

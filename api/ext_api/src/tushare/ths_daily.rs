@@ -2,8 +2,9 @@ use std::collections::HashMap;
 
 use entity::ths_daily::Model as ThsDaily;
 
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
+
 
 /// # 获取同花顺指数数据
 ///
@@ -27,10 +28,8 @@ pub async fn ths_daily(ts_code: Option<&str>, trade_date: Option<&str>, start_da
     if let Some(end_date) = end_date {
         params.insert("end_date", end_date);
     }
-
-    call_tushare_api_as::<50, ThsDaily>(Api::ths_daily,
-                                      &params,
-                                      &vec![
+    let params = params.iter().map(|(k, v)| (k.to_string(), v.to_string())).collect::<HashMap<String, String>>();
+    let fields = fields![
                                           "ts_code",
                                           "trade_date",
                                           "close",
@@ -45,6 +44,13 @@ pub async fn ths_daily(ts_code: Option<&str>, trade_date: Option<&str>, start_da
                                           "turnover_rate",
                                           "total_mv",
                                           "float_mv",
-                                          ]).await
+                                          ];
+    let req = TushareRequest {
+        api_name: Api::ThsDaily,
+        params,
+        fields,
+    };
+    let res = call_api_as::<ThsDaily, 500>(req).await?;
+    Ok(res.items)
 }
 

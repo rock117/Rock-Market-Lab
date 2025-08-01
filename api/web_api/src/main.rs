@@ -26,6 +26,7 @@ use tracing_subscriber::fmt::writer::MakeWriterExt;
 
 use controller::*;
 use controller::security::stock;
+
 mod resource;
 mod template;
 mod controller;
@@ -57,6 +58,8 @@ async fn main3() -> anyhow::Result<()> {
 async fn rocket() -> _ {
     dotenvy::dotenv().ok();
     init_log_context().expect("Failed to init log context");
+   // tracing_subscriber::fmt::init();
+
     let conn = get_db_conn().await;
     let conn_schedule = conn.clone();
     info!("start schedule");

@@ -4,8 +4,9 @@ use common::finance::ma;
 
 use entity::fund;
 
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
+
 
 /// 基金列表 https://tushare.pro/document/2?doc_id=19
 #[derive(Debug, Clone, Copy, Display)]
@@ -17,8 +18,8 @@ pub enum FundMarket {
 }
 pub async fn fund_basic(market: FundMarket) -> anyhow::Result<Vec<fund::Model>> {
     let market = market.to_string();
-    let params = &hash_map! {"market" => market.as_str()}; //E只取场内
-    let fields = &[
+    let params = hash_map! {"market".into() => market}; //E只取场内
+    let fields= fields![
         "ts_code",
         "name",
         "management",
@@ -45,5 +46,12 @@ pub async fn fund_basic(market: FundMarket) -> anyhow::Result<Vec<fund::Model>> 
         "redm_startdate",
         "market",
     ];
-    call_tushare_api_as::<0, fund::Model>(Api::fund_basic, params, fields).await
+    let request = TushareRequest {
+        api_name: Api::StockBasic,
+        params,
+        fields,
+    };
+
+    let res = call_api_as::<fund::Model, 0>(request).await?;
+    Ok(res.items)
 }

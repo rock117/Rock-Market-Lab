@@ -1,17 +1,16 @@
 use chrono::NaiveDate;
-use map_macro::hash_map;
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
 
 pub async fn index_weekly(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<entity::index_weekly::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let params = &hash_map! {
+    let res = call_api_as::<entity::index_weekly::Model, 500>(request!(Api::IndexWeekly,
+        {
         "ts_code" => ts_code,
         "start_date" => start_date.as_str(),
         "end_date" => end_date.as_str(),
-    };
-    let fields = &[
+    }, [
         "ts_code" ,
         "trade_date" ,
         "close" ,
@@ -23,6 +22,6 @@ pub async fn index_weekly(ts_code: &str, start_date: &NaiveDate, end_date: &Naiv
         "pct_chg" ,
         "vol" ,
         "amount" ,
-    ];
-    call_tushare_api_as::<500, entity::index_weekly::Model>(Api::index_weekly, params, fields).await
+    ])).await?;
+    Ok(res.items)
 }

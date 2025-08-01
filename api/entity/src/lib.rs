@@ -34,4 +34,7 @@ pub mod ths_index;
 pub mod ths_member;
 pub mod ths_daily;
 pub mod dc_index;
+mod margin_trading_summary;
+mod stock_margin_detail;
+
 pub use sea_orm;

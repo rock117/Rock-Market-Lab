@@ -3,19 +3,16 @@ use map_macro::hash_map;
 
 use entity::fund_daily::Model as FundDaily;
 
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
+
 
 /// 基金日线行情行情
 pub async fn fund_daily(tscode: &str, start: &NaiveDate, end: &NaiveDate) -> anyhow::Result<Vec<FundDaily>> {
     let start_date = start.format("%Y%m%d").to_string();
     let end_date = end.format("%Y%m%d").to_string();
-    let parmas = hash_map! {"ts_code" => tscode, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()};
-
-    call_tushare_api_as::<500, FundDaily>(Api::fund_daily,
-                                          &parmas,
-                                          &vec![
-                                              "ts_code",
+    let parmas = hash_map! {"ts_code".into() => tscode.into(), "start_date".into() => start_date, "end_date".into() => end_date};
+    let fields = fields!["ts_code",
                                               "trade_date",
                                               "open",
                                               "high",
@@ -25,6 +22,12 @@ pub async fn fund_daily(tscode: &str, start: &NaiveDate, end: &NaiveDate) -> any
                                               "change",
                                               "pct_chg",
                                               "vol",
-                                              "amount",
-                                          ]).await
+                                              "amount"];
+    let request = TushareRequest {
+        api_name: Api::FundDaily,
+        params: parmas,
+        fields,
+    };
+    let res = call_api_as::<FundDaily, 500>(request).await?;
+    Ok(res.items)
 }

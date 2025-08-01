@@ -1,18 +1,19 @@
-use map_macro::hash_map;
-
 use entity::trade_calendar::Model as TradeCalendar;
 
-use crate::tushare::call_tushare_api_as;
-use crate::tushare::model::Api;
+use tushare_api::{Api, fields, params, request, TushareRequest};
+use crate::tushare::call_api_as;
 
 /// 获取交易日历数据
 pub async fn trade_cal() -> anyhow::Result<Vec<TradeCalendar>> {
-    call_tushare_api_as::<500, TradeCalendar>(Api::trade_cal,
-                        &hash_map! {"exchange" => "SSE", "start_date" => "20000101", "end_date" => "20251231"},
-                        &vec![
-                            "exchange",
-                            "cal_date",
-                            "is_open",
-                            "pretrade_date",
-                        ]).await
+    let res = call_api_as::<TradeCalendar, 500>(request!(Api::TradeCal,
+        {"exchange" => "SSE", "start_date" => "20000101", "end_date" => "20251231"},
+        [
+                                          "ts_code",
+                                          "name",
+                                          "count",
+                                          "exchange",
+                                          "list_date",
+                                          "type"
+                                          ])).await?;
+    Ok(res.items)
 }
