@@ -8,12 +8,10 @@ pub async fn trade_cal() -> anyhow::Result<Vec<TradeCalendar>> {
     let res = call_api_as::<TradeCalendar, 500>(request!(Api::TradeCal,
         {"exchange" => "SSE", "start_date" => "20000101", "end_date" => "20251231"},
         [
-                                          "ts_code",
-                                          "name",
-                                          "count",
                                           "exchange",
-                                          "list_date",
-                                          "type"
+                                          "cal_date",
+                                          "is_open",
+                                          "pretrade_date"
                                           ])).await?;
     Ok(res.items)
 }

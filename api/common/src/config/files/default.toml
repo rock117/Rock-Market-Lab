@@ -1,5 +1,6 @@
 [database]
-url = "postgres://postgres:123456@127.0.0.1:15432/investment_research"
+#url = "postgres://postgres:123456@127.0.0.1:15432/investment_research"
+url = "mysql://root:123456@localhost:3306/investment_research"
 
 [tushare]
 token = "xxx"

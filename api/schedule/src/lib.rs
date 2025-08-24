@@ -40,6 +40,7 @@ pub async fn start_schedule(conn: DatabaseConnection) -> Result<(), Box<dyn Erro
         //         error!("Task executed failed: {:?}", e);
         //     }
         // });
+        info!("begin run task...");
         let result = task.run().await;
         if let Err(e) = result {
             error!("Task executed failed: {:?}", e);
@@ -73,8 +74,8 @@ pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn 
 
 fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     let mut jobs: Vec<Arc<dyn Task>> = vec![
-          Arc::new(FetchStockListTask::new(conn.clone())),
-        //  Arc::new(FetchTradeCalendarTask::new(conn.clone())),
+      //    Arc::new(FetchStockListTask::new(conn.clone())),
+         Arc::new(FetchTradeCalendarTask::new(conn.clone())),
         //  Arc::new(FetchStockDailyTask::new(conn.clone())),
         //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
         //  Arc::new(FetchIndexWeeklyTask::new(conn.clone())),
@@ -130,11 +131,10 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         Arc::new(FetchThsMemberTask::new(conn.clone())),
         Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
-      // jobs.extend(dailys);
+      jobs.extend(dailys);
    // jobs.extend(others);
     // jobs.extend(finances);
     // jobs.extend(us);
-    println!("total task: {:?}", jobs.len());
     info!("Total tasks: {}", jobs.len());
     jobs
 }

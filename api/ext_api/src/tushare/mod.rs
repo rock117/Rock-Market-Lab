@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
 use tokio::sync::Semaphore;
+use tracing::info;
 use tushare_api::{FromTushareData, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
 
 pub use balancesheet::*;
@@ -101,6 +102,10 @@ static TUSHARE_CLIENT: Lazy<TushareClient> = Lazy::new(|| {
 });
 
 
-pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData, {
-    TUSHARE_CLIENT.call_api_as::<T>(request).await
+pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData + std::fmt::Debug {
+    // let data = TUSHARE_CLIENT.call_api(request.clone()).await;
+    // info!("call_api, response: {:?}", data);
+    let data = TUSHARE_CLIENT.call_api_as::<T>(request).await;
+  //  info!("call_api_as, response: {:?}", data);
+    data
 }
