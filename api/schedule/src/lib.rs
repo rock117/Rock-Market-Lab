@@ -74,8 +74,8 @@ pub async fn start_schedule_tmp(conn: DatabaseConnection) -> Result<(), Box<dyn 
 
 fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     let mut jobs: Vec<Arc<dyn Task>> = vec![
-      //    Arc::new(FetchStockListTask::new(conn.clone())),
-         Arc::new(FetchTradeCalendarTask::new(conn.clone())),
+        // Arc::new(FetchStockListTask::new(conn.clone())),
+        //   Arc::new(FetchTradeCalendarTask::new(conn.clone())),
         //  Arc::new(FetchStockDailyTask::new(conn.clone())),
         //  Arc::new(FetchIndexDailyTask::new(conn.clone())),
         //  Arc::new(FetchIndexWeeklyTask::new(conn.clone())),
@@ -125,16 +125,18 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         Arc::new(FetchUsDailyTask::new(conn.clone())),
     ];
     let others: Vec<Arc<dyn Task>> = vec![
+        Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
-        Arc::new(FetchThsIndexTask::new(conn.clone())),
-        Arc::new(FetchThsMemberTask::new(conn.clone())),
-        Arc::new(FetchThsDailyTask::new(conn.clone())),
+        // Arc::new(FetchThsIndexTask::new(conn.clone())),
+        // Arc::new(FetchThsMemberTask::new(conn.clone())),
+        // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
-      jobs.extend(dailys);
-   // jobs.extend(others);
+  // jobs.extend(dailys);
+    jobs.extend(others);
     // jobs.extend(finances);
     // jobs.extend(us);
+
     info!("Total tasks: {}", jobs.len());
     jobs
 }
