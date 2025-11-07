@@ -10,6 +10,10 @@ use entity::etf;
 use entity::sea_orm::EntityTrait;
 use entity::sea_orm::ActiveModelTrait;
 
+
+
+
+
 pub struct FetchFundDailyTask(DatabaseConnection);
 
 impl FetchFundDailyTask {
@@ -26,7 +30,7 @@ impl Task for FetchFundDailyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let funds: Vec<etf::Model> = etf::Entity::find().all(&self.0).await?;
-        let (start_date, end_date) = super::get_start_end_date_from_default()?;
+        let (start_date, end_date) = super::get_start_end_date_from_now(250)?;
         let mut curr = 0;
         for fund in &funds {
             let res = ext_api::tushare::fund_daily(&fund.ts_code, &start_date, &end_date).await;

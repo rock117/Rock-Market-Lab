@@ -31,7 +31,7 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
         }
         SecurityType::Fund => {
             fund_daily::Entity::find()
-                .filter(fund_daily::Column::TsCode.eq(ts_code))
+                .filter(ColumnTrait::eq(&fund_daily::Column::TsCode, ts_code))
                 .filter(fund_daily::Column::TradeDate.gte(&start))
                 .filter(fund_daily::Column::TradeDate.lte(&end))
                 .order_by_desc(fund_daily::Column::TradeDate)
