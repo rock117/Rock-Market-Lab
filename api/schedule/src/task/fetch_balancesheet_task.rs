@@ -1,6 +1,6 @@
 use async_trait::async_trait;
 use chrono::{Local, NaiveDate};
-use tracing::{error, info};
+use tracing::{error, info, warn};
 use entity::sea_orm::DatabaseConnection;
 use entity::stock;
 use crate::task::Task;
@@ -25,13 +25,14 @@ impl Task for FetchBalancesheetTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let start_date = NaiveDate::parse_from_str("20200101", "%Y%m%d")?;
-        let end_date = Local::now().date_naive();
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {
             let balancesheet = ext_api::tushare::balancesheet(&stock.ts_code).await;
-            // save balancesheet to db, handle conflict
+            if let Err(e) = balancesheet {
+                warn!("failed to fetch balancesheet for {}, {:?}", stock.ts_code, e);
+                continue;
+            }
             let tx = self.0.begin().await?;
             for balance in balancesheet? {
                 let active_model = entity::balancesheet::ActiveModel { ..balance.clone().into() };
@@ -51,7 +52,7 @@ impl Task for FetchBalancesheetTask {
                     .on_conflict(on_conflict)
                     .exec(&tx)
                     .await {
-                    error!("insert balancesheet failed, ts_code: {}, end_date: {}, error: {:?}", stock.ts_code, end_date, e);
+                    error!("insert balancesheet failed, ts_code: {}, error: {:?}", stock.ts_code, e);
                 }
             }
             tx.commit().await?;
