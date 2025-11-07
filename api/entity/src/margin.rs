@@ -26,7 +26,7 @@ pub struct Model {
     pub rqyl: Option<Decimal>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TradeDate,
     ExchangeId,
