@@ -38,7 +38,7 @@ pub use ths_member::*;
 pub use trade_cal::*;
 pub use us_basic::*;
 pub use us_daily::*;
-
+pub use etf_basic::*;
 use crate::tushare::model::ApiParam;
 
 mod balancesheet;
@@ -69,6 +69,7 @@ mod ths_member;
 mod trade_cal;
 mod us_basic;
 mod us_daily;
+mod etf_basic;
 
 static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
     common::config::AppConfig::new()

@@ -36,5 +36,5 @@ pub mod ths_daily;
 pub mod dc_index;
 mod margin_trading_summary;
 mod stock_margin_detail;
-
+pub mod etf;
 pub use sea_orm;

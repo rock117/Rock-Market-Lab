@@ -23,6 +23,7 @@ use crate::task::fetch_ths_member_task::FetchThsMemberTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::fetch_us_basic_task::FetchUsBasicTask;
 use crate::task::fetch_us_daily_task::FetchUsDailyTask;
+use crate::task::fetch_etf_task::FetchEtfTask;
 use entity::sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Arc;
@@ -94,6 +95,10 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
         // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ];
+    let mut security_list:Vec<Arc<dyn Task>> = vec![
+        // Arc::new(FetchStockListTask::new(conn.clone())),
+        Arc::new(FetchEtfTask::new(conn.clone())),
+    ];
     let dailys: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchFundTask::new(conn.clone())),
         Arc::new(FetchStockDailyTask::new(conn.clone())),
@@ -133,9 +138,10 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
   // jobs.extend(dailys);
-    jobs.extend(others);
+  //  jobs.extend(others);
     // jobs.extend(finances);
     // jobs.extend(us);
+    jobs.extend(security_list);
 
     info!("Total tasks: {}", jobs.len());
     jobs
