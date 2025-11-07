@@ -8,6 +8,7 @@ use once_cell::sync::Lazy;
 use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
 use tokio::sync::Semaphore;
+use tokio::time::sleep;
 use tracing::info;
 use tushare_api::{FromTushareData, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
 
@@ -109,5 +110,6 @@ pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareRes
     // info!("call_api, response: {:?}", data);
     let data = TUSHARE_CLIENT.call_api_as::<T>(request).await;
   //  info!("call_api_as, response: {:?}", data);
+  //  sleep(Duration::from_millis(N)).await;
     data
 }
