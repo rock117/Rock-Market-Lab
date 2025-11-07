@@ -14,7 +14,7 @@ mysql -uroot investmentresearch < investment-research-db.sql
 # 疑难
 https://cloud.tencent.com/developer/article/2102020
 
-# task
+# task TODO
 1. 定时服务接口，周期性抓取股票，指数数据
 2. API list
 2.1 搜索接口，搜索股票，基金，指数 done
@@ -25,6 +25,9 @@ https://cloud.tencent.com/developer/article/2102020
 6. 股票列表API 成交量 换手率 振幅 涨跌
 7. 搜索股价在周线，月线，季线，年线上的股票，均线之间大小关系，均线选股
 8. 统计 跌幅4000家后 五日内指数涨跌情况。统计年线 60日线的股票数 
+9. 统计a股 营收 净利润 盈亏情况占比
+10. 根据当期财务报表 预测下期财务报表
+11. 美股研发投入
 
 
 
