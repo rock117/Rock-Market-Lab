@@ -124,8 +124,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
 
     let finances: Vec<Arc<dyn Task>> = vec![
         //   Arc::new(FetchIncomeTask::new(conn.clone())),
-        // Arc::new(FetchCashflowTask::new(conn.clone())),
-        Arc::new(FetchBalancesheetTask::new(conn.clone())),
+         Arc::new(FetchCashflowTask::new(conn.clone())),
+      //  Arc::new(FetchBalancesheetTask::new(conn.clone())),
     ];
     let us: Vec<Arc<dyn Task>> = vec![
         // Arc::new(FetchUsBasicTask::new(conn.clone())),

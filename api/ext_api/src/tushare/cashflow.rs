@@ -4,11 +4,9 @@ use entity::cashflow;
 use tushare_api::{Api, fields, LogLevel, params, request, TushareRequest};
 use crate::tushare::call_api_as;
 
-pub async fn cashflow(ts_code: &str, report_type: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<cashflow::Model>> {
-    let start_date = start_date.format("%Y%m%d").to_string();
-    let end_date = end_date.format("%Y%m%d").to_string();
+pub async fn cashflow(ts_code: &str) -> anyhow::Result<Vec<cashflow::Model>> {
     let res = call_api_as::<cashflow::Model, 500>(request!(Api::Cashflow,
-                        {"ts_code" => ts_code, "report_type" => report_type, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
+                        {"ts_code" => ts_code},
                         [
                             "ts_code",
                             "ann_date",
