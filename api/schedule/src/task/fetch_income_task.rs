@@ -4,6 +4,7 @@ use crate::task::Task;
 use entity::stock;
 use chrono::{Local, NaiveDate};
 use tracing::{error, info};
+use common::db::get_entity_update_columns;
 use entity::sea_orm::EntityTrait;
 use entity::sea_orm::ActiveModelTrait;
 use crate::task::fetch_balancesheet_task::FetchBalancesheetTask;
@@ -21,29 +22,39 @@ impl Task for FetchIncomeTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let start_date = NaiveDate::parse_from_str("20200101", "%Y%m%d")?;
-        let end_date = Local::now().date_naive();
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {
-            let res = ext_api::tushare::income(&stock.ts_code, "1", &start_date, &end_date).await;
-            if let Err(e) = res {
+            let incomes = ext_api::tushare::income(&stock.ts_code).await;
+            if let Err(e) = incomes {
                 error!("fetch income failed, ts_code: {}, error: {:?}", stock.ts_code, e);
                 continue;
             }
             let tx = self.0.begin().await?;
-            let incomes = res?;
-            for income in incomes {
-                let res = entity::income::ActiveModel { ..income.clone().into() }.insert(&self.0).await;
-                if let Err(err) = res {
-                    error!("insert income failed, ts_code: {}, end_date: {}, error: {:?}, data: {:?}", stock.ts_code, end_date, err, income);
-                    error!("income json: {}", serde_json::to_string(&income).unwrap());
-                    continue;
+            for income in incomes? {
+                let active_model = entity::income::ActiveModel { ..income.clone().into() };
+                // ts_code  ann_date f_ann_date  end_date report_type comp_type
+                let pks = [
+                    entity::income::Column::TsCode,
+                    entity::income::Column::ReportType,
+                    entity::income::Column::AnnDate,
+                    entity::income::Column::FAnnDate,
+                ];
+                let update_columns = get_entity_update_columns::<entity::income::Entity>(&pks);
+                let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                    .update_columns(update_columns)
+                    .to_owned();
+
+                if let Err(e) = entity::income::Entity::insert(active_model)
+                    .on_conflict(on_conflict)
+                    .exec(&tx)
+                    .await {
+                    error!("insert income failed, ts_code: {}, error: {:?}", stock.ts_code, e);
                 }
             }
             tx.commit().await?;
             curr += 1;
-            info!("insert finance_indicator complete, ts_code: {}, progress: {}/{}", stock.ts_code, curr, stocks.len());
+            info!("insert income complete, ts_code: {}, progress: {}/{}", stock.ts_code, curr, stocks.len());
         }
         info!("fetch income task complete");
         Ok(())
