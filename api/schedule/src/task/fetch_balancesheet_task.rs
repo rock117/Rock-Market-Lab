@@ -30,14 +30,15 @@ impl Task for FetchBalancesheetTask {
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {
-            let balancesheet = ext_api::tushare::balancesheet(&stock.ts_code, "1", &start_date, &end_date).await;
+            let balancesheet = ext_api::tushare::balancesheet(&stock.ts_code).await;
             // save balancesheet to db, handle conflict
             let tx = self.0.begin().await?;
             for balance in balancesheet? {
                 let active_model = entity::balancesheet::ActiveModel { ..balance.clone().into() };
+                // ts_code  ann_date f_ann_date  end_date report_type comp_type
                 let pks = [
                     entity::balancesheet::Column::TsCode,
-                    entity::balancesheet::Column::EndDate,
+                    entity::balancesheet::Column::ReportType,
                     entity::balancesheet::Column::AnnDate,
                     entity::balancesheet::Column::FAnnDate,
                 ];
