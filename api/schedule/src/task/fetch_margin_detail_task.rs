@@ -2,8 +2,9 @@ use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{Local, NaiveDate};
 use tracing::{error, info};
-use entity::sea_orm::DatabaseConnection;
-use entity::stock;
+use common::db::get_entity_update_columns;
+use entity::sea_orm::{DatabaseConnection, TransactionTrait};
+use entity::{margin_detail, stock};
 use crate::task::Task;
 
 use entity::sea_orm::EntityTrait;
@@ -26,17 +27,33 @@ impl Task for FetchMarginDetailTask {
         let start = NaiveDate::from_ymd_opt(2020, 1, 1).ok_or(anyhow!("invalid date"))?;
         let end = Local::now().date_naive();
         let stocks:Vec<stock::Model> = entity::stock::Entity::find().all(&self.0).await?;
+        let mut curr = 0;
         for stock in &stocks {
             let margin_details = ext_api::tushare::margin_detail(&stock.ts_code, &start, &end).await?;
+            let tx = self.0.begin().await?;
             for margin_detail in &margin_details {
-                let res = entity::margin_detail::ActiveModel { ..margin_detail.clone().into() }.insert(&self.0).await;
-                if let Err(e) = res {
-                    error!("Failed to insert margin detail data for ts_code: {}, error: {:?}, data: {:?}", stock.ts_code, e, serde_json::to_string(&margin_detail));
+                let active_model = entity::margin_detail::ActiveModel { ..margin_detail.clone().into() };
+                let pks = [
+                    margin_detail::Column::TsCode,
+                    margin_detail::Column::TradeDate
+                ];
+                let update_columns = get_entity_update_columns::<entity::margin_detail::Entity>(&pks);
+                let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                    .update_columns(update_columns)
+                    .to_owned();
+
+                if let Err(e) = entity::margin_detail::Entity::insert(active_model)
+                    .on_conflict(on_conflict)
+                    .exec(&tx)
+                    .await {
+                    error!("insert margin_detail failed, exchangeId: {}, trade date: {}, error: {:?}", margin_detail.ts_code, margin_detail.trade_date, e);
                 }
-                info!("Insert margin detail data for ts_code: {}, trade_date: {}", stock.ts_code, margin_detail.trade_date);
             }
+            curr += 1;
+            info!("Insert margin_detail data for tscode: {}, progress {}/{}", stock.ts_code, curr, stocks.len());
+            tx.commit().await?;
         }
-        info!("fetch margin detail complete");
+        info!("fetch margin_detail detail complete");
         Ok(())
     }
 }

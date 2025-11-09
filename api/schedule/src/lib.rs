@@ -113,8 +113,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
 
         //     Arc::new(FetchIndexTask::new(conn.clone())),
         //   Arc::new(FetchStockListTask::new(conn.clone())),
-          Arc::new(FetchMarginTask::new(conn.clone())),
-        //  Arc::new(FetchMarginDetailTask::new(conn.clone())),
+       //   Arc::new(FetchMarginTask::new(conn.clone())),
+         Arc::new(FetchMarginDetailTask::new(conn.clone())),
         //   Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
 
         // Arc::new(FetchStockListTask::new(conn.clone())),

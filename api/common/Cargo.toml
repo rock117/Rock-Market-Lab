@@ -41,3 +41,5 @@ dashmap = "7.0.0-rc1"
 pinyin = "0.10.0"
 
 rocket = { version = "0.5.1", features = ["json"]}
+thiserror = "1.0"
+approx = "0.5"
