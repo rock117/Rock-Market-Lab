@@ -558,7 +558,7 @@ mod tests {
     use rust_decimal::Decimal;
     
     fn create_test_data() -> Vec<SecurityData> {
-        use super::traits::{SecurityType, TimeFrame};
+        use crate::strategy::traits::{SecurityType, TimeFrame};
         
         vec![
             SecurityData {
@@ -606,7 +606,7 @@ mod tests {
     
     #[test]
     fn test_strategy_analysis() {
-        use super::traits::TradingStrategy;
+        use crate::strategy::traits::TradingStrategy;
         
         let mut strategy = PriceVolumeCandlestickStrategy::default();
         let data = create_test_data();

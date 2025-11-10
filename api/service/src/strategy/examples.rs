@@ -348,7 +348,7 @@ mod tests {
     
     #[tokio::test]
     async fn test_examples() {
-        use super::traits::TradingStrategy;
+        use crate::strategy::traits::TradingStrategy;
         
         let result = basic_strategy_example().await;
         assert!(result.is_ok());

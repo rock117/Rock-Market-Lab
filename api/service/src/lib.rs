@@ -6,3 +6,4 @@ mod stock_daily_service;
 pub mod security;
 pub mod fund;
 pub mod strategy;
+pub mod stock_picker_service;

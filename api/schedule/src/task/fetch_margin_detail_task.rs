@@ -29,7 +29,12 @@ impl Task for FetchMarginDetailTask {
         let stocks:Vec<stock::Model> = entity::stock::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for stock in &stocks {
-            let margin_details = ext_api::tushare::margin_detail(&stock.ts_code, &start, &end).await?;
+            let margin_details = ext_api::tushare::margin_detail(&stock.ts_code, &start, &end).await;
+            if margin_details.is_err() {
+                error!("fetch margin_detail failed, exchangeId: {}, trade date: {}, error: {:?}", stock.ts_code, end, margin_details.err());
+                continue;
+            }
+            let margin_details = margin_details?;
             let tx = self.0.begin().await?;
             for margin_detail in &margin_details {
                 let active_model = entity::margin_detail::ActiveModel { ..margin_detail.clone().into() };

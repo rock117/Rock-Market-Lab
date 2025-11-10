@@ -226,18 +226,20 @@ fn decimal_to_f64(decimal: &Decimal) -> f64 {
 }
 
 /// 策略信号枚举
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+/// 
+/// 信号强度从高到低：StrongBuy > Buy > Hold > Sell > StrongSell
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum StrategySignal {
-    /// 强烈买入
-    StrongBuy,
-    /// 买入
-    Buy,
-    /// 持有
-    Hold,
+    /// 强烈卖出（最弱）
+    StrongSell,
     /// 卖出
     Sell,
-    /// 强烈卖出
-    StrongSell,
+    /// 持有
+    Hold,
+    /// 买入
+    Buy,
+    /// 强烈买入（最强）
+    StrongBuy,
 }
 
 /// 策略分析结果基础结构
