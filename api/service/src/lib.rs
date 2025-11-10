@@ -5,3 +5,4 @@ pub mod stastic;
 mod stock_daily_service;
 pub mod security;
 pub mod fund;
+pub mod strategy;

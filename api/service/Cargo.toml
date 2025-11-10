@@ -28,3 +28,4 @@ tracing-appender =  { workspace = true}
 once_cell = { workspace = true }
 num = "0.4.3"
 num-traits = "0.2.19"
+rust_decimal = "1.32"
