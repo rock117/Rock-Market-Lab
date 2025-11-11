@@ -4,7 +4,7 @@
 
 use anyhow::Result;
 use chrono::NaiveDate;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use entity::{stock, stock_daily};
 use tracing::{info, warn};
