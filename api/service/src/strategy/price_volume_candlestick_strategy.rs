@@ -618,4 +618,256 @@ mod tests {
         assert_eq!(analysis.stock_code, "000001.SZ");
         assert!(analysis.signal_strength <= 100);
     }
+    
+    #[test]
+    fn test_calculate_trend_score_uptrend() {
+        use crate::strategy::traits::{SecurityType, TimeFrame};
+        
+        let strategy = PriceVolumeCandlestickStrategy::default();
+        
+        // 创建明显上升趋势的数据：10.0 -> 10.5 -> 11.0 -> 11.5 -> 12.0
+        let data = vec![
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240101".to_string(),
+                open: 9.8, high: 10.2, low: 9.7, close: 10.0,
+                pre_close: Some(9.8), change: Some(0.2), pct_change: Some(2.04),
+                volume: 1000000.0, amount: 10000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240102".to_string(),
+                open: 10.0, high: 10.7, low: 9.9, close: 10.5,
+                pre_close: Some(10.0), change: Some(0.5), pct_change: Some(5.0),
+                volume: 1100000.0, amount: 11000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240103".to_string(),
+                open: 10.5, high: 11.2, low: 10.4, close: 11.0,
+                pre_close: Some(10.5), change: Some(0.5), pct_change: Some(4.76),
+                volume: 1200000.0, amount: 12000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240104".to_string(),
+                open: 11.0, high: 11.7, low: 10.9, close: 11.5,
+                pre_close: Some(11.0), change: Some(0.5), pct_change: Some(4.55),
+                volume: 1300000.0, amount: 13000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240105".to_string(),
+                open: 11.5, high: 12.2, low: 11.4, close: 12.0,
+                pre_close: Some(11.5), change: Some(0.5), pct_change: Some(4.35),
+                volume: 1400000.0, amount: 14000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+        ];
+        
+        let trend_score = strategy.calculate_trend_score(&data);
+        assert!(trend_score.is_some());
+        
+        let score = trend_score.unwrap();
+        // 上升趋势应该是正值
+        assert!(score > 0.0, "上升趋势的分数应该为正，实际: {}", score);
+        // 标准化后的分数应该在合理范围内（约0.04左右，即4%的趋势）
+        assert!(score > 0.02 && score < 0.10, "趋势分数应该在合理范围内，实际: {}", score);
+    }
+    
+    #[test]
+    fn test_calculate_trend_score_downtrend() {
+        use crate::strategy::traits::{SecurityType, TimeFrame};
+        
+        let strategy = PriceVolumeCandlestickStrategy::default();
+        
+        // 创建明显下降趋势的数据：12.0 -> 11.5 -> 11.0 -> 10.5 -> 10.0
+        let data = vec![
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240101".to_string(),
+                open: 12.2, high: 12.3, low: 11.8, close: 12.0,
+                pre_close: Some(12.2), change: Some(-0.2), pct_change: Some(-1.64),
+                volume: 1000000.0, amount: 12000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240102".to_string(),
+                open: 12.0, high: 12.0, low: 11.3, close: 11.5,
+                pre_close: Some(12.0), change: Some(-0.5), pct_change: Some(-4.17),
+                volume: 1100000.0, amount: 11500000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240103".to_string(),
+                open: 11.5, high: 11.6, low: 10.8, close: 11.0,
+                pre_close: Some(11.5), change: Some(-0.5), pct_change: Some(-4.35),
+                volume: 1200000.0, amount: 11000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240104".to_string(),
+                open: 11.0, high: 11.1, low: 10.3, close: 10.5,
+                pre_close: Some(11.0), change: Some(-0.5), pct_change: Some(-4.55),
+                volume: 1300000.0, amount: 10500000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240105".to_string(),
+                open: 10.5, high: 10.6, low: 9.8, close: 10.0,
+                pre_close: Some(10.5), change: Some(-0.5), pct_change: Some(-4.76),
+                volume: 1400000.0, amount: 10000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+        ];
+        
+        let trend_score = strategy.calculate_trend_score(&data);
+        assert!(trend_score.is_some());
+        
+        let score = trend_score.unwrap();
+        // 下降趋势应该是负值
+        assert!(score < 0.0, "下降趋势的分数应该为负，实际: {}", score);
+        // 标准化后的分数应该在合理范围内（约-0.04左右，即-4%的趋势）
+        assert!(score < -0.02 && score > -0.10, "趋势分数应该在合理范围内，实际: {}", score);
+    }
+    
+    #[test]
+    fn test_calculate_trend_score_sideways() {
+        use crate::strategy::traits::{SecurityType, TimeFrame};
+        
+        let strategy = PriceVolumeCandlestickStrategy::default();
+        
+        // 创建横盘震荡的数据：10.0 -> 10.1 -> 9.9 -> 10.0 -> 10.1
+        let data = vec![
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240101".to_string(),
+                open: 9.9, high: 10.2, low: 9.8, close: 10.0,
+                pre_close: Some(9.9), change: Some(0.1), pct_change: Some(1.01),
+                volume: 1000000.0, amount: 10000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240102".to_string(),
+                open: 10.0, high: 10.3, low: 9.9, close: 10.1,
+                pre_close: Some(10.0), change: Some(0.1), pct_change: Some(1.0),
+                volume: 1000000.0, amount: 10100000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240103".to_string(),
+                open: 10.1, high: 10.2, low: 9.7, close: 9.9,
+                pre_close: Some(10.1), change: Some(-0.2), pct_change: Some(-1.98),
+                volume: 1000000.0, amount: 9900000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240104".to_string(),
+                open: 9.9, high: 10.2, low: 9.8, close: 10.0,
+                pre_close: Some(9.9), change: Some(0.1), pct_change: Some(1.01),
+                volume: 1000000.0, amount: 10000000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240105".to_string(),
+                open: 10.0, high: 10.3, low: 9.9, close: 10.1,
+                pre_close: Some(10.0), change: Some(0.1), pct_change: Some(1.0),
+                volume: 1000000.0, amount: 10100000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+        ];
+        
+        let trend_score = strategy.calculate_trend_score(&data);
+        assert!(trend_score.is_some());
+        
+        let score = trend_score.unwrap();
+        // 横盘趋势应该接近0
+        assert!(score.abs() < 0.02, "横盘趋势的分数应该接近0，实际: {}", score);
+    }
+    
+    #[test]
+    fn test_calculate_trend_score_insufficient_data() {
+        use crate::strategy::traits::{SecurityType, TimeFrame};
+        
+        let strategy = PriceVolumeCandlestickStrategy::default();
+        
+        // 只有3个数据点，少于要求的5个
+        let data = vec![
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240101".to_string(),
+                open: 10.0, high: 10.5, low: 9.8, close: 10.2,
+                pre_close: Some(10.0), change: Some(0.2), pct_change: Some(2.0),
+                volume: 1000000.0, amount: 10200000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240102".to_string(),
+                open: 10.2, high: 10.8, low: 10.0, close: 10.5,
+                pre_close: Some(10.2), change: Some(0.3), pct_change: Some(2.94),
+                volume: 1200000.0, amount: 12600000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+            SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: "20240103".to_string(),
+                open: 10.5, high: 11.0, low: 10.3, close: 10.8,
+                pre_close: Some(10.5), change: Some(0.3), pct_change: Some(2.86),
+                volume: 1300000.0, amount: 14040000.0,
+                security_type: SecurityType::Stock, time_frame: TimeFrame::Daily,
+            },
+        ];
+        
+        let trend_score = strategy.calculate_trend_score(&data);
+        // 数据不足应该返回 None
+        assert!(trend_score.is_none(), "数据不足时应该返回 None");
+    }
+    
+    #[test]
+    fn test_calculate_trend_score_with_more_data() {
+        use crate::strategy::traits::{SecurityType, TimeFrame};
+        
+        let strategy = PriceVolumeCandlestickStrategy::default();
+        
+        // 创建10个数据点，但只会使用最后5个
+        let mut data = vec![];
+        for i in 0..10 {
+            data.push(SecurityData {
+                symbol: "TEST".to_string(),
+                trade_date: format!("2024010{}", i),
+                open: 10.0 + i as f64 * 0.1,
+                high: 10.5 + i as f64 * 0.1,
+                low: 9.8 + i as f64 * 0.1,
+                close: 10.0 + i as f64 * 0.2, // 稳定上升
+                pre_close: Some(10.0 + (i as f64 - 1.0) * 0.2),
+                change: Some(0.2),
+                pct_change: Some(2.0),
+                volume: 1000000.0,
+                amount: 10000000.0,
+                security_type: SecurityType::Stock,
+                time_frame: TimeFrame::Daily,
+            });
+        }
+        
+        let trend_score = strategy.calculate_trend_score(&data);
+        assert!(trend_score.is_some());
+        
+        let score = trend_score.unwrap();
+        // 应该只使用最后5个数据点计算趋势
+        println!("score = {}", score);
+        assert!(score > 0.0, "上升趋势应该为正值，实际: {}", score);
+    }
 }
