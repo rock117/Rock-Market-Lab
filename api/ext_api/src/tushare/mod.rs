@@ -41,6 +41,7 @@ pub use us_basic::*;
 pub use us_daily::*;
 pub use etf_basic::*;
 pub use fund_portfolio::*;
+pub use stk_holdertrade::*;
 
 mod balancesheet;
 mod cashflow;
@@ -72,6 +73,7 @@ mod us_basic;
 mod us_daily;
 mod etf_basic;
 mod fund_portfolio;
+mod stk_holdertrade;
 
 static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
     common::config::AppConfig::new()

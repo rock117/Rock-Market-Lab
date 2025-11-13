@@ -45,8 +45,8 @@ impl Default for BottomVolumeSurgeConfig {
             volume_surge_threshold: 1.5,
             price_rise_threshold: 2.0,
             bottom_period: 10,
-            bottom_price_range: 5.0,
-            min_daily_rise_pct: 0.5,  // 默认要求当天至少上涨0.5%
+            bottom_price_range: 10.0,
+            min_daily_rise_pct: 3.0,  // 默认要求当天至少上涨0.5%
         }
     }
 }
