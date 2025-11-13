@@ -2,13 +2,19 @@
 //! 
 //! 利用交易策略筛选符合买入条件的股票
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
-use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
+use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, JsonValue, QueryFilter, QueryOrder};
 use entity::{stock, stock_daily};
 use tracing::{info, warn};
-use crate::strategy::PriceVolumeCandlestickStrategy;
+use crate::strategy::{
+    PriceVolumeCandlestickStrategy, PriceVolumeStrategyConfig,
+    BottomVolumeSurgeStrategy, BottomVolumeSurgeConfig,
+    LongTermBottomReversalStrategy, LongTermBottomReversalConfig,
+    YearlyHighStrategy, YearlyHighConfig,
+    PriceStrengthStrategy, PriceStrengthConfig,
+};
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy};
 
@@ -42,6 +48,63 @@ impl StockPickerService {
         let mut strategy = PriceVolumeCandlestickStrategy::aggressive();
         return self.pick_stocks(&mut strategy, start_date, end_date, min_signal).await;
     }
+
+
+
+    /// 使用动态策略筛选股票
+    /// 
+    /// # 参数
+    /// - `start_date`: 开始日期
+    /// - `end_date`: 结束日期
+    /// - `strategy_type`: 策略类型（"price_volume_candlestick", "bottom_volume_surge", "long_term_bottom_reversal", "yearly_high", "price_strength"）
+    /// - `settings`: 策略配置的 JSON 对象
+    /// 
+    /// # 返回
+    /// 符合条件的股票列表
+    pub async fn pick_stocks3(
+        &self,
+        start_date: &NaiveDate,
+        end_date: &NaiveDate,
+        strategy_type: &str,
+        settings: JsonValue
+    ) -> Result<Vec<StockPickResult>> {
+        match strategy_type {
+            "price_volume_candlestick" => {
+                let config: PriceVolumeStrategyConfig = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = PriceVolumeCandlestickStrategy::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }
+            "bottom_volume_surge" => {
+                let config: BottomVolumeSurgeConfig = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = BottomVolumeSurgeStrategy::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }
+            "long_term_bottom_reversal" => {
+                let config: LongTermBottomReversalConfig = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = LongTermBottomReversalStrategy::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }
+            "yearly_high" => {
+                let config: YearlyHighConfig = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = YearlyHighStrategy::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }
+            "price_strength" => {
+                let config: PriceStrengthConfig = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = PriceStrengthStrategy::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }
+            _ => {
+                bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength", strategy_type)
+            }
+        }
+    }
+
     /// 使用策略筛选股票
     /// 
     /// # 参数
