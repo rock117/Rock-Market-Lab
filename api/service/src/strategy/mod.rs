@@ -4,6 +4,7 @@
 
 pub mod traits;
 pub mod price_volume_candlestick_strategy;
+pub mod bottom_volume_surge_strategy;
 pub mod examples;
 pub mod simple_usage;
 
@@ -13,6 +14,8 @@ pub use traits::{
     StrategyConfig, 
     StrategyResult, 
     StrategySignal,
+    StrategyResultTrait,
+    GenericStrategyResult,
     StrategyInfo,
     StrategyType,
     RiskLevel,
@@ -32,4 +35,11 @@ pub use price_volume_candlestick_strategy::{
     PriceVolumeAnalysisResult,
     CandlestickPattern, 
     VolumeSignal
+};
+
+// 重新导出底部放量上涨策略相关类型
+pub use bottom_volume_surge_strategy::{
+    BottomVolumeSurgeStrategy,
+    BottomVolumeSurgeConfig,
+    BottomVolumeSurgeResult,
 };

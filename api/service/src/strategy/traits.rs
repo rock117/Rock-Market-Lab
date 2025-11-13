@@ -242,9 +242,38 @@ pub enum StrategySignal {
     StrongBuy,
 }
 
-/// 策略分析结果基础结构
+/// 策略分析结果 trait
+/// 
+/// 不同策略可以返回不同的结果结构，但必须包含这些基础信息
+pub trait StrategyResultTrait: Send + Sync {
+    /// 获取股票代码
+    fn stock_code(&self) -> &str;
+    
+    /// 获取分析日期
+    fn analysis_date(&self) -> NaiveDate;
+    
+    /// 获取当前价格
+    fn current_price(&self) -> f64;
+    
+    /// 获取策略信号
+    fn strategy_signal(&self) -> StrategySignal;
+    
+    /// 获取信号强度 (0-100)
+    fn signal_strength(&self) -> u8;
+    
+    /// 获取分析说明
+    fn analysis_description(&self) -> String;
+    
+    /// 获取风险等级 (1-5)
+    fn risk_level(&self) -> u8;
+    
+    /// 转换为通用结果（用于序列化）
+    fn to_generic(&self) -> GenericStrategyResult;
+}
+
+/// 通用策略分析结果（用于兼容性）
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct StrategyResult {
+pub struct GenericStrategyResult {
     /// 股票代码
     pub stock_code: String,
     /// 分析日期
@@ -261,6 +290,43 @@ pub struct StrategyResult {
     pub risk_level: u8,
     /// 策略特定的额外数据
     pub extra_data: serde_json::Value,
+}
+
+/// 保留原有的 StrategyResult 作为默认实现
+pub type StrategyResult = GenericStrategyResult;
+
+impl StrategyResultTrait for GenericStrategyResult {
+    fn stock_code(&self) -> &str {
+        &self.stock_code
+    }
+    
+    fn analysis_date(&self) -> NaiveDate {
+        self.analysis_date
+    }
+    
+    fn current_price(&self) -> f64 {
+        self.current_price
+    }
+    
+    fn strategy_signal(&self) -> StrategySignal {
+        self.strategy_signal.clone()
+    }
+    
+    fn signal_strength(&self) -> u8 {
+        self.signal_strength
+    }
+    
+    fn analysis_description(&self) -> String {
+        self.analysis_description.clone()
+    }
+    
+    fn risk_level(&self) -> u8 {
+        self.risk_level
+    }
+    
+    fn to_generic(&self) -> GenericStrategyResult {
+        self.clone()
+    }
 }
 
 /// 策略配置基础 trait
