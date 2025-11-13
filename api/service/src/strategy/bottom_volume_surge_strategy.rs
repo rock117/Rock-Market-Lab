@@ -40,9 +40,9 @@ pub struct BottomVolumeSurgeConfig {
 impl Default for BottomVolumeSurgeConfig {
     fn default() -> Self {
         Self {
-            analysis_period: 20,
+            analysis_period: 30,
             volume_ma_period: 5,
-            volume_surge_threshold: 1.5,
+            volume_surge_threshold: 3.0,
             price_rise_threshold: 2.0,
             bottom_period: 10,
             bottom_price_range: 10.0,

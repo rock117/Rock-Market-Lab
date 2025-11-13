@@ -140,7 +140,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchThsMemberTask::new(conn.clone())),
         // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
-  jobs.extend(dailys);
+
+ // jobs.extend(dailys);
   //   jobs.extend(others);
   //  jobs.extend(finances);
     // jobs.extend(us);

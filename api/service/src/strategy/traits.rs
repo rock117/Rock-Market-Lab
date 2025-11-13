@@ -255,8 +255,9 @@ pub enum StrategyResult {
     LongTermBottomReversal(super::long_term_bottom_reversal_strategy::LongTermBottomReversalResult),
     /// 年内新高策略结果
     YearlyHigh(super::yearly_high_strategy::YearlyHighResult),
+    /// 价格强弱策略结果
+    PriceStrength(super::price_strength_strategy::PriceStrengthResult),
 }
-
 impl StrategyResult {
     /// 获取股票代码
     pub fn stock_code(&self) -> &str {
@@ -265,6 +266,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => &r.stock_code,
             StrategyResult::LongTermBottomReversal(r) => &r.stock_code,
             StrategyResult::YearlyHigh(r) => &r.stock_code,
+            StrategyResult::PriceStrength(r) => &r.stock_code,
         }
     }
     
@@ -275,6 +277,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.analysis_date,
             StrategyResult::LongTermBottomReversal(r) => r.analysis_date,
             StrategyResult::YearlyHigh(r) => r.analysis_date,
+            StrategyResult::PriceStrength(r) => r.analysis_date,
         }
     }
     
@@ -285,6 +288,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.current_price,
             StrategyResult::LongTermBottomReversal(r) => r.current_price,
             StrategyResult::YearlyHigh(r) => r.current_price,
+            StrategyResult::PriceStrength(r) => r.current_price,
         }
     }
     
@@ -295,6 +299,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.strategy_signal.clone(),
             StrategyResult::LongTermBottomReversal(r) => r.strategy_signal.clone(),
             StrategyResult::YearlyHigh(r) => r.strategy_signal.clone(),
+            StrategyResult::PriceStrength(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -305,6 +310,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.signal_strength,
             StrategyResult::LongTermBottomReversal(r) => r.signal_strength,
             StrategyResult::YearlyHigh(r) => r.signal_strength,
+            StrategyResult::PriceStrength(r) => r.signal_strength,
         }
     }
     
@@ -315,6 +321,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.analysis_description.clone(),
             StrategyResult::LongTermBottomReversal(r) => r.analysis_description.clone(),
             StrategyResult::YearlyHigh(r) => r.analysis_description.clone(),
+            StrategyResult::PriceStrength(r) => r.analysis_description.clone(),
         }
     }
     
@@ -325,6 +332,7 @@ impl StrategyResult {
             StrategyResult::PriceVolumeCandlestick(r) => r.risk_level,
             StrategyResult::LongTermBottomReversal(r) => r.risk_level,
             StrategyResult::YearlyHigh(r) => r.risk_level,
+            StrategyResult::PriceStrength(r) => r.risk_level,
         }
     }
 }

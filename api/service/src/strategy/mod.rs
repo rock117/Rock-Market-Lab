@@ -7,6 +7,7 @@ pub mod price_volume_candlestick_strategy;
 pub mod bottom_volume_surge_strategy;
 pub mod long_term_bottom_reversal_strategy;
 pub mod yearly_high_strategy;
+pub mod price_strength_strategy;
 pub mod examples;
 pub mod simple_usage;
 
@@ -57,4 +58,11 @@ pub use yearly_high_strategy::{
     YearlyHighStrategy,
     YearlyHighConfig,
     YearlyHighResult,
+};
+
+// 重新导出价格强弱策略相关类型
+pub use price_strength_strategy::{
+    PriceStrengthStrategy,
+    PriceStrengthConfig,
+    PriceStrengthResult,
 };
