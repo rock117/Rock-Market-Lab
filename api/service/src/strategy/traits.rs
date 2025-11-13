@@ -251,6 +251,8 @@ pub enum StrategyResult {
     BottomVolumeSurge(BottomVolumeSurgeResult),
     /// 价量K线策略结果
     PriceVolumeCandlestick(PriceVolumeCandlestickResult),
+    /// 长期底部反转策略结果
+    LongTermBottomReversal(super::long_term_bottom_reversal_strategy::LongTermBottomReversalResult),
 }
 
 impl StrategyResult {
@@ -259,6 +261,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => &r.stock_code,
             StrategyResult::PriceVolumeCandlestick(r) => &r.stock_code,
+            StrategyResult::LongTermBottomReversal(r) => &r.stock_code,
         }
     }
     
@@ -267,6 +270,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.analysis_date,
             StrategyResult::PriceVolumeCandlestick(r) => r.analysis_date,
+            StrategyResult::LongTermBottomReversal(r) => r.analysis_date,
         }
     }
     
@@ -275,6 +279,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.current_price,
             StrategyResult::PriceVolumeCandlestick(r) => r.current_price,
+            StrategyResult::LongTermBottomReversal(r) => r.current_price,
         }
     }
     
@@ -283,6 +288,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.strategy_signal.clone(),
             StrategyResult::PriceVolumeCandlestick(r) => r.strategy_signal.clone(),
+            StrategyResult::LongTermBottomReversal(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -291,6 +297,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.signal_strength,
             StrategyResult::PriceVolumeCandlestick(r) => r.signal_strength,
+            StrategyResult::LongTermBottomReversal(r) => r.signal_strength,
         }
     }
     
@@ -299,6 +306,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.analysis_description.clone(),
             StrategyResult::PriceVolumeCandlestick(r) => r.analysis_description.clone(),
+            StrategyResult::LongTermBottomReversal(r) => r.analysis_description.clone(),
         }
     }
     
@@ -307,6 +315,7 @@ impl StrategyResult {
         match self {
             StrategyResult::BottomVolumeSurge(r) => r.risk_level,
             StrategyResult::PriceVolumeCandlestick(r) => r.risk_level,
+            StrategyResult::LongTermBottomReversal(r) => r.risk_level,
         }
     }
 }

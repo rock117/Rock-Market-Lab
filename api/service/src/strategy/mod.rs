@@ -5,6 +5,7 @@
 pub mod traits;
 pub mod price_volume_candlestick_strategy;
 pub mod bottom_volume_surge_strategy;
+pub mod long_term_bottom_reversal_strategy;
 pub mod examples;
 pub mod simple_usage;
 
@@ -41,4 +42,11 @@ pub use price_volume_candlestick_strategy::{
 pub use bottom_volume_surge_strategy::{
     BottomVolumeSurgeStrategy,
     BottomVolumeSurgeConfig,
+};
+
+// 重新导出长期底部反转策略相关类型
+pub use long_term_bottom_reversal_strategy::{
+    LongTermBottomReversalStrategy,
+    LongTermBottomReversalConfig,
+    LongTermBottomReversalResult,
 };
