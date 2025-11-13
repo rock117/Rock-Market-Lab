@@ -107,7 +107,7 @@ impl StockPickerService {
             match strategy.analyze(&stock_model.ts_code, &security_data) {
                 Ok(result) => {
                     // 筛选符合信号条件的股票
-                    if self.meets_signal_criteria(&result.strategy_signal, &min_signal) {
+                    if self.meets_signal_criteria(&result.strategy_signal(), &min_signal) {
                         results.push(StockPickResult {
                             ts_code: stock_model.ts_code.clone(),
                             stock_name: stock_model.name.clone(),
@@ -118,8 +118,8 @@ impl StockPickerService {
                             "找到符合条件的股票: {} ({}), 信号: {:?}, 强度: {}",
                             stock_model.ts_code,
                             stock_model.name.as_deref().unwrap_or("未知"),
-                            results.last().unwrap().strategy_result.strategy_signal,
-                            results.last().unwrap().strategy_result.signal_strength
+                            results.last().unwrap().strategy_result.strategy_signal(),
+                            results.last().unwrap().strategy_result.signal_strength()
                         );
                     }
                 }
@@ -137,8 +137,8 @@ impl StockPickerService {
         // 按信号强度降序排序
         results.sort_by(|a, b| {
             b.strategy_result
-                .signal_strength
-                .cmp(&a.strategy_result.signal_strength)
+                .signal_strength()
+                .cmp(&a.strategy_result.signal_strength())
         });
 
         info!(

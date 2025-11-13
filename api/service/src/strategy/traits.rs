@@ -242,38 +242,78 @@ pub enum StrategySignal {
     StrongBuy,
 }
 
-/// 策略分析结果 trait
+/// 策略分析结果枚举
 /// 
-/// 不同策略可以返回不同的结果结构，但必须包含这些基础信息
-pub trait StrategyResultTrait: Send + Sync {
-    /// 获取股票代码
-    fn stock_code(&self) -> &str;
-    
-    /// 获取分析日期
-    fn analysis_date(&self) -> NaiveDate;
-    
-    /// 获取当前价格
-    fn current_price(&self) -> f64;
-    
-    /// 获取策略信号
-    fn strategy_signal(&self) -> StrategySignal;
-    
-    /// 获取信号强度 (0-100)
-    fn signal_strength(&self) -> u8;
-    
-    /// 获取分析说明
-    fn analysis_description(&self) -> String;
-    
-    /// 获取风险等级 (1-5)
-    fn risk_level(&self) -> u8;
-    
-    /// 转换为通用结果（用于序列化）
-    fn to_generic(&self) -> GenericStrategyResult;
+/// 每个策略有自己的结果类型，包含该策略特有的数据
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum StrategyResult {
+    /// 底部放量上涨策略结果
+    BottomVolumeSurge(BottomVolumeSurgeResult),
+    /// 价量K线策略结果
+    PriceVolumeCandlestick(PriceVolumeCandlestickResult),
 }
 
-/// 通用策略分析结果（用于兼容性）
+impl StrategyResult {
+    /// 获取股票代码
+    pub fn stock_code(&self) -> &str {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => &r.stock_code,
+            StrategyResult::PriceVolumeCandlestick(r) => &r.stock_code,
+        }
+    }
+    
+    /// 获取分析日期
+    pub fn analysis_date(&self) -> NaiveDate {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.analysis_date,
+            StrategyResult::PriceVolumeCandlestick(r) => r.analysis_date,
+        }
+    }
+    
+    /// 获取当前价格
+    pub fn current_price(&self) -> f64 {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.current_price,
+            StrategyResult::PriceVolumeCandlestick(r) => r.current_price,
+        }
+    }
+    
+    /// 获取策略信号
+    pub fn strategy_signal(&self) -> StrategySignal {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.strategy_signal.clone(),
+            StrategyResult::PriceVolumeCandlestick(r) => r.strategy_signal.clone(),
+        }
+    }
+    
+    /// 获取信号强度 (0-100)
+    pub fn signal_strength(&self) -> u8 {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.signal_strength,
+            StrategyResult::PriceVolumeCandlestick(r) => r.signal_strength,
+        }
+    }
+    
+    /// 获取分析说明
+    pub fn analysis_description(&self) -> String {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.analysis_description.clone(),
+            StrategyResult::PriceVolumeCandlestick(r) => r.analysis_description.clone(),
+        }
+    }
+    
+    /// 获取风险等级 (1-5)
+    pub fn risk_level(&self) -> u8 {
+        match self {
+            StrategyResult::BottomVolumeSurge(r) => r.risk_level,
+            StrategyResult::PriceVolumeCandlestick(r) => r.risk_level,
+        }
+    }
+}
+
+/// 底部放量上涨策略结果
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct GenericStrategyResult {
+pub struct BottomVolumeSurgeResult {
     /// 股票代码
     pub stock_code: String,
     /// 分析日期
@@ -288,45 +328,55 @@ pub struct GenericStrategyResult {
     pub analysis_description: String,
     /// 风险等级 (1-5)
     pub risk_level: u8,
-    /// 策略特定的额外数据
-    pub extra_data: serde_json::Value,
+    
+    // 策略特有字段
+    /// 是否处于底部
+    pub is_at_bottom: bool,
+    /// 底部价格
+    pub bottom_price: f64,
+    /// 底部日期
+    pub bottom_date: String,
+    /// 当前成交量
+    pub current_volume: f64,
+    /// 成交量均值
+    pub volume_ma: f64,
+    /// 成交量放大倍数
+    pub volume_surge_ratio: f64,
+    /// 价格涨幅（百分比）
+    pub price_rise_pct: f64,
+    /// 近期最低价
+    pub recent_low: f64,
+    /// 近期最高价
+    pub recent_high: f64,
 }
 
-/// 保留原有的 StrategyResult 作为默认实现
-pub type StrategyResult = GenericStrategyResult;
-
-impl StrategyResultTrait for GenericStrategyResult {
-    fn stock_code(&self) -> &str {
-        &self.stock_code
-    }
+/// 价量K线策略结果
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PriceVolumeCandlestickResult {
+    /// 股票代码
+    pub stock_code: String,
+    /// 分析日期
+    pub analysis_date: NaiveDate,
+    /// 当前价格
+    pub current_price: f64,
+    /// 策略信号
+    pub strategy_signal: StrategySignal,
+    /// 信号强度 (0-100)
+    pub signal_strength: u8,
+    /// 分析说明
+    pub analysis_description: String,
+    /// 风险等级 (1-5)
+    pub risk_level: u8,
     
-    fn analysis_date(&self) -> NaiveDate {
-        self.analysis_date
-    }
-    
-    fn current_price(&self) -> f64 {
-        self.current_price
-    }
-    
-    fn strategy_signal(&self) -> StrategySignal {
-        self.strategy_signal.clone()
-    }
-    
-    fn signal_strength(&self) -> u8 {
-        self.signal_strength
-    }
-    
-    fn analysis_description(&self) -> String {
-        self.analysis_description.clone()
-    }
-    
-    fn risk_level(&self) -> u8 {
-        self.risk_level
-    }
-    
-    fn to_generic(&self) -> GenericStrategyResult {
-        self.clone()
-    }
+    // 策略特有字段
+    /// K线形态
+    pub candlestick_pattern: String,
+    /// 成交量信号
+    pub volume_signal: String,
+    /// 价格波动率
+    pub price_volatility: f64,
+    /// 成交量比率
+    pub volume_ratio: f64,
 }
 
 /// 策略配置基础 trait
@@ -385,7 +435,7 @@ pub trait TradingStrategy: Send + Sync {
         }
         
         // 按信号强度排序
-        results.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
+        results.sort_by(|a, b| b.signal_strength().cmp(&a.signal_strength()));
         
         results
     }
@@ -530,7 +580,7 @@ mod tests {
     
     #[test]
     fn test_strategy_result_creation() {
-        let result = StrategyResult {
+        let result = StrategyResult::BottomVolumeSurge(BottomVolumeSurgeResult {
             stock_code: "000001.SZ".to_string(),
             analysis_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             current_price: 10.5,
@@ -538,10 +588,18 @@ mod tests {
             signal_strength: 75,
             analysis_description: "测试分析".to_string(),
             risk_level: 3,
-            extra_data: serde_json::json!({}),
-        };
+            is_at_bottom: true,
+            bottom_price: 10.0,
+            bottom_date: "20240101".to_string(),
+            current_volume: 1000000.0,
+            volume_ma: 800000.0,
+            volume_surge_ratio: 1.25,
+            price_rise_pct: 5.0,
+            recent_low: 9.8,
+            recent_high: 10.8,
+        });
         
-        assert_eq!(result.stock_code, "000001.SZ");
-        assert_eq!(result.signal_strength, 75);
+        assert_eq!(result.stock_code(), "000001.SZ");
+        assert_eq!(result.signal_strength(), 75);
     }
 }

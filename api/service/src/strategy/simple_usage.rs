@@ -43,10 +43,10 @@ pub fn basic_usage_example() -> Result<()> {
     let result = strategy.analyze("000001.SZ", &test_data)?;
     
     println!("分析结果:");
-    println!("  股票代码: {}", result.stock_code);
-    println!("  策略信号: {:?}", result.strategy_signal);
-    println!("  信号强度: {}%", result.signal_strength);
-    println!("  风险等级: {}/5", result.risk_level);
+    println!("  股票代码: {}", result.stock_code());
+    println!("  策略信号: {:?}", result.strategy_signal());
+    println!("  信号强度: {}%", result.signal_strength());
+    println!("  风险等级: {}/5", result.risk_level());
     
     Ok(())
 }
@@ -68,9 +68,9 @@ pub fn batch_analysis_example() -> Result<()> {
     println!("批量分析结果 (按信号强度排序):");
     for result in results.iter().take(5) {
         println!("  {}: {:?} ({}%)", 
-            result.stock_code, 
-            result.strategy_signal, 
-            result.signal_strength
+            result.stock_code(), 
+            result.strategy_signal(), 
+            result.signal_strength()
         );
     }
     
@@ -93,9 +93,9 @@ pub fn strategy_comparison_example() -> Result<()> {
         let result = strategy.analyze("TEST", &test_data)?;
         println!("  {}: {:?} (信号强度: {}%, 风险: {}/5)", 
             name,
-            result.strategy_signal,
-            result.signal_strength,
-            result.risk_level
+            result.strategy_signal(),
+            result.signal_strength(),
+            result.risk_level()
         );
     }
     

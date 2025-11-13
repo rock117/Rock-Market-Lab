@@ -9,7 +9,7 @@ use tracing::{debug, info};
 
 use super::traits::{
     TradingStrategy, StrategyConfig as StrategyConfigTrait, StrategyResult, StrategySignal,
-    StrategyResultTrait, GenericStrategyResult, SecurityData,
+    BottomVolumeSurgeResult, SecurityData,
 };
 
 /// 底部放量上涨策略配置
@@ -77,93 +77,7 @@ impl StrategyConfigTrait for BottomVolumeSurgeConfig {
     }
 }
 
-/// 底部放量上涨策略特定的分析结果
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct BottomVolumeSurgeResult {
-    /// 基础信息
-    pub stock_code: String,
-    pub analysis_date: NaiveDate,
-    pub current_price: f64,
-    pub strategy_signal: StrategySignal,
-    pub signal_strength: u8,
-    pub analysis_description: String,
-    pub risk_level: u8,
-    
-    /// 策略特定字段
-    /// 是否处于底部
-    pub is_at_bottom: bool,
-    /// 底部价格
-    pub bottom_price: f64,
-    /// 底部日期
-    pub bottom_date: String,
-    /// 当前成交量
-    pub current_volume: f64,
-    /// 成交量均值
-    pub volume_ma: f64,
-    /// 成交量放大倍数
-    pub volume_surge_ratio: f64,
-    /// 价格涨幅（相对底部）
-    pub price_rise_pct: f64,
-    /// 近N日最低价
-    pub recent_low: f64,
-    /// 近N日最高价
-    pub recent_high: f64,
-}
-
-impl StrategyResultTrait for BottomVolumeSurgeResult {
-    fn stock_code(&self) -> &str {
-        &self.stock_code
-    }
-    
-    fn analysis_date(&self) -> NaiveDate {
-        self.analysis_date
-    }
-    
-    fn current_price(&self) -> f64 {
-        self.current_price
-    }
-    
-    fn strategy_signal(&self) -> StrategySignal {
-        self.strategy_signal.clone()
-    }
-    
-    fn signal_strength(&self) -> u8 {
-        self.signal_strength
-    }
-    
-    fn analysis_description(&self) -> String {
-        self.analysis_description.clone()
-    }
-    
-    fn risk_level(&self) -> u8 {
-        self.risk_level
-    }
-    
-    fn to_generic(&self) -> GenericStrategyResult {
-        let extra_data = serde_json::json!({
-            "is_at_bottom": self.is_at_bottom,
-            "bottom_price": self.bottom_price,
-            "bottom_date": self.bottom_date,
-            "current_volume": self.current_volume,
-            "volume_ma": self.volume_ma,
-            "volume_surge_ratio": self.volume_surge_ratio,
-            "price_rise_pct": self.price_rise_pct,
-            "recent_low": self.recent_low,
-            "recent_high": self.recent_high,
-        });
-        
-        GenericStrategyResult {
-            stock_code: self.stock_code.clone(),
-            analysis_date: self.analysis_date,
-            current_price: self.current_price,
-            strategy_signal: self.strategy_signal.clone(),
-            signal_strength: self.signal_strength,
-            analysis_description: self.analysis_description.clone(),
-            risk_level: self.risk_level,
-            extra_data,
-        }
-    }
-}
+// BottomVolumeSurgeResult 现在在 traits.rs 中定义
 
 /// 底部放量上涨策略
 pub struct BottomVolumeSurgeStrategy {
@@ -592,11 +506,9 @@ impl TradingStrategy for BottomVolumeSurgeStrategy {
         // 验证数据
         self.validate_data(data)?;
         
-        // 执行分析
+        // 执行分析并包装为 enum
         let result = self.analyze_internal(symbol, data)?;
-        
-        // 转换为通用结果
-        Ok(result.to_generic())
+        Ok(StrategyResult::BottomVolumeSurge(result))
     }
     
     fn required_data_points(&self) -> usize {

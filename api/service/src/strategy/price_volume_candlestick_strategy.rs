@@ -11,7 +11,7 @@ use tracing::{info, warn, debug};
 
 use super::traits::{
     TradingStrategy, StrategyConfig as StrategyConfigTrait, StrategyResult, StrategySignal,
-    StrategyInfo, StrategyType, RiskLevel, SecurityData
+    PriceVolumeCandlestickResult, StrategyInfo, StrategyType, RiskLevel, SecurityData
 };
 
 /// K线形态枚举
@@ -137,7 +137,7 @@ impl PriceVolumeCandlestickStrategy {
     }
     
     /// 分析证券数据（内部方法）
-    fn analyze_internal(&mut self, symbol: &str, data: &[SecurityData]) -> Result<StrategyResult> {
+    fn analyze_internal(&mut self, symbol: &str, data: &[SecurityData]) -> Result<PriceVolumeCandlestickResult> {
         if data.is_empty() {
             return Err(anyhow::anyhow!("证券 {} 没有数据", symbol));
         }
@@ -165,17 +165,11 @@ impl PriceVolumeCandlestickStrategy {
             &candlestick_pattern, &volume_signal, &strategy_signal
         );
         
-        // 创建价量K线策略特定的分析结果
-        let price_volume_result = PriceVolumeAnalysisResult {
-            candlestick_pattern,
-            volume_signal,
-        };
+        // 计算价格波动率和成交量比率
+        let price_volatility = self.calculate_price_volatility(&sorted_data);
+        let volume_ratio = self.calculate_volume_ratio(&sorted_data);
         
-        // 将特定分析结果序列化到 extra_data 中
-        let extra_data = serde_json::to_value(&price_volume_result)
-            .unwrap_or(serde_json::Value::Null);
-        
-        Ok(StrategyResult {
+        Ok(PriceVolumeCandlestickResult {
             stock_code: symbol.to_string(),
             analysis_date: self.parse_date_string(&latest.trade_date),
             current_price,
@@ -183,7 +177,10 @@ impl PriceVolumeCandlestickStrategy {
             signal_strength,
             analysis_description,
             risk_level,
-            extra_data,
+            candlestick_pattern: format!("{:?}", candlestick_pattern),
+            volume_signal: format!("{:?}", volume_signal),
+            price_volatility,
+            volume_ratio,
         })
     }
     
@@ -451,6 +448,42 @@ impl PriceVolumeCandlestickStrategy {
         }
     }
     
+    /// 计算价格波动率
+    fn calculate_price_volatility(&self, data: &[SecurityData]) -> f64 {
+        if data.len() < 2 {
+            return 0.0;
+        }
+        
+        let recent_data = &data[data.len().saturating_sub(self.config.analysis_period)..];
+        let prices: Vec<f64> = recent_data.iter().map(|d| d.close).collect();
+        
+        let mean = prices.iter().sum::<f64>() / prices.len() as f64;
+        let variance = prices.iter()
+            .map(|p| (p - mean).powi(2))
+            .sum::<f64>() / prices.len() as f64;
+        
+        variance.sqrt() / mean * 100.0
+    }
+    
+    /// 计算成交量比率
+    fn calculate_volume_ratio(&self, data: &[SecurityData]) -> f64 {
+        if data.len() < self.config.volume_ma_period + 1 {
+            return 1.0;
+        }
+        
+        let latest_volume = data.last().unwrap().volume;
+        let recent_volumes: Vec<f64> = data.iter()
+            .rev()
+            .skip(1)
+            .take(self.config.volume_ma_period)
+            .map(|d| d.volume)
+            .collect();
+        
+        let avg_volume = recent_volumes.iter().sum::<f64>() / recent_volumes.len() as f64;
+        
+        latest_volume / avg_volume
+    }
+    
     /// 批量分析多只证券
     pub fn batch_analyze(&mut self, securities_data: &[(String, Vec<SecurityData>)]) -> Vec<StrategyResult> {
         let mut results = Vec::new();
@@ -463,7 +496,7 @@ impl PriceVolumeCandlestickStrategy {
         }
         
         // 按信号强度排序
-        results.sort_by(|a, b| b.signal_strength.cmp(&a.signal_strength));
+        results.sort_by(|a, b| b.signal_strength().cmp(&a.signal_strength()));
         
         results
     }
@@ -493,7 +526,8 @@ impl TradingStrategy for PriceVolumeCandlestickStrategy {
     
     fn analyze(&mut self, symbol: &str, data: &[SecurityData]) -> Result<StrategyResult> {
         self.validate_data(data)?;
-        self.analyze_internal(symbol, data)
+        let result = self.analyze_internal(symbol, data)?;
+        Ok(StrategyResult::PriceVolumeCandlestick(result))
     }
     
     fn required_data_points(&self) -> usize {
@@ -615,8 +649,8 @@ mod tests {
         assert!(result.is_ok());
         
         let analysis = result.unwrap();
-        assert_eq!(analysis.stock_code, "000001.SZ");
-        assert!(analysis.signal_strength <= 100);
+        assert_eq!(analysis.stock_code(), "000001.SZ");
+        assert!(analysis.signal_strength() <= 100);
     }
     
     #[test]

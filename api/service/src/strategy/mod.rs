@@ -14,8 +14,8 @@ pub use traits::{
     StrategyConfig, 
     StrategyResult, 
     StrategySignal,
-    StrategyResultTrait,
-    GenericStrategyResult,
+    BottomVolumeSurgeResult,
+    PriceVolumeCandlestickResult,
     StrategyInfo,
     StrategyType,
     RiskLevel,
@@ -41,5 +41,4 @@ pub use price_volume_candlestick_strategy::{
 pub use bottom_volume_surge_strategy::{
     BottomVolumeSurgeStrategy,
     BottomVolumeSurgeConfig,
-    BottomVolumeSurgeResult,
 };

@@ -21,21 +21,25 @@ pub async fn basic_strategy_example() -> Result<()> {
     // 分析单只股票
     let result = strategy.analyze("000001.SZ", &test_data)?;
     
-    // 从 extra_data 中提取价量K线策略特定的分析结果
-    let price_volume_result: Option<PriceVolumeAnalysisResult> = 
-        serde_json::from_value(result.extra_data.clone()).ok();
-    
     info!("股票分析结果:");
-    info!("  股票代码: {}", result.stock_code);
-    info!("  当前价格: {:.2}", result.current_price);
-    if let Some(pv_result) = &price_volume_result {
-        info!("  K线形态: {:?}", pv_result.candlestick_pattern);
-        info!("  成交量信号: {:?}", pv_result.volume_signal);
+    info!("  股票代码: {}", result.stock_code());
+    info!("  当前价格: {:.2}", result.current_price());
+    
+    // 根据策略类型提取特定信息
+    match &result {
+        super::StrategyResult::PriceVolumeCandlestick(r) => {
+            info!("  K线形态: {}", r.candlestick_pattern);
+            info!("  成交量信号: {}", r.volume_signal);
+            info!("  价格波动率: {:.2}%", r.price_volatility);
+            info!("  成交量比率: {:.2}", r.volume_ratio);
+        },
+        _ => {}
     }
-    info!("  策略信号: {:?}", result.strategy_signal);
-    info!("  信号强度: {}%", result.signal_strength);
-    info!("  风险等级: {}/5", result.risk_level);
-    info!("  分析说明: {}", result.analysis_description);
+    
+    info!("  策略信号: {:?}", result.strategy_signal());
+    info!("  信号强度: {}%", result.signal_strength());
+    info!("  风险等级: {}/5", result.risk_level());
+    info!("  分析说明: {}", result.analysis_description());
     
     Ok(())
 }
@@ -60,8 +64,8 @@ pub async fn custom_config_example() -> Result<()> {
     let result = strategy.analyze("000002.SZ", &test_data)?;
     
     info!("自定义配置分析结果:");
-    info!("  策略信号: {:?} (强度: {}%)", result.strategy_signal, result.signal_strength);
-    info!("  分析说明: {}", result.analysis_description);
+    info!("  策略信号: {:?} (强度: {}%)", result.strategy_signal(), result.signal_strength());
+    info!("  分析说明: {}", result.analysis_description());
     
     Ok(())
 }
@@ -85,10 +89,10 @@ pub async fn batch_analysis_example() -> Result<()> {
     for (i, result) in results.iter().enumerate() {
         info!("  {}. {} - {:?} ({}%): {}", 
             i + 1, 
-            result.stock_code, 
-            result.strategy_signal, 
-            result.signal_strength,
-            result.analysis_description
+            result.stock_code(), 
+            result.strategy_signal(), 
+            result.signal_strength(),
+            result.analysis_description()
         );
     }
     
@@ -111,17 +115,16 @@ pub async fn candlestick_patterns_example() -> Result<()> {
     
     for (pattern_name, data) in patterns_data {
         let result = strategy.analyze("TEST", &data)?;
-        let price_volume_result: Option<PriceVolumeAnalysisResult> = 
-            serde_json::from_value(result.extra_data.clone()).ok();
         
-        let pattern_info = price_volume_result
-            .map(|pv| format!("{:?}", pv.candlestick_pattern))
-            .unwrap_or_else(|| "未知".to_string());
+        let pattern_info = match &result {
+            super::StrategyResult::PriceVolumeCandlestick(r) => r.candlestick_pattern.clone(),
+            _ => "未知".to_string(),
+        };
             
         info!("  {}: {} - {}", 
             pattern_name, 
             pattern_info,
-            result.analysis_description
+            result.analysis_description()
         );
     }
     
@@ -143,17 +146,16 @@ pub async fn volume_signals_example() -> Result<()> {
     
     for (scenario_name, data) in volume_scenarios {
         let result = strategy.analyze("TEST", &data)?;
-        let price_volume_result: Option<PriceVolumeAnalysisResult> = 
-            serde_json::from_value(result.extra_data.clone()).ok();
         
-        let volume_info = price_volume_result
-            .map(|pv| format!("{:?}", pv.volume_signal))
-            .unwrap_or_else(|| "未知".to_string());
+        let volume_info = match &result {
+            super::StrategyResult::PriceVolumeCandlestick(r) => r.volume_signal.clone(),
+            _ => "未知".to_string(),
+        };
             
         info!("  {}: {} - 信号强度{}%", 
             scenario_name, 
             volume_info,
-            result.signal_strength
+            result.signal_strength()
         );
     }
     
@@ -179,13 +181,13 @@ pub async fn signal_filtering_example() -> Result<()> {
     
     // 按信号类型分类
     let strong_buy: Vec<_> = results.iter()
-        .filter(|r| r.strategy_signal == StrategySignal::StrongBuy)
+        .filter(|r| r.strategy_signal() == StrategySignal::StrongBuy)
         .collect();
     let buy: Vec<_> = results.iter()
-        .filter(|r| r.strategy_signal == StrategySignal::Buy)
+        .filter(|r| r.strategy_signal() == StrategySignal::Buy)
         .collect();
     let sell: Vec<_> = results.iter()
-        .filter(|r| matches!(r.strategy_signal, StrategySignal::Sell | StrategySignal::StrongSell))
+        .filter(|r| matches!(r.strategy_signal(), StrategySignal::Sell | StrategySignal::StrongSell))
         .collect();
     
     info!("强烈买入信号: {} 只", strong_buy.len());
