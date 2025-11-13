@@ -68,25 +68,22 @@ impl StockPickerService {
         strategy_type: &str,
         settings: JsonValue
     ) -> Result<Vec<StockPickResult>> {
-        // 宏：简化策略创建和执行的重复代码
-        macro_rules! execute_strategy {
-            ($config_type:ty, $strategy_type:ty) => {{
-                let config: $config_type = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = <$strategy_type>::new(config);
+        // 宏：简化策略创建和执行
+        macro_rules! create_strategy {
+            ($config:ty, $strategy:ty) => {{
+                let config: $config = serde_json::from_value(settings)?;
+                let mut strategy = <$strategy>::new(config);
                 self.pick_stocks(&mut strategy, start_date, end_date, None).await
             }};
         }
 
         match strategy_type {
-            "price_volume_candlestick" => execute_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy),
-            "bottom_volume_surge" => execute_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy),
-            "long_term_bottom_reversal" => execute_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy),
-            "yearly_high" => execute_strategy!(YearlyHighConfig, YearlyHighStrategy),
-            "price_strength" => execute_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
-            _ => {
-                bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength", strategy_type)
-            }
+            "price_volume_candlestick" => create_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy),
+            "bottom_volume_surge" => create_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy),
+            "long_term_bottom_reversal" => create_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy),
+            "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy),
+            "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength", strategy_type)
         }
     }
 
