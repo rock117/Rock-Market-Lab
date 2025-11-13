@@ -6,6 +6,7 @@ pub mod traits;
 pub mod price_volume_candlestick_strategy;
 pub mod bottom_volume_surge_strategy;
 pub mod long_term_bottom_reversal_strategy;
+pub mod yearly_high_strategy;
 pub mod examples;
 pub mod simple_usage;
 
@@ -49,4 +50,11 @@ pub use long_term_bottom_reversal_strategy::{
     LongTermBottomReversalStrategy,
     LongTermBottomReversalConfig,
     LongTermBottomReversalResult,
+};
+
+// 重新导出年内新高策略相关类型
+pub use yearly_high_strategy::{
+    YearlyHighStrategy,
+    YearlyHighConfig,
+    YearlyHighResult,
 };
