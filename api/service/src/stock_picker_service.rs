@@ -68,37 +68,22 @@ impl StockPickerService {
         strategy_type: &str,
         settings: JsonValue
     ) -> Result<Vec<StockPickResult>> {
+        // 宏：简化策略创建和执行的重复代码
+        macro_rules! execute_strategy {
+            ($config_type:ty, $strategy_type:ty) => {{
+                let config: $config_type = serde_json::from_value(settings)
+                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
+                let mut strategy = <$strategy_type>::new(config);
+                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+            }};
+        }
+
         match strategy_type {
-            "price_volume_candlestick" => {
-                let config: PriceVolumeStrategyConfig = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = PriceVolumeCandlestickStrategy::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
-            }
-            "bottom_volume_surge" => {
-                let config: BottomVolumeSurgeConfig = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = BottomVolumeSurgeStrategy::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
-            }
-            "long_term_bottom_reversal" => {
-                let config: LongTermBottomReversalConfig = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = LongTermBottomReversalStrategy::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
-            }
-            "yearly_high" => {
-                let config: YearlyHighConfig = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = YearlyHighStrategy::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
-            }
-            "price_strength" => {
-                let config: PriceStrengthConfig = serde_json::from_value(settings)
-                    .map_err(|e| anyhow::anyhow!("解析配置失败: {}", e))?;
-                let mut strategy = PriceStrengthStrategy::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
-            }
+            "price_volume_candlestick" => execute_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy),
+            "bottom_volume_surge" => execute_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy),
+            "long_term_bottom_reversal" => execute_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy),
+            "yearly_high" => execute_strategy!(YearlyHighConfig, YearlyHighStrategy),
+            "price_strength" => execute_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
             _ => {
                 bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength", strategy_type)
             }
