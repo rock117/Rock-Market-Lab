@@ -1,6 +1,13 @@
 //! 底部放量上涨策略
 //! 
 //! 判断某个证券近N日内是否出现底部放量并且价格上涨的信号
+//! 
+//! 核心条件：
+//! 1. 处于底部区域（价格在底部波动范围内）
+//! 2. 成交量放大（超过均量的指定倍数）
+//! 3. 价格上涨（相对底部价格上涨超过阈值）
+//! 4. 当天涨幅达标（相对前一天收盘价）
+//! 5. 当天收阳线（收盘价 >= 开盘价）
 
 use anyhow::Result;
 use chrono::NaiveDate;
@@ -132,7 +139,33 @@ impl BottomVolumeSurgeStrategy {
         let current_price = latest.close;
         let current_volume = latest.volume;
         let analysis_date = NaiveDate::parse_from_str(&latest.trade_date, "%Y%m%d")?;
-        
+
+        // 检查当天是否为阳线（收盘价 >= 开盘价）
+        if latest.close < latest.open {
+            // 当天收阴线，不符合条件
+            return Ok(BottomVolumeSurgeResult {
+                stock_code: symbol.to_string(),
+                analysis_date,
+                current_price,
+                strategy_signal: StrategySignal::Sell,
+                signal_strength: 0,
+                analysis_description: format!(
+                    "当天收阴线（开盘: {:.2}, 收盘: {:.2}），不符合放量上涨条件",
+                    latest.open, latest.close
+                ),
+                risk_level: 5,
+                is_at_bottom: false,
+                bottom_price: 0.0,
+                bottom_date: String::new(),
+                current_volume,
+                volume_ma: 0.0,
+                volume_surge_ratio: 0.0,
+                price_rise_pct: 0.0,
+                recent_low: 0.0,
+                recent_high: 0.0,
+            });
+        }
+
         // 0. 检查当天是否上涨（相对于前一天）
         if sorted_data.len() < 2 {
             return Ok(BottomVolumeSurgeResult {
@@ -182,7 +215,7 @@ impl BottomVolumeSurgeStrategy {
                 recent_high: 0.0,
             });
         }
-        
+
         // 1. 判断是否处于底部（不包括当天数据）
         let historical_data = if sorted_data.len() > 1 {
             &sorted_data[..sorted_data.len() - 1]
