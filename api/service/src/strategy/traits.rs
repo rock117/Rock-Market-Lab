@@ -6,9 +6,10 @@ use anyhow::Result;
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use rust_decimal::Decimal;
+use crate::strategy::TimeFrame::Daily;
 
 /// 通用金融产品数据
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct SecurityData {
     /// 证券代码 (股票/基金/指数等)
     pub symbol: String,
@@ -96,6 +97,12 @@ pub enum TimeFrame {
     /// 小时线
     Hour(u32),   // 1小时、4小时等
 }
+impl Default for TimeFrame {
+    fn default() -> Self {
+        Daily
+    }
+}
+
 
 /// 金融产品类型
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -115,7 +122,11 @@ pub enum SecurityType {
     /// 期权
     Option,
 }
-
+impl Default for SecurityType {
+    fn default() -> Self {
+        SecurityType::Stock
+    }
+}
 impl SecurityData {
     /// 从股票日线数据转换
     pub fn from_stock_daily(data: &entity::stock_daily::Model) -> Self {

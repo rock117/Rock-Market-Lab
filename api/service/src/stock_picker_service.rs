@@ -68,7 +68,7 @@ impl StockPickerService {
                     None => <$config>::default(),
                 };
                 let mut strategy = <$strategy>::new(config);
-                self.pick_stocks_internal(&mut strategy, start_date, end_date, None).await
+                self.pick_stocks_internal(&mut strategy, strategy_type, start_date, end_date, None).await
             }};
         }
 
@@ -96,6 +96,7 @@ impl StockPickerService {
     async fn pick_stocks_internal<S: TradingStrategy>(
         &self,
         strategy: &mut S,
+        strategy_type: &str,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
         min_signal: Option<StrategySignal>,
@@ -126,6 +127,7 @@ impl StockPickerService {
             let security_data = match self
                 .prepare_stock_data(
                     &stock_model.ts_code,
+                    strategy_type,
                     start_date,
                     end_date,
                     strategy.required_data_points(),
@@ -201,33 +203,35 @@ impl StockPickerService {
     async fn prepare_stock_data(
         &self,
         ts_code: &str,
+        strategy_type: &str,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
         required_points: usize,
     ) -> Result<Option<Vec<SecurityData>>> {
         // 获取股票日线数据
-        let daily_data = self
-            .get_stock_daily_data(ts_code, start_date, end_date)
-            .await?;
-
-        // 检查数据是否足够
-        if daily_data.len() < required_points {
-            warn!(
+        if strategy_type == "" {
+            self.get_financial_data(ts_code).await
+        } else {
+            let daily_data = self.get_stock_daily_data(ts_code, start_date, end_date).await?;
+            // 检查数据是否足够
+            if daily_data.len() < required_points {
+                warn!(
                 "股票 {} 数据不足: 需要 {} 个数据点，实际 {} 个",
                 ts_code,
                 required_points,
                 daily_data.len()
             );
-            return Ok(None);
+                return Ok(None);
+            }
+
+            // 转换为 SecurityData
+            let security_data: Vec<SecurityData> = daily_data
+                .iter()
+                .map(SecurityData::from_stock_daily)
+                .collect();
+
+            Ok(Some(security_data))
         }
-
-        // 转换为 SecurityData
-        let security_data: Vec<SecurityData> = daily_data
-            .iter()
-            .map(SecurityData::from_stock_daily)
-            .collect();
-
-        Ok(Some(security_data))
     }
 
     /// 获取股票日线数据
@@ -281,7 +285,7 @@ impl StockPickerService {
     /// - `accounts_receivable` <- balancesheet.accounts_receiv
     /// - `advances_from_customers` <- balancesheet.adv_receipts
     /// - `accounts_payable` <- balancesheet.acct_payable
-    pub async fn get_financial_data(&self, ts_code: &str) -> Result<Vec<FinancialData>> {
+    pub async fn get_financial_data(&self, ts_code: &str) -> Result<Option<Vec<SecurityData>>> {
         use std::collections::HashMap;
         use entity::sea_orm::ColumnTrait;
         
@@ -348,7 +352,7 @@ impl StockPickerService {
         all_periods.dedup();
         
         // 组装 FinancialData
-        let mut financial_data_list = Vec::new();
+        let mut sec_data_list = Vec::new();
         
         for end_date in all_periods {
             let indicator = indicator_map.get(&end_date);
@@ -386,8 +390,8 @@ impl StockPickerService {
             } else {
                 None
             };
-            
-            financial_data_list.push(FinancialData {
+
+            let financial_data = FinancialData {
                 report_period,
                 revenue: revenue_decimal.and_then(|v| v.to_string().parse().ok()),
                 net_profit: income_data
@@ -414,10 +418,12 @@ impl StockPickerService {
                 accounts_payable: balance_data
                     .and_then(|b| b.acct_payable)
                     .and_then(|v| v.to_string().parse().ok()),
-            });
+            };
+            let mut sec_data = SecurityData::default();
+            sec_data.financial_data = Some(financial_data);
+            sec_data_list.push(sec_data);
         }
-
-        Ok(financial_data_list)
+        Ok(Some(sec_data_list))
     }
     
     /// 格式化报告期：20240930 -> 2024Q3
