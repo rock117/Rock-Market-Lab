@@ -109,8 +109,6 @@ pub struct DistressedReversalResult {
     pub stock_code: String,
     /// 分析日期
     pub analysis_date: NaiveDate,
-    /// 当前价格
-    pub current_price: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-10)
@@ -284,7 +282,6 @@ impl DistressedReversalStrategy {
         }
         
         let (latest_data, latest_fin) = quarters.last().unwrap();
-        let current_price = latest_data.close;
         let analysis_date = NaiveDate::parse_from_str(&latest_data.trade_date, "%Y%m%d")?;
         
         // ========== 第二步：计算反转信号得分 ==========
@@ -345,7 +342,6 @@ impl DistressedReversalStrategy {
         Ok(DistressedReversalResult {
             stock_code: symbol.to_string(),
             analysis_date,
-            current_price,
             strategy_signal,
             signal_strength: total_score,
             analysis_description,
@@ -802,7 +798,6 @@ impl DistressedReversalStrategy {
         DistressedReversalResult {
             stock_code: symbol.to_string(),
             analysis_date: chrono::Local::now().date_naive(),
-            current_price: 0.0,
             strategy_signal: StrategySignal::Hold,
             signal_strength: 0,
             analysis_description: reason.to_string(),

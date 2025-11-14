@@ -345,7 +345,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.current_price,
             StrategyResult::YearlyHigh(r) => r.current_price,
             StrategyResult::PriceStrength(r) => r.current_price,
-            StrategyResult::DistressedReversal(r) => r.current_price,
+            StrategyResult::DistressedReversal(_) => 0.0,  // 困境反转策略不使用价格字段
         }
     }
     
