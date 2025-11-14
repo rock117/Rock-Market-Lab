@@ -39,17 +39,6 @@ impl StockPickerService {
     pub fn new(db: DatabaseConnection) -> Self {
         Self { db }
     }
-    pub async fn pick_stocks2(
-        &self,
-        start_date: &NaiveDate,
-        end_date: &NaiveDate,
-        min_signal: Option<StrategySignal>,
-    ) -> Result<Vec<StockPickResult>> {
-        let mut strategy = PriceVolumeCandlestickStrategy::aggressive();
-        return self.pick_stocks(&mut strategy, start_date, end_date, min_signal).await;
-    }
-
-
 
     /// 使用动态策略筛选股票
     /// 
@@ -61,7 +50,7 @@ impl StockPickerService {
     /// 
     /// # 返回
     /// 符合条件的股票列表
-    pub async fn pick_stocks3(
+    pub async fn pick_stocks(
         &self,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
@@ -76,7 +65,7 @@ impl StockPickerService {
                     None => <$config>::default(),
                 };
                 let mut strategy = <$strategy>::new(config);
-                self.pick_stocks(&mut strategy, start_date, end_date, None).await
+                self.pick_stocks_internal(&mut strategy, start_date, end_date, None).await
             }};
         }
 
@@ -100,7 +89,7 @@ impl StockPickerService {
     /// 
     /// # 返回
     /// 返回符合条件的股票列表，按信号强度降序排列
-    pub async fn pick_stocks<S: TradingStrategy>(
+    async fn pick_stocks_internal<S: TradingStrategy>(
         &self,
         strategy: &mut S,
         start_date: &NaiveDate,
@@ -226,28 +215,6 @@ impl StockPickerService {
     /// 只要实际信号 >= 最小信号要求，就符合条件
     fn meets_signal_criteria(&self, signal: &StrategySignal, min_signal: &StrategySignal) -> bool {
         signal >= min_signal
-    }
-
-    /// 获取强烈买入信号的股票
-    pub async fn get_strong_buy_stocks<S: TradingStrategy>(
-        &self,
-        strategy: &mut S,
-        start_date: &NaiveDate,
-        end_date: &NaiveDate,
-    ) -> Result<Vec<StockPickResult>> {
-        self.pick_stocks(strategy, start_date, end_date, Some(StrategySignal::StrongBuy))
-            .await
-    }
-
-    /// 获取买入信号的股票（包括强烈买入）
-    pub async fn get_buy_stocks<S: TradingStrategy>(
-        &self,
-        strategy: &mut S,
-        start_date: &NaiveDate,
-        end_date: &NaiveDate,
-    ) -> Result<Vec<StockPickResult>> {
-        self.pick_stocks(strategy, start_date, end_date, Some(StrategySignal::Buy))
-            .await
     }
 }
 
