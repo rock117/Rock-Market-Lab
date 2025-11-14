@@ -161,6 +161,7 @@ impl BottomVolumeSurgeStrategy {
                 volume_ma: 0.0,
                 volume_surge_ratio: 0.0,
                 price_rise_pct: 0.0,
+                daily_rise_pct: 0.0,
                 recent_low: 0.0,
                 recent_high: 0.0,
             });
@@ -183,6 +184,7 @@ impl BottomVolumeSurgeStrategy {
                 volume_ma: 0.0,
                 volume_surge_ratio: 0.0,
                 price_rise_pct: 0.0,
+                daily_rise_pct: 0.0,
                 recent_low: 0.0,
                 recent_high: 0.0,
             });
@@ -211,6 +213,7 @@ impl BottomVolumeSurgeStrategy {
                 volume_ma: 0.0,
                 volume_surge_ratio: 0.0,
                 price_rise_pct: 0.0,
+                daily_rise_pct,
                 recent_low: 0.0,
                 recent_high: 0.0,
             });
@@ -235,6 +238,7 @@ impl BottomVolumeSurgeStrategy {
                 volume_ma: 0.0,
                 volume_surge_ratio: 0.0,
                 price_rise_pct: 0.0,
+                daily_rise_pct,
                 recent_low: 0.0,
                 recent_high: 0.0,
             });
@@ -284,6 +288,7 @@ impl BottomVolumeSurgeStrategy {
             volume_ma,
             volume_surge_ratio,
             price_rise_pct,
+            daily_rise_pct,
             recent_low,
             recent_high,
         })

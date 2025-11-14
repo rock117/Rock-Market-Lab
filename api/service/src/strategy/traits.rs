@@ -368,8 +368,10 @@ pub struct BottomVolumeSurgeResult {
     pub volume_ma: f64,
     /// 成交量放大倍数
     pub volume_surge_ratio: f64,
-    /// 价格涨幅（百分比）
+    /// 价格涨幅（百分比，相对底部价格）
     pub price_rise_pct: f64,
+    /// 当天涨幅（百分比，相对前一天收盘价）
+    pub daily_rise_pct: f64,
     /// 近期最低价
     pub recent_low: f64,
     /// 近期最高价
@@ -621,6 +623,7 @@ mod tests {
             volume_ma: 800000.0,
             volume_surge_ratio: 1.25,
             price_rise_pct: 5.0,
+            daily_rise_pct: 2.5,
             recent_low: 9.8,
             recent_high: 10.8,
         });

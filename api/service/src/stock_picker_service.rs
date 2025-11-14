@@ -66,12 +66,15 @@ impl StockPickerService {
         start_date: &NaiveDate,
         end_date: &NaiveDate,
         strategy_type: &str,
-        settings: JsonValue
+        settings: Option<JsonValue>
     ) -> Result<Vec<StockPickResult>> {
         // 宏：简化策略创建和执行
         macro_rules! create_strategy {
             ($config:ty, $strategy:ty) => {{
-                let config: $config = serde_json::from_value(settings)?;
+                let config: $config = match settings {
+                    Some(json) => serde_json::from_value(json)?,
+                    None => <$config>::default(),
+                };
                 let mut strategy = <$strategy>::new(config);
                 self.pick_stocks(&mut strategy, start_date, end_date, None).await
             }};
