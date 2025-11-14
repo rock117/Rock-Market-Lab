@@ -20,6 +20,11 @@ use super::traits::{
 
 /// 困境反转策略配置
 /// 
+/// # 困境判断标准
+/// 企业必须先满足"困境"条件，才会进入反转评分：
+/// - 净利润相比历史高点下跌超过阈值（默认50%）
+/// - 需要至少4个季度的历史数据来判断高点
+/// 
 /// # 评分体系（总分14分）
 /// 
 /// ## 盈利能力（4分）
@@ -48,6 +53,14 @@ pub struct DistressedReversalConfig {
     /// 需要的最少财务季度数（用于计算趋势）
     pub min_quarters: usize,
     
+    /// 困境判断：净利润相比历史高点的下跌阈值（百分比）
+    /// 例如：50.0 表示净利润需要比历史高点下跌50%以上才算困境
+    pub distress_decline_threshold: f64,
+    
+    /// 困境判断：需要回溯的历史季度数（用于找历史高点）
+    /// 例如：8 表示回溯2年（8个季度）的数据
+    pub lookback_quarters: usize,
+    
     /// 营收大幅改善阈值（百分比）
     pub revenue_improvement_threshold: f64,
     
@@ -59,6 +72,8 @@ impl Default for DistressedReversalConfig {
     fn default() -> Self {
         Self {
             min_quarters: 3,  // 至少需要3个季度数据（当前+前2季）
+            distress_decline_threshold: 50.0,  // 净利润需比历史高点下跌50%以上
+            lookback_quarters: 8,  // 回溯2年（8个季度）找历史高点
             revenue_improvement_threshold: 20.0,  // 营收改善20%
             cashflow_improvement_threshold: 2.0,  // 现金流改善2倍
         }
@@ -104,6 +119,12 @@ pub struct DistressedReversalResult {
     pub analysis_description: String,
     /// 风险等级 (1-5)
     pub risk_level: u8,
+    
+    // 困境状态信息
+    /// 历史最高净利润（元）
+    pub historical_peak_profit: Option<f64>,
+    /// 当前净利润相比历史高点的下跌幅度（百分比）
+    pub profit_decline_from_peak: Option<f64>,
     
     // 各项指标得分明细
     /// 营收增速得分 (0-2)
@@ -182,6 +203,8 @@ impl DistressedReversalStrategy {
     pub fn aggressive() -> Self {
         Self::new(DistressedReversalConfig {
             min_quarters: 2,
+            distress_decline_threshold: 30.0,  // 下跌30%就算困境
+            lookback_quarters: 6,  // 回溯1.5年
             revenue_improvement_threshold: 10.0,
             cashflow_improvement_threshold: 1.5,
         })
@@ -191,6 +214,8 @@ impl DistressedReversalStrategy {
     pub fn conservative() -> Self {
         Self::new(DistressedReversalConfig {
             min_quarters: 4,
+            distress_decline_threshold: 70.0,  // 下跌70%才算困境
+            lookback_quarters: 12,  // 回溯3年
             revenue_improvement_threshold: 30.0,
             cashflow_improvement_threshold: 3.0,
         })
@@ -251,10 +276,18 @@ impl DistressedReversalStrategy {
         // 按报告期排序（假设 report_period 格式为 "2024Q3"）
         quarters.sort_by(|a, b| a.1.report_period.cmp(&b.1.report_period));
         
+        // ========== 第一步：判断是否处于困境 ==========
+        let (is_distressed, peak_profit, decline_pct) = self.check_distress_with_details(&quarters)?;
+        if !is_distressed {
+            return Ok(self.create_empty_result(symbol, 
+                "企业未处于困境状态（净利润未从历史高点大幅下跌）"));
+        }
+        
         let (latest_data, latest_fin) = quarters.last().unwrap();
         let current_price = latest_data.close;
         let analysis_date = NaiveDate::parse_from_str(&latest_data.trade_date, "%Y%m%d")?;
         
+        // ========== 第二步：计算反转信号得分 ==========
         // 计算各项指标得分
         let revenue_score = self.score_revenue(&quarters)?;
         let profit_score = self.score_profit(&quarters)?;
@@ -317,6 +350,8 @@ impl DistressedReversalStrategy {
             signal_strength: total_score,
             analysis_description,
             risk_level,
+            historical_peak_profit: peak_profit,
+            profit_decline_from_peak: decline_pct,
             revenue_score,
             profit_score,
             margin_score,
@@ -338,6 +373,68 @@ impl DistressedReversalStrategy {
             advances_from_customers: latest_fin.advances_from_customers,
             accounts_payable: latest_fin.accounts_payable,
         })
+    }
+    
+    // ========== 困境判断方法 ==========
+    
+    /// 判断企业是否处于困境状态（带详细信息）
+    /// 
+    /// 返回：(是否困境, 历史最高净利润, 下跌幅度百分比)
+    fn check_distress_with_details(
+        &self, 
+        quarters: &[(&SecurityData, &super::traits::FinancialData)]
+    ) -> Result<(bool, Option<f64>, Option<f64>)> {
+        // 需要足够的历史数据来判断
+        let lookback = self.config.lookback_quarters.min(quarters.len());
+        if lookback < 4 {
+            debug!("历史数据不足，至少需要4个季度来判断困境");
+            return Ok((false, None, None));
+        }
+        
+        // 获取回溯期内的所有净利润数据
+        let start_idx = quarters.len().saturating_sub(lookback);
+        let historical_quarters = &quarters[start_idx..];
+        
+        // 找到历史最高净利润
+        let mut max_profit = f64::NEG_INFINITY;
+        for (_, fin) in historical_quarters {
+            if let Some(profit) = fin.net_profit {
+                if profit > max_profit {
+                    max_profit = profit;
+                }
+            }
+        }
+        
+        // 如果历史最高利润为负或无效，说明一直亏损，不算困境反转
+        if max_profit <= 0.0 {
+            debug!("历史最高净利润为负或无效: {}, 不符合困境反转条件", max_profit);
+            return Ok((false, None, None));
+        }
+        
+        // 获取当前净利润
+        let current_profit = quarters.last()
+            .and_then(|(_, fin)| fin.net_profit)
+            .unwrap_or(0.0);
+        
+        // 计算下跌幅度（百分比）
+        let decline_pct = (max_profit - current_profit) / max_profit * 100.0;
+        
+        debug!(
+            "困境判断 - 历史最高净利润: {:.2}, 当前净利润: {:.2}, 下跌幅度: {:.2}%, 阈值: {:.2}%",
+            max_profit, current_profit, decline_pct, self.config.distress_decline_threshold
+        );
+        
+        // 判断是否超过困境阈值
+        let is_distressed = decline_pct >= self.config.distress_decline_threshold;
+        
+        Ok((is_distressed, Some(max_profit), Some(decline_pct)))
+    }
+    
+    /// 判断企业是否处于困境状态（简化版本）
+    #[allow(dead_code)]
+    fn check_distress(&self, quarters: &[(&SecurityData, &super::traits::FinancialData)]) -> Result<bool> {
+        let (is_distressed, _, _) = self.check_distress_with_details(quarters)?;
+        Ok(is_distressed)
     }
     
     // ========== 各项指标评分方法 ==========
@@ -710,6 +807,8 @@ impl DistressedReversalStrategy {
             signal_strength: 0,
             analysis_description: reason.to_string(),
             risk_level: 3,
+            historical_peak_profit: None,
+            profit_decline_from_peak: None,
             revenue_score: 0,
             profit_score: 0,
             margin_score: 0,
