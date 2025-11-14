@@ -148,6 +148,8 @@ impl BottomVolumeSurgeStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price,
+                open_price: latest.open,
+                close_price: latest.close,
                 strategy_signal: StrategySignal::Sell,
                 signal_strength: 0,
                 analysis_description: format!(
@@ -174,6 +176,8 @@ impl BottomVolumeSurgeStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price,
+                open_price: latest.open,
+                close_price: latest.close,
                 strategy_signal: StrategySignal::Hold,
                 signal_strength: 0,
                 analysis_description: "数据不足，无法判断".to_string(),
@@ -200,6 +204,8 @@ impl BottomVolumeSurgeStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price,
+                open_price: latest.open,
+                close_price: latest.close,
                 strategy_signal: StrategySignal::Sell,
                 signal_strength: 0,
                 analysis_description: format!(
@@ -228,6 +234,8 @@ impl BottomVolumeSurgeStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price,
+                open_price: latest.open,
+                close_price: latest.close,
                 strategy_signal: StrategySignal::Hold,
                 signal_strength: 0,
                 analysis_description: "历史数据不足".to_string(),
@@ -262,7 +270,9 @@ impl BottomVolumeSurgeStrategy {
                 price_rise_pct,
                 current_price,
                 recent_low,
-                recent_high
+                recent_high,
+                latest.open,
+                latest.close
             );
         
         // 5. 生成分析说明
@@ -278,6 +288,8 @@ impl BottomVolumeSurgeStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            open_price: latest.open,
+            close_price: latest.close,
             strategy_signal,
             signal_strength,
             analysis_description,
@@ -420,6 +432,8 @@ impl BottomVolumeSurgeStrategy {
         current_price: f64,
         recent_low: f64,
         recent_high: f64,
+        open_price: f64,
+        close_price: f64,
     ) -> (StrategySignal, u8, u8) {
         let mut signal_strength = 0u8;
         let mut risk_level = 3u8;  // 默认中等风险
@@ -445,6 +459,21 @@ impl BottomVolumeSurgeStrategy {
             signal_strength += 20;
         } else if price_rise_pct >= self.config.price_rise_threshold {
             signal_strength += 15;
+        }
+        
+        // 阳线加分 (10分) - 收盘价大于等于开盘价表示当天走势强劲
+        if close_price >= open_price {
+            let body_ratio = (close_price - open_price) / open_price;
+            if body_ratio >= 0.05 {  // 涨幅 >= 5%，大阳线
+                signal_strength += 10;
+            } else if body_ratio >= 0.03 {  // 涨幅 >= 3%，中阳线
+                signal_strength += 7;
+            } else if body_ratio > 0.0 {  // 涨幅 > 0%，小阳线
+                signal_strength += 5;
+            } else {  // 涨幅 = 0%，一字板（可能是涨停）
+                // 一字板通常是强势信号，给予中等偏上加分
+                signal_strength += 8;
+            }
         }
         
         // 价格位置分析（影响风险等级）

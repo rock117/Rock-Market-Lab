@@ -418,6 +418,10 @@ pub struct BottomVolumeSurgeResult {
     pub analysis_date: NaiveDate,
     /// 当前价格
     pub current_price: f64,
+    /// 当天开盘价
+    pub open_price: f64,
+    /// 当天收盘价
+    pub close_price: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-100)

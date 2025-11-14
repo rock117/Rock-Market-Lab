@@ -9,8 +9,6 @@ pub mod long_term_bottom_reversal_strategy;
 pub mod yearly_high_strategy;
 pub mod price_strength_strategy;
 pub mod distressed_reversal_strategy;
-pub mod examples;
-pub mod simple_usage;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
