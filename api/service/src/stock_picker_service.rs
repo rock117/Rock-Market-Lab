@@ -8,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use entity::sea_orm::{DatabaseConnection, EntityTrait, JsonValue, QueryFilter, QueryOrder};
 use entity::{stock, stock_daily, finance_indicator, income, cashflow, balancesheet};
 use entity::sea_orm::ColumnTrait;
-
+use std::collections::HashMap;
 use tracing::{info, warn};
 use crate::strategy::{
     PriceVolumeCandlestickStrategy, PriceVolumeStrategyConfig,
@@ -286,9 +286,7 @@ impl StockPickerService {
     /// - `advances_from_customers` <- balancesheet.adv_receipts
     /// - `accounts_payable` <- balancesheet.acct_payable
     pub async fn get_financial_data(&self, ts_code: &str) -> Result<Option<Vec<SecurityData>>> {
-        use std::collections::HashMap;
-        use entity::sea_orm::ColumnTrait;
-        
+        let report_type = "1"; //合并报表
         // 1. 查询财务指标表（毛利率）
         let indicators = finance_indicator::Entity::find()
             .filter(finance_indicator::Column::TsCode.eq(ts_code))
@@ -299,6 +297,7 @@ impl StockPickerService {
         // 2. 查询利润表（营收、净利润、三费）
         let incomes = income::Entity::find()
             .filter(ColumnTrait::eq(&income::Column::TsCode, ts_code))
+            .filter(ColumnTrait::eq(&income::Column::ReportType, report_type))
             .filter(income::Column::EndDate.is_not_null())
             .order_by_asc(income::Column::EndDate)
             .all(&self.db)
@@ -307,6 +306,7 @@ impl StockPickerService {
         // 3. 查询现金流量表（经营现金流）
         let cashflows = cashflow::Entity::find()
             .filter(ColumnTrait::eq(&cashflow::Column::TsCode, ts_code))
+            .filter(ColumnTrait::eq(&cashflow::Column::ReportType, ts_code))
             .order_by_asc(cashflow::Column::EndDate)
             .all(&self.db)
             .await?;
@@ -314,6 +314,7 @@ impl StockPickerService {
         // 4. 查询资产负债表（存货、应收、预收、应付）
         let balancesheets = balancesheet::Entity::find()
             .filter(ColumnTrait::eq(&balancesheet::Column::TsCode, ts_code))
+            .filter(ColumnTrait::eq(&balancesheet::Column::ReportType, ts_code))
             .order_by_asc(balancesheet::Column::EndDate)
             .all(&self.db)
             .await?;
@@ -361,7 +362,7 @@ impl StockPickerService {
             let balance_data = balancesheet_map.get(&end_date);
             
             // 转换报告期格式：20240930 -> 2024Q3
-            let report_period = Self::format_report_period(&end_date);
+            let report_period = end_date;// Self::format_report_period(&end_date);
             
             // 计算费用率（费用 / 营收 * 100）
             let revenue_decimal = income_data.and_then(|i| i.revenue);
