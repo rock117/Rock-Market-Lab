@@ -74,8 +74,8 @@ impl Default for DistressedReversalConfig {
             min_quarters: 3,  // 至少需要3个季度数据（当前+前2季）
             distress_decline_threshold: 50.0,  // 净利润需比历史高点下跌50%以上
             lookback_quarters: 8,  // 回溯2年（8个季度）找历史高点
-            revenue_improvement_threshold: 20.0,  // 营收改善20%
-            cashflow_improvement_threshold: 2.0,  // 现金流改善2倍
+            revenue_improvement_threshold: 10.0,  // 营收改善10%
+            cashflow_improvement_threshold: 1.5,  // 现金流改善1.5倍
         }
     }
 }
