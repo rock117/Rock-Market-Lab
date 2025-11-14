@@ -21,6 +21,7 @@ use super::traits::{
 
 /// 底部放量上涨策略配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct BottomVolumeSurgeConfig {
     /// 分析周期（天数）
     pub analysis_period: usize,

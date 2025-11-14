@@ -14,6 +14,7 @@ use super::traits::{
 
 /// 年内新高策略配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct YearlyHighConfig {
     /// 是否只检查当天 - true: 只检查当天是否新高, false: 检查最近N天内是否创新高
     /// 默认 true

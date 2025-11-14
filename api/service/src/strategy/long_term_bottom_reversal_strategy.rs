@@ -14,6 +14,7 @@ use super::traits::{
 
 /// 长期底部反转策略配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct LongTermBottomReversalConfig {
     /// 长期分析周期（天数）- 需要的总数据量，默认 480 天（约2年）
     pub long_term_period: usize,

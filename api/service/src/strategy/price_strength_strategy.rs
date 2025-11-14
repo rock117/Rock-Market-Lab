@@ -9,6 +9,7 @@ use super::traits::{
 
 /// 价格强弱策略配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct PriceStrengthConfig {
     /// 分析周期（天数）- 默认 20 天
     pub analysis_period: usize,

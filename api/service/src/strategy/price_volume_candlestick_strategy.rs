@@ -69,6 +69,7 @@ pub struct PriceVolumeAnalysisResult {
 
 /// 价量K线策略配置
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]  // 整个结构体使用 Default trait
 pub struct PriceVolumeStrategyConfig {
     /// 分析周期（天数）
     pub analysis_period: usize,
