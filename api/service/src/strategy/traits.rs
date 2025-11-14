@@ -36,6 +36,50 @@ pub struct SecurityData {
     pub security_type: SecurityType,
     /// 时间周期
     pub time_frame: TimeFrame,
+    /// 财务数据（可选）
+    pub financial_data: Option<FinancialData>,
+}
+
+/// 财务数据（单季度）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FinancialData {
+    /// 报告期（如 "2024Q3"）
+    pub report_period: String,
+    
+    /// 营业收入（元）
+    pub revenue: Option<f64>,
+    
+    /// 净利润（元）
+    pub net_profit: Option<f64>,
+    
+    /// 毛利率（百分比）
+    pub gross_profit_margin: Option<f64>,
+    
+    /// 销售费用率（百分比）
+    pub selling_expense_ratio: Option<f64>,
+    
+    /// 管理费用率（百分比）
+    pub admin_expense_ratio: Option<f64>,
+    
+    /// 财务费用率（百分比）
+    pub financial_expense_ratio: Option<f64>,
+    
+    /// 经营活动现金流（元）
+    pub operating_cash_flow: Option<f64>,
+    
+    // ========== 营运资本相关指标 ==========
+    
+    /// 存货（元）
+    pub inventory: Option<f64>,
+    
+    /// 应收账款（元）
+    pub accounts_receivable: Option<f64>,
+    
+    /// 预收账款（元）
+    pub advances_from_customers: Option<f64>,
+    
+    /// 应付账款（元）
+    pub accounts_payable: Option<f64>,
 }
 
 /// 时间周期枚举
@@ -89,6 +133,7 @@ impl SecurityData {
             amount: decimal_to_f64(&data.amount),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
         }
     }
     
@@ -108,6 +153,7 @@ impl SecurityData {
             amount: decimal_to_f64(&data.amount),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Weekly,
+            financial_data: None,
         }
     }
     
@@ -127,6 +173,7 @@ impl SecurityData {
             amount: decimal_to_f64(&data.amount),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Monthly,
+            financial_data: None,
         }
     }
     
@@ -146,6 +193,7 @@ impl SecurityData {
             amount: decimal_to_f64(&data.amount),
             security_type: SecurityType::Fund,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
         }
     }
     
@@ -165,6 +213,7 @@ impl SecurityData {
             amount: data.amount.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
             security_type: SecurityType::Index,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
         }
     }
     
@@ -260,6 +309,8 @@ pub enum StrategyResult {
     YearlyHigh(super::yearly_high_strategy::YearlyHighResult),
     /// 价格强弱策略结果
     PriceStrength(super::price_strength_strategy::PriceStrengthResult),
+    /// 困境反转策略结果
+    DistressedReversal(super::distressed_reversal_strategy::DistressedReversalResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -270,6 +321,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => &r.stock_code,
             StrategyResult::YearlyHigh(r) => &r.stock_code,
             StrategyResult::PriceStrength(r) => &r.stock_code,
+            StrategyResult::DistressedReversal(r) => &r.stock_code,
         }
     }
     
@@ -281,6 +333,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.analysis_date,
             StrategyResult::YearlyHigh(r) => r.analysis_date,
             StrategyResult::PriceStrength(r) => r.analysis_date,
+            StrategyResult::DistressedReversal(r) => r.analysis_date,
         }
     }
     
@@ -292,6 +345,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.current_price,
             StrategyResult::YearlyHigh(r) => r.current_price,
             StrategyResult::PriceStrength(r) => r.current_price,
+            StrategyResult::DistressedReversal(r) => r.current_price,
         }
     }
     
@@ -303,6 +357,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.strategy_signal.clone(),
             StrategyResult::YearlyHigh(r) => r.strategy_signal.clone(),
             StrategyResult::PriceStrength(r) => r.strategy_signal.clone(),
+            StrategyResult::DistressedReversal(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -314,6 +369,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.signal_strength,
             StrategyResult::YearlyHigh(r) => r.signal_strength,
             StrategyResult::PriceStrength(r) => r.signal_strength,
+            StrategyResult::DistressedReversal(r) => r.signal_strength,
         }
     }
     
@@ -325,6 +381,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.analysis_description.clone(),
             StrategyResult::YearlyHigh(r) => r.analysis_description.clone(),
             StrategyResult::PriceStrength(r) => r.analysis_description.clone(),
+            StrategyResult::DistressedReversal(r) => r.analysis_description.clone(),
         }
     }
     
@@ -336,6 +393,7 @@ impl StrategyResult {
             StrategyResult::LongTermBottomReversal(r) => r.risk_level,
             StrategyResult::YearlyHigh(r) => r.risk_level,
             StrategyResult::PriceStrength(r) => r.risk_level,
+            StrategyResult::DistressedReversal(r) => r.risk_level,
         }
     }
 }

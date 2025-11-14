@@ -8,6 +8,7 @@ pub mod bottom_volume_surge_strategy;
 pub mod long_term_bottom_reversal_strategy;
 pub mod yearly_high_strategy;
 pub mod price_strength_strategy;
+pub mod distressed_reversal_strategy;
 pub mod examples;
 pub mod simple_usage;
 
@@ -28,7 +29,8 @@ pub use traits::{
     TradeType,
     SecurityData,
     SecurityType,
-    TimeFrame
+    TimeFrame,
+    FinancialData,
 };
 
 // 重新导出价量K线策略相关类型
@@ -65,4 +67,11 @@ pub use price_strength_strategy::{
     PriceStrengthStrategy,
     PriceStrengthConfig,
     PriceStrengthResult,
+};
+
+// 重新导出困境反转策略相关类型
+pub use distressed_reversal_strategy::{
+    DistressedReversalStrategy,
+    DistressedReversalConfig,
+    DistressedReversalResult,
 };

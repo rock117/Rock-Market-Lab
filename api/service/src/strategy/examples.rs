@@ -325,6 +325,7 @@ fn create_security_data(date: &str, open: i64, high: i64, low: i64, close: i64, 
         amount: (vol * close / 100) as f64,
         security_type: SecurityType::Stock,
         time_frame: TimeFrame::Daily,
+        financial_data: None,
     }
 }
 

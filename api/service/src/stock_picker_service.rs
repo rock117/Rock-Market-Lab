@@ -14,6 +14,7 @@ use crate::strategy::{
     LongTermBottomReversalStrategy, LongTermBottomReversalConfig,
     YearlyHighStrategy, YearlyHighConfig,
     PriceStrengthStrategy, PriceStrengthConfig,
+    DistressedReversalStrategy, DistressedReversalConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy};
@@ -75,7 +76,8 @@ impl StockPickerService {
             "long_term_bottom_reversal" => create_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy),
             "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy),
             "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength", strategy_type)
+            "distressed_reversal" => create_strategy!(DistressedReversalConfig, DistressedReversalStrategy),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal", strategy_type)
         }
     }
 

@@ -119,6 +119,7 @@ fn create_sample_data() -> Vec<SecurityData> {
             amount: 10200000.0,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
         },
         SecurityData {
             symbol: "000001.SZ".to_string(),
@@ -134,6 +135,7 @@ fn create_sample_data() -> Vec<SecurityData> {
             amount: 12600000.0,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
         },
         // 更多测试数据...
     ]
