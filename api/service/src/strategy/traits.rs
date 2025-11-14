@@ -245,7 +245,10 @@ pub enum StrategySignal {
 /// 策略分析结果枚举
 /// 
 /// 每个策略有自己的结果类型，包含该策略特有的数据
+/// 
+/// 使用 `#[serde(untagged)]` 序列化时直接输出内部结构体，不包含枚举变体名
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum StrategyResult {
     /// 底部放量上涨策略结果
     BottomVolumeSurge(BottomVolumeSurgeResult),
