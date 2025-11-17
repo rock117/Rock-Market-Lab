@@ -1,3 +1,5 @@
+pub mod correlation;
+
 use serde::Serialize;
 use std::cmp::Ordering;
 
