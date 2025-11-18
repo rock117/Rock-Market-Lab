@@ -322,6 +322,8 @@ pub enum StrategyResult {
     PriceStrength(super::price_strength_strategy::PriceStrengthResult),
     /// 困境反转策略结果
     DistressedReversal(super::distressed_reversal_strategy::DistressedReversalResult),
+    /// 单次涨停策略结果
+    SingleLimitUp(super::single_limit_up_strategy::SingleLimitUpResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -333,6 +335,7 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => &r.stock_code,
             StrategyResult::PriceStrength(r) => &r.stock_code,
             StrategyResult::DistressedReversal(r) => &r.stock_code,
+            StrategyResult::SingleLimitUp(r) => &r.stock_code,
         }
     }
     
@@ -345,6 +348,7 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => r.analysis_date,
             StrategyResult::PriceStrength(r) => r.analysis_date,
             StrategyResult::DistressedReversal(r) => r.analysis_date,
+            StrategyResult::SingleLimitUp(r) => r.analysis_date,
         }
     }
     
@@ -357,6 +361,7 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => r.current_price,
             StrategyResult::PriceStrength(r) => r.current_price,
             StrategyResult::DistressedReversal(_) => 0.0,  // 困境反转策略不使用价格字段
+            StrategyResult::SingleLimitUp(r) => r.current_price,
         }
     }
     
@@ -369,6 +374,7 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => r.strategy_signal.clone(),
             StrategyResult::PriceStrength(r) => r.strategy_signal.clone(),
             StrategyResult::DistressedReversal(r) => r.strategy_signal.clone(),
+            StrategyResult::SingleLimitUp(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -381,18 +387,20 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => r.signal_strength,
             StrategyResult::PriceStrength(r) => r.signal_strength,
             StrategyResult::DistressedReversal(r) => r.signal_strength,
+            StrategyResult::SingleLimitUp(r) => r.signal_strength,
         }
     }
     
     /// 获取分析说明
-    pub fn analysis_description(&self) -> String {
+    pub fn analysis_description(&self) -> &str {
         match self {
-            StrategyResult::BottomVolumeSurge(r) => r.analysis_description.clone(),
-            StrategyResult::PriceVolumeCandlestick(r) => r.analysis_description.clone(),
-            StrategyResult::LongTermBottomReversal(r) => r.analysis_description.clone(),
-            StrategyResult::YearlyHigh(r) => r.analysis_description.clone(),
-            StrategyResult::PriceStrength(r) => r.analysis_description.clone(),
-            StrategyResult::DistressedReversal(r) => r.analysis_description.clone(),
+            StrategyResult::BottomVolumeSurge(r) => &r.analysis_description,
+            StrategyResult::PriceVolumeCandlestick(r) => &r.analysis_description,
+            StrategyResult::LongTermBottomReversal(r) => &r.analysis_description,
+            StrategyResult::YearlyHigh(r) => &r.analysis_description,
+            StrategyResult::PriceStrength(r) => &r.analysis_description,
+            StrategyResult::DistressedReversal(r) => &r.analysis_description,
+            StrategyResult::SingleLimitUp(r) => &r.analysis_description,
         }
     }
     
@@ -405,6 +413,7 @@ impl StrategyResult {
             StrategyResult::YearlyHigh(r) => r.risk_level,
             StrategyResult::PriceStrength(r) => r.risk_level,
             StrategyResult::DistressedReversal(r) => r.risk_level,
+            StrategyResult::SingleLimitUp(r) => r.risk_level,
         }
     }
 }

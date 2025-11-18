@@ -17,6 +17,7 @@ use crate::strategy::{
     YearlyHighStrategy, YearlyHighConfig,
     PriceStrengthStrategy, PriceStrengthConfig,
     DistressedReversalStrategy, DistressedReversalConfig,
+    SingleLimitUpStrategy, SingleLimitUpConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -48,7 +49,7 @@ impl StockPickerService {
     /// # 参数
     /// - `start_date`: 开始日期
     /// - `end_date`: 结束日期
-    /// - `strategy_type`: 策略类型（"price_volume_candlestick", "bottom_volume_surge", "long_term_bottom_reversal", "yearly_high", "price_strength"）
+    /// - `strategy_type`: 策略类型（"price_volume_candlestick", "bottom_volume_surge", "long_term_bottom_reversal", "yearly_high", "price_strength", "distressed_reversal", "single_limit_up"）
     /// - `settings`: 策略配置的 JSON 对象
     /// 
     /// # 返回
@@ -79,7 +80,8 @@ impl StockPickerService {
             "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy),
             "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
             "distressed_reversal" => create_strategy!(DistressedReversalConfig, DistressedReversalStrategy),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal", strategy_type)
+            "single_limit_up" => create_strategy!(SingleLimitUpConfig, SingleLimitUpStrategy),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up", strategy_type)
         }
     }
 

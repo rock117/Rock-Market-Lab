@@ -9,6 +9,7 @@ pub mod long_term_bottom_reversal_strategy;
 pub mod yearly_high_strategy;
 pub mod price_strength_strategy;
 pub mod distressed_reversal_strategy;
+pub mod single_limit_up_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -72,4 +73,11 @@ pub use distressed_reversal_strategy::{
     DistressedReversalStrategy,
     DistressedReversalConfig,
     DistressedReversalResult,
+};
+
+// 重新导出单次涨停策略相关类型
+pub use single_limit_up_strategy::{
+    SingleLimitUpStrategy,
+    SingleLimitUpConfig,
+    SingleLimitUpResult,
 };
