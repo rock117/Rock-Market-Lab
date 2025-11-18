@@ -324,6 +324,8 @@ pub enum StrategyResult {
     DistressedReversal(super::distressed_reversal_strategy::DistressedReversalResult),
     /// 单次涨停策略结果
     SingleLimitUp(super::single_limit_up_strategy::SingleLimitUpResult),
+    /// 基本面策略结果
+    Fundamental(super::fundamental_strategy::FundamentalResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -336,6 +338,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => &r.stock_code,
             StrategyResult::DistressedReversal(r) => &r.stock_code,
             StrategyResult::SingleLimitUp(r) => &r.stock_code,
+            StrategyResult::Fundamental(r) => &r.stock_code,
         }
     }
     
@@ -349,6 +352,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => r.analysis_date,
             StrategyResult::DistressedReversal(r) => r.analysis_date,
             StrategyResult::SingleLimitUp(r) => r.analysis_date,
+            StrategyResult::Fundamental(r) => r.analysis_date,
         }
     }
     
@@ -362,6 +366,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => r.current_price,
             StrategyResult::DistressedReversal(_) => 0.0,  // 困境反转策略不使用价格字段
             StrategyResult::SingleLimitUp(r) => r.current_price,
+            StrategyResult::Fundamental(r) => r.current_price,
         }
     }
     
@@ -375,6 +380,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => r.strategy_signal.clone(),
             StrategyResult::DistressedReversal(r) => r.strategy_signal.clone(),
             StrategyResult::SingleLimitUp(r) => r.strategy_signal.clone(),
+            StrategyResult::Fundamental(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -388,6 +394,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => r.signal_strength,
             StrategyResult::DistressedReversal(r) => r.signal_strength,
             StrategyResult::SingleLimitUp(r) => r.signal_strength,
+            StrategyResult::Fundamental(r) => r.signal_strength,
         }
     }
     
@@ -401,6 +408,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => &r.analysis_description,
             StrategyResult::DistressedReversal(r) => &r.analysis_description,
             StrategyResult::SingleLimitUp(r) => &r.analysis_description,
+            StrategyResult::Fundamental(r) => &r.analysis_description,
         }
     }
     
@@ -414,6 +422,7 @@ impl StrategyResult {
             StrategyResult::PriceStrength(r) => r.risk_level,
             StrategyResult::DistressedReversal(r) => r.risk_level,
             StrategyResult::SingleLimitUp(r) => r.risk_level,
+            StrategyResult::Fundamental(r) => r.risk_level,
         }
     }
 }

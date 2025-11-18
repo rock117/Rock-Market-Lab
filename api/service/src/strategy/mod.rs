@@ -10,6 +10,7 @@ pub mod yearly_high_strategy;
 pub mod price_strength_strategy;
 pub mod distressed_reversal_strategy;
 pub mod single_limit_up_strategy;
+pub mod fundamental_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -80,4 +81,11 @@ pub use single_limit_up_strategy::{
     SingleLimitUpStrategy,
     SingleLimitUpConfig,
     SingleLimitUpResult,
+};
+
+// 重新导出基本面策略相关类型
+pub use fundamental_strategy::{
+    FundamentalStrategy,
+    FundamentalConfig,
+    FundamentalResult,
 };
