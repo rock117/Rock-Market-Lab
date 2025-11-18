@@ -180,6 +180,37 @@ impl SingleLimitUpStrategy {
         let current_price = latest.close;
         let analysis_date = NaiveDate::parse_from_str(&latest.trade_date, "%Y%m%d")?;
         
+        // 收集近n日每天的涨跌幅
+        let daily_changes: Vec<f64> = analysis_data.iter()
+            .map(|day| day.pct_change.unwrap_or(0.0))
+            .collect();
+        
+        // 检查当天条件：收盘价必须大于开盘价，或者当天是涨停日
+        let is_today_bullish = latest.close > latest.open;
+        let is_today_limit_up = self.is_limit_up(latest);
+        
+        if !is_today_bullish && !is_today_limit_up {
+            debug!(
+                "股票 {} 当天收盘价({})未高于开盘价({})且非涨停，不符合条件",
+                symbol, latest.close, latest.open
+            );
+            return Ok(SingleLimitUpResult {
+                stock_code: symbol.to_string(),
+                analysis_date,
+                current_price,
+                strategy_signal: StrategySignal::Hold,
+                signal_strength: 0,
+                analysis_description: "当天收盘价未高于开盘价且非涨停，不符合买入条件".to_string(),
+                risk_level: 3,
+                limit_up_count: 0,
+                limit_up_date: String::new(),
+                up_days: 0,
+                total_gain_pct: 0.0,
+                analysis_period: self.config.analysis_period,
+                daily_changes: daily_changes.clone(),
+            });
+        }
+        
         // 1. 统计涨停次数
         let mut limit_up_count = 0;
         let mut limit_up_date = String::new();
@@ -209,6 +240,8 @@ impl SingleLimitUpStrategy {
             limit_up_count,
             up_days,
             total_gain_pct,
+            is_today_bullish,
+            is_today_limit_up,
         );
         
         // 5. 生成分析说明
@@ -237,6 +270,7 @@ impl SingleLimitUpStrategy {
             up_days,
             total_gain_pct,
             analysis_period: self.config.analysis_period,
+            daily_changes,
         })
     }
     
@@ -246,13 +280,24 @@ impl SingleLimitUpStrategy {
         limit_up_count: usize,
         up_days: usize,
         total_gain_pct: f64,
+        is_today_bullish: bool,
+        is_today_limit_up: bool,
     ) -> (StrategySignal, u8, u8) {
         let mut signal_strength = 0u8;
         let mut risk_level = 3u8;
         
-        // 核心条件：仅一次涨停（40分）
+        // 当天K线状态评分（20分）- 优先级最高
+        if is_today_limit_up {
+            // 当天涨停，给予最高分
+            signal_strength += 20;
+        } else if is_today_bullish {
+            // 当天阳线，给予较高分
+            signal_strength += 15;
+        }
+        
+        // 核心条件：仅一次涨停（35分）
         if limit_up_count == 1 {
-            signal_strength += 40;
+            signal_strength += 35;
         } else if limit_up_count == 0 {
             // 没有涨停，不符合策略
             return (StrategySignal::Hold, 0, 3);
@@ -262,26 +307,26 @@ impl SingleLimitUpStrategy {
             signal_strength += 10;
         }
         
-        // 上涨天数评分（30分）
+        // 上涨天数评分（25分）
         let up_days_ratio = up_days as f64 / self.config.analysis_period as f64;
         if up_days_ratio >= 0.7 {
             // 70%以上的天数上涨
-            signal_strength += 30;
+            signal_strength += 25;
         } else if up_days_ratio >= 0.5 {
             // 50%-70%的天数上涨
-            signal_strength += 20;
+            signal_strength += 18;
         } else if up_days >= self.config.min_up_days {
             // 达到最小上涨天数要求
             signal_strength += 10;
         }
         
-        // 累计涨幅评分（30分）
+        // 累计涨幅评分（20分）
         if total_gain_pct >= self.config.min_total_gain * 2.0 {
-            signal_strength += 30;
-        } else if total_gain_pct >= self.config.min_total_gain * 1.5 {
             signal_strength += 20;
-        } else if total_gain_pct >= self.config.min_total_gain {
+        } else if total_gain_pct >= self.config.min_total_gain * 1.5 {
             signal_strength += 15;
+        } else if total_gain_pct >= self.config.min_total_gain {
+            signal_strength += 10;
         }
         
         // 根据累计涨幅调整风险等级
@@ -402,6 +447,8 @@ pub struct SingleLimitUpResult {
     pub total_gain_pct: f64,
     /// 分析周期
     pub analysis_period: usize,
+    /// 近n日每天的涨跌幅（百分比）- 按日期顺序排列
+    pub daily_changes: Vec<f64>,
 }
 
 #[cfg(test)]

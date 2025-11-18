@@ -6,16 +6,23 @@
 
 ### 核心逻辑
 
-1. **单次涨停判断**：在指定周期内，股票仅出现一次涨停
+1. **当天K线条件**：当天收盘价必须大于开盘价，或者当天是涨停日
+   - 确保当天处于上涨状态或强势涨停
+   - 不符合此条件的股票直接过滤
+
+2. **单次涨停判断**：在指定周期内，股票仅出现一次涨停
    - 涨停阈值根据股票代码自动识别：
      - **688、300开头**：20%（科创板、创业板）
      - **920开头**：30%（北交所）
      - **其他**：10%（主板、中小板）
-2. **上涨天数统计**：统计期间内上涨的天数，评估趋势持续性
-3. **累计涨幅计算**：计算期间内的总涨幅，评估上涨力度
+
+3. **上涨天数统计**：统计期间内上涨的天数，评估趋势持续性
+
+4. **累计涨幅计算**：计算期间内的总涨幅，评估上涨力度
 
 ### 策略优势
 
+- **当天强势过滤**：要求当天收盘价高于开盘价或涨停，确保当前处于上涨趋势
 - **避免游资炒作**：多次涨停往往是游资短期炒作，风险较高
 - **关注持续性**：单次涨停后持续上涨，说明资金持续流入
 - **趋势判断**：通过上涨天数和累计涨幅，判断上涨趋势的强度
@@ -131,6 +138,51 @@ let mut strategy = SingleLimitUpStrategy::new(custom_config);
 
 ## 结果解读
 
+### 使用每日涨跌幅数据
+
+```rust
+use service::strategy::{SingleLimitUpStrategy, TradingStrategy, StrategyResult};
+
+async fn analyze_with_daily_changes() -> anyhow::Result<()> {
+    let mut strategy = SingleLimitUpStrategy::new(SingleLimitUpConfig::default());
+    let data = fetch_stock_data("000001.SZ").await?;
+    
+    let result = strategy.analyze("000001.SZ", &data)?;
+    
+    // 提取单次涨停结果
+    if let StrategyResult::SingleLimitUp(single_result) = result {
+        println!("股票代码: {}", single_result.stock_code);
+        println!("分析周期: {} 天", single_result.analysis_period);
+        println!("信号强度: {}", single_result.signal_strength);
+        
+        // 打印每日涨跌幅
+        println!("\n近{}日每日涨跌幅:", single_result.analysis_period);
+        for (i, change) in single_result.daily_changes.iter().enumerate() {
+            let day_num = i + 1;
+            let status = if *change > 0.0 { "↑" } else if *change < 0.0 { "↓" } else { "→" };
+            println!("第{:2}天: {:>6.2}% {}", day_num, change, status);
+        }
+        
+        // 统计涨跌天数
+        let up_count = single_result.daily_changes.iter().filter(|&&c| c > 0.0).count();
+        let down_count = single_result.daily_changes.iter().filter(|&&c| c < 0.0).count();
+        println!("\n上涨天数: {}, 下跌天数: {}", up_count, down_count);
+        
+        // 计算最大单日涨幅和跌幅
+        let max_gain = single_result.daily_changes.iter()
+            .cloned()
+            .fold(f64::NEG_INFINITY, f64::max);
+        let max_loss = single_result.daily_changes.iter()
+            .cloned()
+            .fold(f64::INFINITY, f64::min);
+        println!("最大单日涨幅: {:.2}%", max_gain);
+        println!("最大单日跌幅: {:.2}%", max_loss);
+    }
+    
+    Ok(())
+}
+```
+
 ### SingleLimitUpResult 字段
 
 ```rust
@@ -149,27 +201,33 @@ pub struct SingleLimitUpResult {
     pub up_days: usize,               // 上涨天数
     pub total_gain_pct: f64,          // 累计涨幅（%）
     pub analysis_period: usize,       // 分析周期
+    pub daily_changes: Vec<f64>,      // 近n日每天的涨跌幅（%）- 按日期顺序排列
 }
 ```
 
 ### 信号强度评分规则
 
-总分100分，由以下部分组成：
+总分100分，由以下部分组成（**优先级从高到低**）：
 
-1. **涨停次数评分（40分）**
-   - 仅一次涨停：40分
+1. **当天K线状态评分（20分）** ⭐ **优先级最高**
+   - 当天涨停：20分
+   - 当天阳线（收盘>开盘）：15分
+   - 其他：0分（会被过滤）
+
+2. **涨停次数评分（35分）**
+   - 仅一次涨停：35分
    - 无涨停：0分
    - 多次涨停：10分（风险较高）
 
-2. **上涨天数评分（30分）**
-   - ≥70%天数上涨：30分
-   - 50%-70%天数上涨：20分
+3. **上涨天数评分（25分）**
+   - ≥70%天数上涨：25分
+   - 50%-70%天数上涨：18分
    - 达到最小要求：10分
 
-3. **累计涨幅评分（30分）**
-   - ≥2倍最小要求：30分
-   - ≥1.5倍最小要求：20分
-   - 达到最小要求：15分
+4. **累计涨幅评分（20分）**
+   - ≥2倍最小要求：20分
+   - ≥1.5倍最小要求：15分
+   - 达到最小要求：10分
 
 ### 信号类型
 
@@ -185,6 +243,31 @@ pub struct SingleLimitUpResult {
 - **3（中等风险）**：累计涨幅 10%-50%
 - **4（高风险）**：累计涨幅 > 50% 或多次涨停
 
+### 评分示例
+
+#### 示例1：当天涨停 + 单次涨停 + 强势上涨
+- 当天涨停：20分 ⭐
+- 仅一次涨停：35分
+- 上涨天数80%：25分
+- 累计涨幅40%：20分
+- **总分：100分** → StrongBuy
+
+#### 示例2：当天阳线 + 单次涨停 + 稳健上涨
+- 当天阳线：15分 ⭐
+- 仅一次涨停：35分
+- 上涨天数60%：18分
+- 累计涨幅25%：15分
+- **总分：83分** → StrongBuy
+
+#### 示例3：当天阳线 + 单次涨停 + 一般上涨
+- 当天阳线：15分 ⭐
+- 仅一次涨停：35分
+- 上涨天数50%：10分
+- 累计涨幅20%：10分
+- **总分：70分** → Buy
+
+**注意**：当天K线状态是最重要的筛选条件，当天涨停的股票会获得最高分，优先排在前面！
+
 ## 实际应用场景
 
 ### 场景1：寻找稳健上涨股票
@@ -193,7 +276,6 @@ pub struct SingleLimitUpResult {
 // 配置：关注稳健上涨，避免过度炒作
 let config = SingleLimitUpConfig {
     analysis_period: 20,
-    limit_up_threshold: 9.9,
     limit_up_tolerance: 0.5,
     min_up_days: 12,            // 要求更多上涨天数
     min_total_gain: 15.0,       // 降低涨幅要求
@@ -247,15 +329,23 @@ strategy.analyze("920001.BJ", &data)?;
 
 ## 注意事项
 
-1. **数据质量**：确保输入的股票数据完整且准确
-2. **市场环境**：在不同市场环境下，参数需要相应调整
-3. **风险控制**：即使信号强度高，也要结合其他指标和基本面分析
-4. **涨停板制度**（已自动识别）：
+1. **当天K线条件**：策略要求当天收盘价必须大于开盘价，或者当天是涨停日
+   - 这确保了选出的股票当前处于上涨趋势
+   - 不符合此条件的股票会被直接过滤，信号强度为0
+
+2. **数据质量**：确保输入的股票数据完整且准确
+
+3. **市场环境**：在不同市场环境下，参数需要相应调整
+
+4. **风险控制**：即使信号强度高，也要结合其他指标和基本面分析
+
+5. **涨停板制度**（已自动识别）：
    - **主板、中小板**：10%
    - **创业板(300)、科创板(688)**：20%
    - **北交所(920)**：30%
    - 注意：ST股票的5%涨停暂未支持
-5. **回测验证**：使用历史数据回测，验证策略有效性
+
+6. **回测验证**：使用历史数据回测，验证策略有效性
 
 ## 完整示例
 
