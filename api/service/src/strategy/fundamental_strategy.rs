@@ -142,6 +142,122 @@ impl FundamentalStrategy {
     pub fn new(config: FundamentalConfig) -> Self {
         Self { config }
     }
+    
+    /// 创建小市值高成长科技股配置
+    /// 
+    /// 特点：
+    /// - 市值范围：20-100亿元（小盘股）
+    /// - 高成长：营收增长≥40%，利润增长≥50%
+    /// - 高毛利：毛利率≥40%（科技股特征）
+    /// - 高净利：净利率≥15%
+    /// - 高ROE：≥20%
+    /// - 低负债：≤40%
+    /// - 允许高估值：PE 20-150
+    pub fn small_cap_tech_growth() -> FundamentalConfig {
+        FundamentalConfig {
+            min_revenue_growth: 40.0,      // 营收高增长
+            min_profit_growth: 50.0,       // 利润高增长
+            min_gross_margin: 40.0,        // 高毛利率（科技股特征）
+            min_net_margin: 15.0,          // 高净利率
+            min_roe: 20.0,                 // 高ROE
+            max_debt_ratio: 40.0,          // 低负债
+            require_positive_cash_flow: true,
+            min_pe: Some(20.0),            // 允许高估值
+            max_pe: Some(150.0),
+            min_pb: Some(3.0),
+            max_pb: Some(30.0),
+            min_market_cap: Some(20.0),    // 最小市值20亿元
+            max_market_cap: Some(100.0),   // 最大市值100亿元（小盘股）
+        }
+    }
+    
+    /// 创建中小市值高成长科技股配置（稍微放宽条件）
+    /// 
+    /// 特点：
+    /// - 市值范围：20-200亿元
+    /// - 较高成长：营收增长≥30%，利润增长≥35%
+    /// - 高毛利：毛利率≥35%
+    /// - 较高净利：净利率≥12%
+    /// - 较高ROE：≥15%
+    /// - 适中负债：≤50%
+    pub fn small_mid_cap_tech_growth() -> FundamentalConfig {
+        FundamentalConfig {
+            min_revenue_growth: 30.0,      // 较高营收增长
+            min_profit_growth: 35.0,       // 较高利润增长
+            min_gross_margin: 35.0,        // 高毛利率
+            min_net_margin: 12.0,          // 较高净利率
+            min_roe: 15.0,                 // 较高ROE
+            max_debt_ratio: 50.0,          // 适中负债
+            require_positive_cash_flow: true,
+            min_pe: Some(15.0),
+            max_pe: Some(120.0),
+            min_pb: Some(2.5),
+            max_pb: Some(25.0),
+            min_market_cap: Some(20.0),    // 最小市值20亿元
+            max_market_cap: Some(200.0),   // 最大市值200亿元
+        }
+    }
+    
+    /// 创建潜力科技股配置（条件更宽松，适合早期发现）
+    /// 
+    /// 特点：
+    /// - 市值范围：10-150亿元
+    /// - 成长性：营收增长≥25%，利润增长≥30%
+    /// - 毛利率：≥30%（科技属性）
+    /// - 净利率：≥10%
+    /// - ROE：≥12%
+    /// - 负债：≤60%
+    pub fn potential_tech_growth() -> FundamentalConfig {
+        FundamentalConfig {
+            min_revenue_growth: 25.0,      // 成长性要求
+            min_profit_growth: 30.0,       // 利润增长要求
+            min_gross_margin: 30.0,        // 科技属性（高毛利）
+            min_net_margin: 10.0,          // 盈利能力
+            min_roe: 12.0,                 // ROE要求
+            max_debt_ratio: 60.0,          // 负债控制
+            require_positive_cash_flow: true,
+            min_pe: Some(10.0),
+            max_pe: Some(100.0),
+            min_pb: Some(2.0),
+            max_pb: Some(20.0),
+            min_market_cap: Some(10.0),    // 最小市值10亿元
+            max_market_cap: Some(150.0),   // 最大市值150亿元
+        }
+    }
+    
+    /// 创建成熟科技股配置（已有稳定营收和利润）
+    /// 
+    /// 特点：
+    /// - 市值范围：50-500亿元（已上市一段时间）
+    /// - 稳定成长：营收增长≥20%，利润增长≥25%
+    /// - 高毛利：毛利率≥35%（科技属性）
+    /// - 盈利能力：净利率≥8%
+    /// - ROE：≥10%
+    /// - 负债：≤50%
+    /// - 要求正现金流
+    /// 
+    /// 注意：此配置适合已经过了初创期、有稳定财务数据的科技公司
+    /// 刚成立的公司可能不适用，因为：
+    /// 1. 营收基数小，增长率可能失真
+    /// 2. 可能还在亏损阶段
+    /// 3. 财务数据不完整
+    pub fn mature_tech_growth() -> FundamentalConfig {
+        FundamentalConfig {
+            min_revenue_growth: 20.0,      // 稳定增长
+            min_profit_growth: 25.0,       // 利润增长
+            min_gross_margin: 35.0,        // 科技属性
+            min_net_margin: 8.0,           // 盈利能力
+            min_roe: 10.0,                 // ROE要求
+            max_debt_ratio: 50.0,          // 负债控制
+            require_positive_cash_flow: true,
+            min_pe: Some(15.0),
+            max_pe: Some(80.0),
+            min_pb: Some(2.0),
+            max_pb: Some(15.0),
+            min_market_cap: Some(50.0),    // 最小市值50亿元
+            max_market_cap: Some(500.0),   // 最大市值500亿元
+        }
+    }
 }
 
 impl TradingStrategy for FundamentalStrategy {

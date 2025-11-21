@@ -4,6 +4,36 @@
 
 基本面选股策略（Fundamental Strategy）通过分析公司的财务指标来筛选优质股票，关注盈利能力、成长性、现金流等核心指标。
 
+### ⚠️ 重要提示：适用范围
+
+**此策略适合已有稳定财务数据的成熟公司，不适合刚成立的早期科技公司！**
+
+#### 为什么刚成立的科技公司不适用？
+
+1. **营收增长率失真**
+   - 从100万到500万是400%增长，但绝对值很小
+   - 基数太小导致增长率没有参考意义
+   - 可能还在产品研发期，营收为0或极低
+
+2. **利润指标不适用**
+   - 早期科技公司通常处于亏损状态
+   - 大量投入研发和市场，利润为负
+   - ROE可能为负或极高（净资产很小）
+
+3. **现金流特征不同**
+   - 可能依赖融资，经营现金流为负
+   - 烧钱阶段是正常现象
+
+4. **估值逻辑不同**
+   - PE/PB可能为负或极高
+   - 需要用其他估值方法（如PS、用户数等）
+
+#### 建议的筛选方式
+
+- **早期科技公司**：关注技术壁垒、市场空间、团队背景、融资情况
+- **成长期科技公司**：使用本策略的宽松配置（如 `mature_tech_growth`）
+- **成熟科技公司**：使用本策略的标准配置
+
 ### 核心逻辑
 
 1. **成长性分析**
@@ -74,6 +104,68 @@ let mut strategy = FundamentalStrategy::new(config);
 
 ## 使用示例
 
+### 快速开始 - 使用预设配置
+
+策略提供了三个预设配置函数，可以快速筛选小市值高成长科技股：
+
+#### 预设配置对比
+
+| 指标 | small_cap_tech_growth | small_mid_cap_tech_growth | potential_tech_growth | mature_tech_growth |
+|------|----------------------|---------------------------|----------------------|--------------------|
+| **市值范围** | 20-100亿（小盘） | 20-200亿（中小盘） | 10-150亿 | 50-500亿（成熟） |
+| **营收增长** | ≥40% | ≥30% | ≥25% | ≥20% |
+| **利润增长** | ≥50% | ≥35% | ≥30% | ≥25% |
+| **毛利率** | ≥40% | ≥35% | ≥30% | ≥35% |
+| **净利率** | ≥15% | ≥12% | ≥10% | ≥8% |
+| **ROE** | ≥20% | ≥15% | ≥12% | ≥10% |
+| **负债率** | ≤40% | ≤50% | ≤60% | ≤50% |
+| **PE范围** | 20-150 | 15-120 | 10-100 | 15-80 |
+| **PB范围** | 3-30 | 2.5-25 | 2-20 | 2-15 |
+| **适用场景** | 顶级科技成长股 | 优质科技成长股 | 潜力科技股 | **成熟科技股** ⭐ |
+| **公司阶段** | 高速成长期 | 快速成长期 | 成长初期 | **已有稳定财报** |
+
+**推荐使用 `mature_tech_growth`**：此配置适合已上市一段时间、有完整财务数据的科技公司，避免了早期公司营收基数小导致的增长率失真问题。
+
+#### 使用示例
+
+```rust
+use service::strategy::{FundamentalStrategy, TradingStrategy};
+
+#[tokio::main]
+async fn main() -> anyhow::Result<()> {
+    // ⭐ 推荐：成熟科技股（已有稳定财报，避免营收基数小的问题）
+    // 市值50-500亿，营收增长≥20%，利润增长≥25%，毛利率≥35%
+    let config = FundamentalStrategy::mature_tech_growth();
+    let mut strategy = FundamentalStrategy::new(config);
+    
+    // 方式1：小市值高成长科技股（最严格）
+    // 市值20-100亿，营收增长≥40%，利润增长≥50%，毛利率≥40%
+    let config = FundamentalStrategy::small_cap_tech_growth();
+    let mut strategy = FundamentalStrategy::new(config);
+    
+    // 方式2：中小市值高成长科技股（稍微放宽）
+    // 市值20-200亿，营收增长≥30%，利润增长≥35%，毛利率≥35%
+    let config = FundamentalStrategy::small_mid_cap_tech_growth();
+    let mut strategy = FundamentalStrategy::new(config);
+    
+    // 方式3：潜力科技股（条件更宽松，适合早期发现）
+    // 市值10-150亿，营收增长≥25%，利润增长≥30%，毛利率≥30%
+    let config = FundamentalStrategy::potential_tech_growth();
+    let mut strategy = FundamentalStrategy::new(config);
+    
+    // 准备数据并分析
+    let data = fetch_stock_data_with_financials("000001.SZ").await?;
+    let result = strategy.analyze("000001.SZ", &data)?;
+    
+    println!("股票代码: {}", result.stock_code());
+    println!("策略信号: {:?}", result.strategy_signal());
+    println!("信号强度: {}", result.signal_strength());
+    println!("分析说明: {}", result.analysis_description());
+    
+    Ok(())
+}
+```
+
 ### 基础用法
 
 ```rust
@@ -101,6 +193,48 @@ async fn main() -> anyhow::Result<()> {
     println!("策略信号: {:?}", result.strategy_signal());
     println!("信号强度: {}", result.signal_strength());
     println!("分析说明: {}", result.analysis_description());
+    
+    Ok(())
+}
+```
+
+### 批量筛选小市值高成长科技股
+
+```rust
+use service::strategy::{FundamentalStrategy, TradingStrategy};
+
+async fn find_small_cap_tech_stocks(stock_codes: Vec<String>) -> anyhow::Result<()> {
+    // 使用预设配置：小市值高成长科技股
+    let config = FundamentalStrategy::small_cap_tech_growth();
+    let mut strategy = FundamentalStrategy::new(config);
+    
+    // 准备数据
+    let mut securities_data = Vec::new();
+    for code in stock_codes {
+        let data = fetch_stock_data_with_financials(&code).await?;
+        securities_data.push((code, data));
+    }
+    
+    // 批量分析
+    let results = strategy.batch_analyze(&securities_data);
+    
+    // 筛选强买入信号（信号强度≥80）
+    let strong_buy: Vec<_> = results.iter()
+        .filter(|r| r.signal_strength() >= 80)
+        .collect();
+    
+    println!("=== 找到 {} 只小市值高成长科技股 ===", strong_buy.len());
+    for result in strong_buy {
+        if let StrategyResult::Fundamental(fund_result) = result {
+            println!("\n股票代码: {}", fund_result.stock_code);
+            println!("市值: {:.2}亿元", fund_result.market_cap.unwrap_or(0.0));
+            println!("营收增长: {:.2}%", fund_result.revenue_growth);
+            println!("利润增长: {:.2}%", fund_result.profit_growth);
+            println!("毛利率: {:.2}%", fund_result.gross_margin);
+            println!("信号强度: {}/100", fund_result.signal_strength);
+            println!("分析: {}", fund_result.analysis_description);
+        }
+    }
     
     Ok(())
 }
@@ -455,7 +589,7 @@ async fn pick_fundamental_stocks(db: DatabaseConnection) -> anyhow::Result<()> {
         None
     ).await?;
     
-    // 或使用自定义配置
+    // 或使用自定义配置（包含市值筛选）
     let custom_config = json!({
         "min_revenue_growth": 20.0,
         "min_profit_growth": 25.0,
@@ -467,7 +601,9 @@ async fn pick_fundamental_stocks(db: DatabaseConnection) -> anyhow::Result<()> {
         "min_pe": 5.0,
         "max_pe": 50.0,
         "min_pb": 1.0,
-        "max_pb": 10.0
+        "max_pb": 10.0,
+        "min_market_cap": 50.0,   // 最小市值50亿元
+        "max_market_cap": 500.0   // 最大市值500亿元
     });
     
     let results = service.pick_stocks(
@@ -478,6 +614,32 @@ async fn pick_fundamental_stocks(db: DatabaseConnection) -> anyhow::Result<()> {
     ).await?;
     
     println!("找到 {} 只符合基本面条件的股票", results.len());
+    
+    // 筛选小盘成长股
+    let small_cap_config = json!({
+        "min_revenue_growth": 30.0,
+        "min_profit_growth": 35.0,
+        "min_gross_margin": 30.0,
+        "min_net_margin": 10.0,
+        "min_roe": 15.0,
+        "max_debt_ratio": 50.0,
+        "require_positive_cash_flow": true,
+        "min_pe": 10.0,
+        "max_pe": 60.0,
+        "min_pb": 2.0,
+        "max_pb": 15.0,
+        "min_market_cap": 20.0,   // 最小市值20亿元
+        "max_market_cap": 100.0   // 最大市值100亿元（小盘股）
+    });
+    
+    let small_cap_results = service.pick_stocks(
+        &start_date,
+        &end_date,
+        "fundamental",
+        Some(small_cap_config)
+    ).await?;
+    
+    println!("找到 {} 只小盘成长股", small_cap_results.len());
     
     Ok(())
 }

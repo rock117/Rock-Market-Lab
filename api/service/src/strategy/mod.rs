@@ -11,6 +11,7 @@ pub mod price_strength_strategy;
 pub mod distressed_reversal_strategy;
 pub mod single_limit_up_strategy;
 pub mod fundamental_strategy;
+pub mod consecutive_strong_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -88,4 +89,11 @@ pub use fundamental_strategy::{
     FundamentalStrategy,
     FundamentalConfig,
     FundamentalResult,
+};
+
+// 重新导出连续强势股策略相关类型
+pub use consecutive_strong_strategy::{
+    ConsecutiveStrongStrategy,
+    ConsecutiveStrongConfig,
+    ConsecutiveStrongResult,
 };
