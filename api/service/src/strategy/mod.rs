@@ -12,6 +12,8 @@ pub mod distressed_reversal_strategy;
 pub mod single_limit_up_strategy;
 pub mod fundamental_strategy;
 pub mod consecutive_strong_strategy;
+pub mod turtle_strategy;
+pub mod limit_up_pullback_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -96,4 +98,18 @@ pub use consecutive_strong_strategy::{
     ConsecutiveStrongStrategy,
     ConsecutiveStrongConfig,
     ConsecutiveStrongResult,
+};
+
+// 重新导出海龟交易策略相关类型
+pub use turtle_strategy::{
+    TurtleStrategy,
+    TurtleConfig,
+    TurtleResult,
+};
+
+// 重新导出涨停回调策略相关类型
+pub use limit_up_pullback_strategy::{
+    LimitUpPullbackStrategy,
+    LimitUpPullbackConfig,
+    LimitUpPullbackResult,
 };
