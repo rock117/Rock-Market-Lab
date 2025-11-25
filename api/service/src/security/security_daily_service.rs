@@ -15,7 +15,7 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
     let datas = match r#type {
         SecurityType::Stock => {
             stock_daily::Entity::find()
-                .filter(stock_daily::Column::TsCode.eq(ts_code))
+                .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
                 .filter(stock_daily::Column::TradeDate.gte(&start))
                 .filter(stock_daily::Column::TradeDate.lte(&end))
                 .order_by_desc(stock_daily::Column::TradeDate)
@@ -23,7 +23,7 @@ pub async fn get_security_daily(r#type: SecurityType, ts_code: &str, start: &Nai
         }
         SecurityType::Index => {
             index_daily::Entity::find()
-                .filter(index_daily::Column::TsCode.eq(ts_code))
+                .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
                 .filter(index_daily::Column::TradeDate.gte(&start))
                 .filter(index_daily::Column::TradeDate.lte(&end))
                 .order_by_desc(index_daily::Column::TradeDate)

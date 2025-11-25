@@ -8,7 +8,7 @@ pub async fn get_stock_prices(ts_code: &str, start_date: &NaiveDate, end_date: &
     let start = start_date.format(common::date::FORMAT).to_string();
     let end = end_date.format(common::date::FORMAT).to_string();
     let stock_prices: Vec<stock_daily::Model> = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TsCode.eq(ts_code))
+        .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
         .filter(stock_daily::Column::TradeDate.gte(&start))
         .filter(stock_daily::Column::TradeDate.lte(&end))
         .order_by_desc(stock_daily::Column::TradeDate)
@@ -47,7 +47,7 @@ pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate,
             async move {
                 // 创建当前批次的 IN 查询条件
                 let ts_code_condition = chunk.iter()
-                    .map(|code| stock_daily::Column::TsCode.eq(code.as_str()))
+                    .map(|code| ColumnTrait::eq(&stock_daily::Column::TsCode, code.as_str()))
                     .fold(Condition::any(), |acc, condition| acc.add(condition));
 
                 let batch_prices: Vec<stock_daily::Model> = stock_daily::Entity::find()

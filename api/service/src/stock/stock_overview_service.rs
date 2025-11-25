@@ -90,7 +90,7 @@ pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnec
     for stock in &stocks {
         let tscode = stock.ts_code.as_str();
         let stock_prices: Vec<stock_daily::Model> = stock_daily::Entity::find()
-            .filter(stock_daily::Column::TsCode.eq(tscode))
+            .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, tscode))
             .filter(stock_daily::Column::TradeDate.gte(start_date))
             .filter(stock_daily::Column::TradeDate.lte(end_date))
             .order_by_desc(stock_daily::Column::TradeDate)

@@ -28,7 +28,7 @@ pub struct Model {
     pub amount: Decimal,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TsCode,
     TradeDate,

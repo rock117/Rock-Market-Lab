@@ -308,7 +308,7 @@ impl StockPickerService {
         let end = end_date.format("%Y%m%d").to_string();
 
         let data = stock_daily::Entity::find()
-            .filter(stock_daily::Column::TsCode.eq(ts_code))
+            .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
             .filter(stock_daily::Column::TradeDate.gte(&start))
             .filter(stock_daily::Column::TradeDate.lte(&end))
             .order_by_asc(stock_daily::Column::TradeDate) // 按日期升序，策略需要从旧到新

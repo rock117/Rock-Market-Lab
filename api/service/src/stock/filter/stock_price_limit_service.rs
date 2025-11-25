@@ -56,7 +56,7 @@ pub async fn filter_continue_price_limit(past_ndays: u64, conn: &DatabaseConnect
     let end_date = &cal_dates[0].cal_date;
 
     let stock_dailies: Vec<stock_daily::Model> = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TradeDate.eq(end_date))
+        .filter(ColumnTrait::eq(&stock_daily::Column::TradeDate, end_date))
         .all(conn)
         .await?;
     let limitup_stocks = filter_price_limit_stocks(stock_dailies);
@@ -94,7 +94,7 @@ pub async fn filter_continue_price_limit(past_ndays: u64, conn: &DatabaseConnect
 
 async fn get_stock_dailies(tscode: &str, start: &str, end: &str, conn: &DatabaseConnection) -> anyhow::Result<Vec<stock_daily::Model>> {
     let stock_dailies: Vec<stock_daily::Model> = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TsCode.eq(tscode))
+        .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, tscode))
         .filter(stock_daily::Column::TradeDate.gte(start))
         .filter(stock_daily::Column::TradeDate.lte(end))
         .order_by_desc(stock_daily::Column::TradeDate)

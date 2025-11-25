@@ -39,7 +39,7 @@ pub async fn filter(filter: &VolumnFilter, conn: &DatabaseConnection) -> anyhow:
     let mut items = vec![];
     for stock in stocks {
         let stock_dailies: Vec<stock_daily::Model> = stock_daily::Entity::find()
-            .filter(stock_daily::Column::TsCode.eq(&stock.ts_code))
+            .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, &stock.ts_code))
             .filter(stock_daily::Column::TradeDate.gte(&start_date))
             .order_by_desc(stock_daily::Column::TradeDate)
             .all(conn)

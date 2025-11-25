@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use chrono::{Days, Local, NaiveDate};
 use tracing::{error, warn, info};
 use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
-use entity::{stock, stock_daily, trade_calendar};
+use entity::{margin, stock, stock_daily, trade_calendar};
 use crate::task::Task;
 use ext_api::tushare;
 use entity::stock_daily::{Model as StockDaily, Model};
@@ -18,6 +18,7 @@ use entity::sea_orm::EntityOrSelect;
 use tokio::sync::{mpsc, Semaphore};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
+use common::db::get_entity_update_columns;
 use entity::sea_orm::prelude::Decimal;
 
 const DAYS_AGO: u64 = 120;
@@ -54,14 +55,22 @@ impl FetchStockDailyTask {
         let total = stock_dailys.len();
         let mut curr = 0;
         for stock_daily_data in stock_dailys {
-            let ts_code = stock_daily_data.ts_code.clone();
-            let trade_date = stock_daily_data.trade_date.clone();
-            let res = stock_daily::ActiveModel { ..stock_daily_data.clone().into() }.insert(&self.0).await;
-            if res.is_err() {
-                //  error!("insert stock_daily failed, ts_code: {}, trade_date: {}, data: {:?}, error: {:?}", ts_code, trade_date, stock_daily_data, res);
+            let active_model = entity::stock_daily::ActiveModel { ..stock_daily_data.clone().into() };
+            let pks = [
+                stock_daily::Column::TsCode,
+                stock_daily::Column::TradeDate
+            ];
+            let update_columns = get_entity_update_columns::<entity::stock_daily::Entity>(&pks);
+            let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                .update_columns(update_columns)
+                .to_owned();
+
+            if let Err(e) = entity::stock_daily::Entity::insert(active_model)
+                .on_conflict(on_conflict)
+                .exec(&tx)
+                .await {
+                error!("insert stock_daily failed, ts code: {}, trade date: {}, error: {:?}", stock_daily_data.ts_code, stock_daily_data.trade_date, e);
             }
-            curr += 1;
-            //info!("insert stock_daily complete, ts_code: {}, trade_date: {}, {}/{}", ts_code, trade_date,  curr, total);
         }
         info!("insert stock_daily complete, trade_date: {}, total: {}", date, total);
         tx.commit().await?;

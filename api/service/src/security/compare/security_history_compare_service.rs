@@ -29,7 +29,7 @@ async fn get_stock_history(ts_code: &str, period: Period, start: &str, end: &str
     let data = match period {
         Period::Day => {
             stock_daily::Entity::find()
-                .filter(stock_daily::Column::TsCode.eq(ts_code))
+                .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
                 .filter(stock_daily::Column::TradeDate.gte(start))
                 .filter(stock_daily::Column::TradeDate.lte(end))
                 .order_by_desc(stock_daily::Column::TradeDate)

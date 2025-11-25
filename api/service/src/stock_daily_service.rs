@@ -9,7 +9,7 @@ pub async fn get_stock_daily(ts_code: &str, start: &NaiveDate, end: &NaiveDate, 
     let start = start.format("%Y%m%d").to_string();
     let end = end.format("%Y%m%d").to_string();
     let data = stock_daily::Entity::find()
-        .filter(stock_daily::Column::TsCode.eq(ts_code))
+        .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
         .filter(stock_daily::Column::TradeDate.gte(&start))
         .filter(stock_daily::Column::TradeDate.lte(&end))
         .order_by_desc(stock_daily::Column::TradeDate)
