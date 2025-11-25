@@ -55,9 +55,33 @@ impl StockPickerService {
     /// - `end_date`: 结束日期
     /// - `strategy_type`: 策略类型（"price_volume_candlestick", "bottom_volume_surge", "long_term_bottom_reversal", "yearly_high", "price_strength", "distressed_reversal", "single_limit_up", "fundamental", "consecutive_strong", "turtle", "limit_up_pullback"）
     /// - `settings`: 策略配置的 JSON 对象
+    ///   - 可以为 `None`，使用默认配置
+    ///   - 可以包含 `"preset"` 字段来指定预设配置（如 `{"preset": "aggressive"}`）
+    ///   - 可以直接提供完整的配置参数（如 `{"lookback_days": 10, "ma_type": "MA5"}`）
+    /// 
+    /// # 预设配置支持
+    /// - **turtle**: system1, system2, conservative, aggressive
+    /// - **limit_up_pullback**: standard, aggressive, conservative, strong_stock
     /// 
     /// # 返回
     /// 符合条件的股票列表
+    /// 
+    /// # 示例
+    /// ```rust
+    /// // 使用默认配置
+    /// service.pick_stocks(&start, &end, "turtle", None).await?;
+    /// 
+    /// // 使用预设配置
+    /// let preset = serde_json::json!({"preset": "aggressive"});
+    /// service.pick_stocks(&start, &end, "turtle", Some(preset)).await?;
+    /// 
+    /// // 使用自定义配置
+    /// let custom = serde_json::json!({
+    ///     "entry_breakout_period": 30,
+    ///     "exit_breakout_period": 15
+    /// });
+    /// service.pick_stocks(&start, &end, "turtle", Some(custom)).await?;
+    /// ```
     pub async fn pick_stocks(
         &self,
         start_date: &NaiveDate,
@@ -66,10 +90,23 @@ impl StockPickerService {
         settings: Option<JsonValue>
     ) -> Result<Vec<StockPickResult>> {
         // 宏：简化策略创建和执行
+        // 支持三种配置方式：
+        // 1. settings 为 None：使用 default()
+        // 2. settings 中有 "preset" 字段：调用对应的预设函数（如 standard(), aggressive() 等）
+        // 3. settings 中无 "preset" 字段：使用 JSON 反序列化
         macro_rules! create_strategy {
-            ($config:ty, $strategy:ty) => {{
+            ($config:ty, $strategy:ty, $preset_handler:expr) => {{
                 let config: $config = match settings {
-                    Some(json) => serde_json::from_value(json)?,
+                    Some(json) => {
+                        // 检查是否指定了预设配置
+                        if let Some(preset_name) = json.get("preset").and_then(|v| v.as_str()) {
+                            // 使用预设配置函数
+                            $preset_handler(preset_name)?
+                        } else {
+                            // 没有 preset 字段，使用 JSON 反序列化
+                            serde_json::from_value(json)?
+                        }
+                    },
                     None => <$config>::default(),
                 };
                 let mut strategy = <$strategy>::new(config);
@@ -78,17 +115,33 @@ impl StockPickerService {
         }
 
         match strategy_type {
-            "price_volume_candlestick" => create_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy),
-            "bottom_volume_surge" => create_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy),
-            "long_term_bottom_reversal" => create_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy),
-            "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy),
-            "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy),
-            "distressed_reversal" => create_strategy!(DistressedReversalConfig, DistressedReversalStrategy),
-            "single_limit_up" => create_strategy!(SingleLimitUpConfig, SingleLimitUpStrategy),
-            "fundamental" => create_strategy!(FundamentalConfig, FundamentalStrategy),
-            "consecutive_strong" => create_strategy!(ConsecutiveStrongConfig, ConsecutiveStrongStrategy),
-            "turtle" => create_strategy!(TurtleConfig, TurtleStrategy),
-            "limit_up_pullback" => create_strategy!(LimitUpPullbackConfig, LimitUpPullbackStrategy),
+            "price_volume_candlestick" => create_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy, Self::handle_preset),
+            "bottom_volume_surge" => create_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy, Self::handle_preset),
+            "long_term_bottom_reversal" => create_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy, Self::handle_preset),
+            "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy, Self::handle_preset),
+            "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy, Self::handle_preset),
+            "distressed_reversal" => create_strategy!(DistressedReversalConfig, DistressedReversalStrategy, Self::handle_preset),
+            "single_limit_up" => create_strategy!(SingleLimitUpConfig, SingleLimitUpStrategy, Self::handle_preset),
+            "fundamental" => create_strategy!(FundamentalConfig, FundamentalStrategy, Self::handle_preset),
+            "consecutive_strong" => create_strategy!(ConsecutiveStrongConfig, ConsecutiveStrongStrategy, Self::handle_preset),
+            "turtle" => create_strategy!(TurtleConfig, TurtleStrategy, |preset: &str| {
+                Ok(match preset {
+                    "system1" => TurtleStrategy::system1(),
+                    "system2" => TurtleStrategy::system2(),
+                    "conservative" => TurtleStrategy::conservative(),
+                    "aggressive" => TurtleStrategy::aggressive(),
+                    _ => bail!("海龟策略不支持预设 '{}', 可用预设: system1, system2, conservative, aggressive", preset),
+                })
+            }),
+            "limit_up_pullback" => create_strategy!(LimitUpPullbackConfig, LimitUpPullbackStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => LimitUpPullbackStrategy::standard(),
+                    "aggressive" => LimitUpPullbackStrategy::aggressive(),
+                    "conservative" => LimitUpPullbackStrategy::conservative(),
+                    "strong_stock" => LimitUpPullbackStrategy::strong_stock(),
+                    _ => bail!("涨停回调策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, strong_stock", preset),
+                })
+            }),
             _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback", strategy_type)
         }
     }
@@ -435,6 +488,15 @@ impl StockPickerService {
             sec_data_list.push(sec_data);
         }
         Ok(Some(sec_data_list))
+    }
+    
+    /// 通用预设配置处理器
+    /// 尝试调用配置类型的预设方法，如果不存在则返回错误
+    fn handle_preset<T>(preset_name: &str) -> Result<T> 
+    where
+        T: Default,
+    {
+        bail!("策略配置不支持预设 '{}', 请使用 JSON 配置或不指定 preset 字段", preset_name)
     }
     
     /// 格式化报告期：20240930 -> 2024Q3
