@@ -207,6 +207,10 @@ pub struct LimitUpPullbackResult {
     /// 量比
     pub volume_ratio: f64,
     
+    /// 近 lookback_days 天的每日涨跌幅（百分比）
+    /// 按时间顺序排列，最后一个是最近的
+    pub daily_pct_changes: Vec<f64>,
+    
     /// 策略信号
     pub strategy_signal: StrategySignal,
     
@@ -423,6 +427,17 @@ impl LimitUpPullbackStrategy {
         };
         let is_volume_shrink = volume_ratio < self.config.volume_shrink_ratio;
         
+        // 收集近 lookback_days 天的每日涨跌幅
+        let lookback_start = if data.len() > self.config.lookback_days {
+            data.len() - self.config.lookback_days
+        } else {
+            0
+        };
+        
+        let daily_pct_changes: Vec<f64> = data[lookback_start..].iter()
+            .filter_map(|d| d.pct_change)
+            .collect();
+        
         // 生成策略信号
         let (strategy_signal, signal_strength, risk_level) = self.generate_signal(
             limit_up_count,
@@ -469,6 +484,7 @@ impl LimitUpPullbackStrategy {
             avg_volume_5d,
             is_volume_shrink,
             volume_ratio,
+            daily_pct_changes,
             strategy_signal,
             signal_strength,
             analysis_description,
@@ -667,11 +683,14 @@ mod tests {
         // 前20天正常交易
         for i in 0..20 {
             data.push(SecurityData {
+                symbol: "000001.SZ".to_string(),
                 trade_date: format!("{}", base_date + i),
                 open: price,
                 close: price + 0.1,
                 high: price + 0.2,
                 low: price - 0.1,
+                pre_close: Some(price),
+                change: Some(0.1),
                 volume: 1000000.0,
                 amount: 10000000.0,
                 pct_change: Some(1.0),
@@ -684,11 +703,14 @@ mod tests {
         
         // 第21天涨停
         data.push(SecurityData {
+            symbol: "000001.SZ".to_string(),
             trade_date: format!("{}", base_date + 20),
             open: price,
             close: price * 1.1,
             high: price * 1.1,
             low: price,
+            pre_close: Some(price),
+            change: Some(price * 0.1),
             volume: 2000000.0,
             amount: 22000000.0,
             pct_change: Some(10.0),
@@ -702,11 +724,14 @@ mod tests {
         for i in 21..25 {
             price -= 0.2;
             data.push(SecurityData {
+                symbol: "000001.SZ".to_string(),
                 trade_date: format!("{}", base_date + i),
                 open: price + 0.1,
                 close: price,
                 high: price + 0.2,
                 low: price - 0.1,
+                pre_close: Some(price + 0.2),
+                change: Some(-0.2),
                 volume: 500000.0,  // 缩量
                 amount: 5000000.0,
                 pct_change: Some(-1.5),

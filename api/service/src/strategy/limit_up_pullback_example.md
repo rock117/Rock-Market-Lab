@@ -215,6 +215,10 @@ pub struct LimitUpPullbackResult {
     pub is_volume_shrink: bool,          // 是否缩量
     pub volume_ratio: f64,               // 量比
     
+    // 历史涨跌幅
+    pub daily_pct_changes: Vec<f64>,     // 近lookback_days天的每日涨跌幅（%）
+                                         // 按时间顺序排列，最后一个是最近的
+    
     // 策略信号
     pub strategy_signal: StrategySignal, // 策略信号
     pub signal_strength: u8,             // 信号强度 (0-100)
@@ -481,6 +485,35 @@ for result in results {
 2. 关注市场环境，牛市效果更好
 3. 使用稳健配置，提高信号质量
 4. 严格执行止损，保护利润
+
+### Q7: daily_pct_changes 字段有什么用？
+
+**A:** 这个字段记录了近 `lookback_days` 天的每日涨跌幅，可以用来：
+1. **分析走势**：查看股票最近的波动情况
+2. **识别涨停**：找出哪几天涨停（涨幅≈9.8%）
+3. **评估回调**：计算从涨停到现在的回调幅度
+4. **判断趋势**：连续上涨还是震荡回调
+
+**使用示例：**
+```rust
+// 打印每日涨跌幅
+for (i, pct) in result.daily_pct_changes.iter().enumerate() {
+    println!("第{}天涨跌幅: {:.2}%", i + 1, pct);
+}
+
+// 找出涨停日
+let limit_up_days: Vec<usize> = result.daily_pct_changes.iter()
+    .enumerate()
+    .filter(|(_, &pct)| pct >= 9.8)
+    .map(|(i, _)| i)
+    .collect();
+println!("涨停日索引: {:?}", limit_up_days);
+
+// 计算平均涨跌幅
+let avg_pct: f64 = result.daily_pct_changes.iter().sum::<f64>() 
+    / result.daily_pct_changes.len() as f64;
+println!("平均涨跌幅: {:.2}%", avg_pct);
+```
 
 ## 总结
 
