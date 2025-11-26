@@ -81,6 +81,14 @@ pub struct FinancialData {
     
     /// 应付账款（元）
     pub accounts_payable: Option<f64>,
+    
+    // ========== 估值与盈利能力指标 ==========
+    
+    /// 总市值（元）
+    pub market_cap: Option<f64>,
+    
+    /// 净资产收益率 ROE（百分比）
+    pub roe: Option<f64>,
 }
 
 /// 时间周期枚举

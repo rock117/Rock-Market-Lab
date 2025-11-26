@@ -492,6 +492,10 @@ impl StockPickerService {
                 accounts_payable: balance_data
                     .and_then(|b| b.acct_payable)
                     .and_then(|v| v.to_string().parse().ok()),
+                market_cap: None,  // TODO: 从数据库获取市值数据
+                roe: indicator
+                    .and_then(|i| i.roe)
+                    .and_then(|v| v.to_string().parse().ok()),
             };
             let mut sec_data = SecurityData::default();
             sec_data.financial_data = Some(financial_data);
