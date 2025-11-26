@@ -22,6 +22,7 @@ use crate::strategy::{
     ConsecutiveStrongStrategy, ConsecutiveStrongConfig,
     TurtleStrategy, TurtleConfig,
     LimitUpPullbackStrategy, LimitUpPullbackConfig,
+    StrongCloseStrategy, StrongCloseConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -142,7 +143,16 @@ impl StockPickerService {
                     _ => bail!("涨停回调策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, strong_stock", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback", strategy_type)
+            "strong_close" => create_strategy!(StrongCloseConfig, StrongCloseStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => StrongCloseStrategy::standard(),
+                    "aggressive" => StrongCloseStrategy::aggressive(),
+                    "conservative" => StrongCloseStrategy::conservative(),
+                    "super_strong" => StrongCloseStrategy::super_strong(),
+                    _ => bail!("强势收盘策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, super_strong", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close", strategy_type)
         }
     }
 

@@ -14,6 +14,7 @@ pub mod fundamental_strategy;
 pub mod consecutive_strong_strategy;
 pub mod turtle_strategy;
 pub mod limit_up_pullback_strategy;
+pub mod strong_close_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -112,4 +113,11 @@ pub use limit_up_pullback_strategy::{
     LimitUpPullbackStrategy,
     LimitUpPullbackConfig,
     LimitUpPullbackResult,
+};
+
+// 重新导出强势收盘策略相关类型
+pub use strong_close_strategy::{
+    StrongCloseStrategy,
+    StrongCloseConfig,
+    StrongCloseResult,
 };

@@ -332,6 +332,8 @@ pub enum StrategyResult {
     Turtle(super::turtle_strategy::TurtleResult),
     /// 涨停回调策略结果
     LimitUpPullback(super::limit_up_pullback_strategy::LimitUpPullbackResult),
+    /// 强势收盘策略结果
+    StrongClose(super::strong_close_strategy::StrongCloseResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -348,6 +350,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => &r.stock_code,
             StrategyResult::Turtle(r) => &r.stock_code,
             StrategyResult::LimitUpPullback(r) => &r.stock_code,
+            StrategyResult::StrongClose(r) => &r.stock_code,
         }
     }
     
@@ -365,6 +368,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => r.analysis_date,
             StrategyResult::Turtle(r) => r.analysis_date,
             StrategyResult::LimitUpPullback(r) => r.analysis_date,
+            StrategyResult::StrongClose(r) => r.analysis_date,
         }
     }
     
@@ -382,6 +386,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => r.current_price,
             StrategyResult::Turtle(r) => r.current_price,
             StrategyResult::LimitUpPullback(r) => r.current_price,
+            StrategyResult::StrongClose(r) => r.current_price,
         }
     }
     
@@ -399,6 +404,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => r.strategy_signal.clone(),
             StrategyResult::Turtle(r) => r.strategy_signal.clone(),
             StrategyResult::LimitUpPullback(r) => r.strategy_signal.clone(),
+            StrategyResult::StrongClose(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -416,6 +422,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => r.signal_strength,
             StrategyResult::Turtle(r) => r.signal_strength,
             StrategyResult::LimitUpPullback(r) => r.signal_strength,
+            StrategyResult::StrongClose(r) => r.signal_strength,
         }
     }
     
@@ -433,6 +440,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => &r.analysis_description,
             StrategyResult::Turtle(r) => &r.analysis_description,
             StrategyResult::LimitUpPullback(r) => &r.analysis_description,
+            StrategyResult::StrongClose(r) => &r.analysis_description,
         }
     }
     
@@ -450,6 +458,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveStrong(r) => r.risk_level,
             StrategyResult::Turtle(r) => r.risk_level,
             StrategyResult::LimitUpPullback(r) => r.risk_level,
+            StrategyResult::StrongClose(r) => r.risk_level,
         }
     }
 }
