@@ -320,7 +320,7 @@ impl StockPickerService {
             // 转换为 SecurityData
             let security_data: Vec<SecurityData> = daily_data
                 .iter()
-                .map(SecurityData::from_stock_daily)
+                .map(SecurityData::from_daily)
                 .collect();
 
             Ok(Some(security_data))

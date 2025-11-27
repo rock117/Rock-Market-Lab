@@ -138,32 +138,12 @@ impl Default for SecurityType {
     }
 }
 impl SecurityData {
-    /// 从股票日线数据转换
-    pub fn from_stock_daily(data: &entity::stock_daily::Model) -> Self {
-        Self {
-            symbol: data.ts_code.clone(),
-            trade_date: data.trade_date.clone(),
-            open: decimal_to_f64(&data.open),
-            high: decimal_to_f64(&data.high),
-            low: decimal_to_f64(&data.low),
-            close: decimal_to_f64(&data.close),
-            pre_close: data.pre_close.as_ref().map(decimal_to_f64),
-            change: data.change.as_ref().map(decimal_to_f64),
-            pct_change: data.pct_chg.as_ref().map(decimal_to_f64),
-            volume: decimal_to_f64(&data.vol),
-            amount: decimal_to_f64(&data.amount),
-            turnover_rate: None,  // 需要从 stock_daily_basic 表获取
-            security_type: SecurityType::Stock,
-            time_frame: TimeFrame::Daily,
-            financial_data: None,
-        }
-    }
-    
+
     /// 从股票日线数据和基本面数据转换（包含换手率）
-    pub fn from_stock_daily_with_basic(
-        daily: &entity::stock_daily::Model,
-        basic: Option<&entity::stock_daily_basic::Model>,
+    pub fn from_daily(
+        data: (&entity::stock_daily::Model, &entity::stock_daily_basic::Model)
     ) -> Self {
+        let (daily, basic) = data;
         Self {
             symbol: daily.ts_code.clone(),
             trade_date: daily.trade_date.clone(),
@@ -176,7 +156,7 @@ impl SecurityData {
             pct_change: daily.pct_chg.as_ref().map(decimal_to_f64),
             volume: decimal_to_f64(&daily.vol),
             amount: decimal_to_f64(&daily.amount),
-            turnover_rate: basic.and_then(|b| b.turnover_rate.as_ref().map(decimal_to_f64)),
+            turnover_rate: basic.turnover_rate.as_ref().map(decimal_to_f64),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
             financial_data: None,
