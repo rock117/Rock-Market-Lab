@@ -6,7 +6,7 @@ use anyhow::{bail, Result};
 use chrono::NaiveDate;
 use serde::{Deserialize, Serialize};
 use entity::sea_orm::{DatabaseConnection, EntityTrait, JsonValue, QueryFilter, QueryOrder};
-use entity::{stock, stock_daily, finance_indicator, income, cashflow, balancesheet};
+use entity::{stock, stock_daily, stock_daily_basic, finance_indicator, income, cashflow, balancesheet};
 use entity::sea_orm::ColumnTrait;
 use std::collections::HashMap;
 use tracing::{info, warn};
@@ -320,32 +320,51 @@ impl StockPickerService {
             // 转换为 SecurityData
             let security_data: Vec<SecurityData> = daily_data
                 .iter()
-                .map(SecurityData::from_daily)
+                .map(|(daily, basic)| SecurityData::from_daily((daily, basic)))
                 .collect();
 
             Ok(Some(security_data))
         }
     }
 
-    /// 获取股票日线数据
+    /// 获取股票日线数据（包含基本面数据）
     async fn get_stock_daily_data(
         &self,
         ts_code: &str,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
-    ) -> Result<Vec<stock_daily::Model>> {
+    ) -> Result<Vec<(stock_daily::Model, stock_daily_basic::Model)>> {
         let start = start_date.format("%Y%m%d").to_string();
         let end = end_date.format("%Y%m%d").to_string();
 
-        let data = stock_daily::Entity::find()
+        // 获取日线数据
+        let daily_data = stock_daily::Entity::find()
             .filter(ColumnTrait::eq(&stock_daily::Column::TsCode, ts_code))
             .filter(stock_daily::Column::TradeDate.gte(&start))
             .filter(stock_daily::Column::TradeDate.lte(&end))
-            .order_by_asc(stock_daily::Column::TradeDate) // 按日期升序，策略需要从旧到新
+            .order_by_asc(stock_daily::Column::TradeDate)
             .all(&self.db)
             .await?;
 
-        Ok(data)
+        // 获取基本面数据
+        let basic_data = stock_daily_basic::Entity::find()
+            .filter(ColumnTrait::eq(&stock_daily_basic::Column::TsCode, ts_code))
+            .filter(stock_daily_basic::Column::TradeDate.gte(&start))
+            .filter(stock_daily_basic::Column::TradeDate.lte(&end))
+            .order_by_asc(stock_daily_basic::Column::TradeDate)
+            .all(&self.db)
+            .await?;
+
+        // 将两个数据集按日期匹配
+        let mut result = Vec::new();
+        for daily in daily_data {
+            // 查找对应日期的基本面数据
+            if let Some(basic) = basic_data.iter().find(|b| b.trade_date == daily.trade_date) {
+                result.push((daily, basic.clone()));
+            }
+        }
+
+        Ok(result)
     }
 
     /// 判断信号是否符合条件
