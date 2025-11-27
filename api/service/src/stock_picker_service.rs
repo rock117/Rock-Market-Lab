@@ -24,6 +24,7 @@ use crate::strategy::{
     LimitUpPullbackStrategy, LimitUpPullbackConfig,
     StrongCloseStrategy, StrongCloseConfig,
     QualityValueStrategy, QualityValueConfig,
+    TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -162,7 +163,16 @@ impl StockPickerService {
                     _ => bail!("优质价值策略不支持预设 '{}', 可用预设: standard, strict, small_cap_growth, large_cap_blue_chip", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value", strategy_type)
+            "turnover_ma_bullish" => create_strategy!(TurnoverMaBullishConfig, TurnoverMaBullishStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => TurnoverMaBullishStrategy::standard(),
+                    "active" => TurnoverMaBullishStrategy::active(),
+                    "conservative" => TurnoverMaBullishStrategy::conservative(),
+                    "short_term" => TurnoverMaBullishStrategy::short_term(),
+                    _ => bail!("换手率均线多头策略不支持预设 '{}', 可用预设: standard, active, conservative, short_term", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish", strategy_type)
         }
     }
 

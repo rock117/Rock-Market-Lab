@@ -33,6 +33,8 @@ pub struct SecurityData {
     pub volume: f64,
     /// 成交额
     pub amount: f64,
+    /// 换手率 (%)
+    pub turnover_rate: Option<f64>,
     /// 产品类型
     pub security_type: SecurityType,
     /// 时间周期
@@ -150,6 +152,31 @@ impl SecurityData {
             pct_change: data.pct_chg.as_ref().map(decimal_to_f64),
             volume: decimal_to_f64(&data.vol),
             amount: decimal_to_f64(&data.amount),
+            turnover_rate: None,  // 需要从 stock_daily_basic 表获取
+            security_type: SecurityType::Stock,
+            time_frame: TimeFrame::Daily,
+            financial_data: None,
+        }
+    }
+    
+    /// 从股票日线数据和基本面数据转换（包含换手率）
+    pub fn from_stock_daily_with_basic(
+        daily: &entity::stock_daily::Model,
+        basic: Option<&entity::stock_daily_basic::Model>,
+    ) -> Self {
+        Self {
+            symbol: daily.ts_code.clone(),
+            trade_date: daily.trade_date.clone(),
+            open: decimal_to_f64(&daily.open),
+            high: decimal_to_f64(&daily.high),
+            low: decimal_to_f64(&daily.low),
+            close: decimal_to_f64(&daily.close),
+            pre_close: daily.pre_close.as_ref().map(decimal_to_f64),
+            change: daily.change.as_ref().map(decimal_to_f64),
+            pct_change: daily.pct_chg.as_ref().map(decimal_to_f64),
+            volume: decimal_to_f64(&daily.vol),
+            amount: decimal_to_f64(&daily.amount),
+            turnover_rate: basic.and_then(|b| b.turnover_rate.as_ref().map(decimal_to_f64)),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
             financial_data: None,
@@ -170,6 +197,7 @@ impl SecurityData {
             pct_change: data.pct_chg.as_ref().map(decimal_to_f64),
             volume: decimal_to_f64(&data.vol),
             amount: decimal_to_f64(&data.amount),
+            turnover_rate: None,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Weekly,
             financial_data: None,
@@ -190,6 +218,7 @@ impl SecurityData {
             pct_change: data.pct_chg.as_ref().map(decimal_to_f64),
             volume: decimal_to_f64(&data.vol),
             amount: decimal_to_f64(&data.amount),
+            turnover_rate: None,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Monthly,
             financial_data: None,
@@ -210,6 +239,7 @@ impl SecurityData {
             pct_change: data.pct_chg.as_ref().map(decimal_to_f64),
             volume: decimal_to_f64(&data.vol),
             amount: decimal_to_f64(&data.amount),
+            turnover_rate: None,
             security_type: SecurityType::Fund,
             time_frame: TimeFrame::Daily,
             financial_data: None,
@@ -230,6 +260,7 @@ impl SecurityData {
             pct_change: data.pct_chg.as_ref().map(|d| decimal_to_f64(d)),
             volume: data.vol.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
             amount: data.amount.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
+            turnover_rate: None,
             security_type: SecurityType::Index,
             time_frame: TimeFrame::Daily,
             financial_data: None,
@@ -344,6 +375,8 @@ pub enum StrategyResult {
     StrongClose(super::strong_close_strategy::StrongCloseResult),
     /// 优质价值策略结果
     QualityValue(super::quality_value_strategy::QualityValueResult),
+    /// 换手率均线多头策略结果
+    TurnoverMaBullish(super::turnover_ma_bullish_strategy::TurnoverMaBullishResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -362,6 +395,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => &r.stock_code,
             StrategyResult::StrongClose(r) => &r.stock_code,
             StrategyResult::QualityValue(r) => &r.stock_code,
+            StrategyResult::TurnoverMaBullish(r) => &r.stock_code,
         }
     }
     
@@ -381,6 +415,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => r.analysis_date,
             StrategyResult::StrongClose(r) => r.analysis_date,
             StrategyResult::QualityValue(r) => r.analysis_date,
+            StrategyResult::TurnoverMaBullish(r) => r.analysis_date,
         }
     }
     
@@ -400,6 +435,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => r.current_price,
             StrategyResult::StrongClose(r) => r.current_price,
             StrategyResult::QualityValue(r) => r.current_price,
+            StrategyResult::TurnoverMaBullish(r) => r.current_price,
         }
     }
     
@@ -419,6 +455,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => r.strategy_signal.clone(),
             StrategyResult::StrongClose(r) => r.strategy_signal.clone(),
             StrategyResult::QualityValue(r) => r.strategy_signal.clone(),
+            StrategyResult::TurnoverMaBullish(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -438,6 +475,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => r.signal_strength,
             StrategyResult::StrongClose(r) => r.signal_strength,
             StrategyResult::QualityValue(r) => r.signal_strength,
+            StrategyResult::TurnoverMaBullish(r) => r.signal_strength,
         }
     }
     
@@ -457,6 +495,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => &r.analysis_description,
             StrategyResult::StrongClose(r) => &r.analysis_description,
             StrategyResult::QualityValue(r) => &r.analysis_description,
+            StrategyResult::TurnoverMaBullish(r) => &r.analysis_description,
         }
     }
     
@@ -476,6 +515,7 @@ impl StrategyResult {
             StrategyResult::LimitUpPullback(r) => r.risk_level,
             StrategyResult::StrongClose(r) => r.risk_level,
             StrategyResult::QualityValue(r) => r.risk_level,
+            StrategyResult::TurnoverMaBullish(r) => r.risk_level,
         }
     }
 }

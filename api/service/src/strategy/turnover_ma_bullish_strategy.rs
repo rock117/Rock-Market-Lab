@@ -93,7 +93,7 @@ pub struct TurnoverMaBullishConfig {
 impl Default for TurnoverMaBullishConfig {
     fn default() -> Self {
         Self {
-            min_turnover_rate: 3.0,   // 至少3%换手率
+            min_turnover_rate: 5.0,   // 至少5%换手率
             max_turnover_rate: 15.0,  // 最多15%，避免过度炒作
             short_ma_period: 5,
             medium_ma_period: 20,
@@ -286,9 +286,9 @@ impl TurnoverMaBullishStrategy {
         let analysis_date = NaiveDate::parse_from_str(&latest.trade_date, "%Y%m%d")
             .map_err(|e| anyhow::anyhow!("日期解析失败: {}", e))?;
         
-        // 计算换手率（成交量/流通股本，这里简化为成交额/市值的近似）
-        // 注意：实际应该用 volume / 流通股本，这里用 amount 作为代理
-        let turnover_rate = self.calculate_turnover_rate(latest);
+        // 获取换手率（从数据中直接读取）
+        let turnover_rate = latest.turnover_rate
+            .ok_or_else(|| anyhow::anyhow!("缺少换手率数据"))?;
         
         // 检查换手率范围
         if turnover_rate < self.config.min_turnover_rate {
@@ -387,28 +387,24 @@ impl TurnoverMaBullishStrategy {
         })
     }
     
-    /// 计算换手率（简化版本，实际应该用流通股本）
-    fn calculate_turnover_rate(&self, data: &SecurityData) -> f64 {
-        // 简化计算：成交量 / 总成交量的某个基准
-        // 实际应该是：成交量 / 流通股本 * 100
-        // 这里用成交量占比作为代理指标
-        if data.volume > 0.0 {
-            (data.volume / 1_000_000.0).min(30.0)  // 简化处理
-        } else {
-            0.0
-        }
-    }
-    
     /// 计算平均换手率
     fn calculate_avg_turnover_rate(&self, data: &[SecurityData], period: usize) -> f64 {
         let start = data.len().saturating_sub(period);
         let recent_data = &data[start..];
         
         let sum: f64 = recent_data.iter()
-            .map(|d| self.calculate_turnover_rate(d))
+            .filter_map(|d| d.turnover_rate)
             .sum();
         
-        sum / recent_data.len() as f64
+        let count = recent_data.iter()
+            .filter(|d| d.turnover_rate.is_some())
+            .count();
+        
+        if count > 0 {
+            sum / count as f64
+        } else {
+            0.0
+        }
     }
     
     /// 计算移动平均线
@@ -602,6 +598,7 @@ mod tests {
                 pct_change: Some(1.0),
                 volume,
                 amount: volume * price,
+                turnover_rate: Some(5.0 + (i as f64 * 0.05)),  // 模拟换手率逐步增加
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,

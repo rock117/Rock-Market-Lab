@@ -16,6 +16,7 @@ pub mod turtle_strategy;
 pub mod limit_up_pullback_strategy;
 pub mod strong_close_strategy;
 pub mod quality_value_strategy;
+pub mod turnover_ma_bullish_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -128,4 +129,11 @@ pub use quality_value_strategy::{
     QualityValueStrategy,
     QualityValueConfig,
     QualityValueResult,
+};
+
+// 重新导出换手率均线多头策略相关类型
+pub use turnover_ma_bullish_strategy::{
+    TurnoverMaBullishStrategy,
+    TurnoverMaBullishConfig,
+    TurnoverMaBullishResult,
 };
