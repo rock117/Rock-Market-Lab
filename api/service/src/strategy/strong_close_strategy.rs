@@ -30,7 +30,7 @@ impl Default for StrongCloseConfig {
         Self {
             lookback_days: 10,
             min_strong_days: 7,  // 10天中至少7天强势
-            close_to_high_threshold_pct: 2.0,
+            close_to_high_threshold_pct: 0.2f64,
         }
     }
 }

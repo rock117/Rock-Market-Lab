@@ -23,6 +23,7 @@ use crate::strategy::{
     TurtleStrategy, TurtleConfig,
     LimitUpPullbackStrategy, LimitUpPullbackConfig,
     StrongCloseStrategy, StrongCloseConfig,
+    QualityValueStrategy, QualityValueConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -152,7 +153,16 @@ impl StockPickerService {
                     _ => bail!("强势收盘策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, super_strong", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close", strategy_type)
+            "quality_value" => create_strategy!(QualityValueConfig, QualityValueStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => QualityValueStrategy::standard(),
+                    "strict" => QualityValueStrategy::strict(),
+                    "small_cap_growth" => QualityValueStrategy::small_cap_growth(),
+                    "large_cap_blue_chip" => QualityValueStrategy::large_cap_blue_chip(),
+                    _ => bail!("优质价值策略不支持预设 '{}', 可用预设: standard, strict, small_cap_growth, large_cap_blue_chip", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value", strategy_type)
         }
     }
 

@@ -15,6 +15,7 @@ pub mod consecutive_strong_strategy;
 pub mod turtle_strategy;
 pub mod limit_up_pullback_strategy;
 pub mod strong_close_strategy;
+pub mod quality_value_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -120,4 +121,11 @@ pub use strong_close_strategy::{
     StrongCloseStrategy,
     StrongCloseConfig,
     StrongCloseResult,
+};
+
+// 重新导出优质价值策略相关类型
+pub use quality_value_strategy::{
+    QualityValueStrategy,
+    QualityValueConfig,
+    QualityValueResult,
 };
