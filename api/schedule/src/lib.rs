@@ -29,6 +29,7 @@ use std::error::Error;
 use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
+use crate::task::fetch_dc_index_task::FetchDcIndexTask;
 use crate::task::fetch_fund_portfolio_task::FetchFundPortfolioTask;
 use crate::task::fetch_stk_holdertrade_task::FetchStkHoldertradeTask;
 
@@ -135,7 +136,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     let others: Vec<Arc<dyn Task>> = vec![
       //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
       //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
-        Arc::new(FetchStkHoldertradeTask::new(conn.clone()))
+      //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
+        Arc::new(FetchDcIndexTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
         // Arc::new(FetchThsIndexTask::new(conn.clone())),
@@ -143,7 +145,7 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
 
- jobs.extend(dailys);
+ // jobs.extend(dailys);
     jobs.extend(others);
   //  jobs.extend(finances);
     // jobs.extend(us);

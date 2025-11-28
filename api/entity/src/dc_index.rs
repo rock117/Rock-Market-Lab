@@ -28,7 +28,7 @@ pub struct Model {
     pub down_num: Option<i32>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TsCode,
     TradeDate,
