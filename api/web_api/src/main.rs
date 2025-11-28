@@ -23,6 +23,7 @@ use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
+use tracing_subscriber::fmt::time::ChronoLocal;
 
 use controller::*;
 use controller::security::stock;
@@ -98,6 +99,9 @@ fn init_log_context() -> anyhow::Result<()> {
         "app.log",
     );
 
+    // 使用本地时区（系统时区）
+    let timer = ChronoLocal::rfc_3339();
+
     let filter = EnvFilter::from_default_env().add_directive(LevelFilter::INFO.into());
     let subscriber = Registry::default()
         .with(
@@ -107,7 +111,8 @@ fn init_log_context() -> anyhow::Result<()> {
                 .with_file(true)
                 .with_line_number(true)
                 .with_thread_ids(false)
-                .with_target(false) // .with_span_events(FmtSpan::CLOSE),
+                .with_target(false)
+                .with_timer(timer.clone()) // 使用本地时区
         )
         .with(
             fmt::layer()
@@ -117,7 +122,8 @@ fn init_log_context() -> anyhow::Result<()> {
                 .with_file(true)
                 .with_line_number(true)
                 .with_thread_ids(false)
-                .with_target(false), //  .with_span_events(FmtSpan::CLOSE),
+                .with_target(false)
+                .with_timer(timer) // 使用本地时区
         )
         .with(filter);
     tracing::subscriber::set_global_default(subscriber).map_err(|e| anyhow!(e))?;
