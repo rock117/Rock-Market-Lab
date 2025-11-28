@@ -19,7 +19,7 @@ use tokio::sync::{mpsc, Semaphore};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
 
-const DAYS_AGO: u64 = 120;
+const DAYS_AGO: u64 = 250;
 
 pub struct FetchStockDailyBasicTask(DatabaseConnection);
 

@@ -36,7 +36,7 @@ pub async fn pick(conn: &State<DatabaseConnection>,   request: Json<StockPickReq
 
     let picker_service = StockPickerService::new(conn.clone());
     let end = Local::now().date_naive();
-    let start = end.checked_sub_months(Months::new(3)).unwrap();
+    let start = end.checked_sub_months(Months::new(5)).unwrap();
     let req = request.into_inner();
     let strategy = req.strategy;
     let settings = req.settings;

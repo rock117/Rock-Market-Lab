@@ -21,7 +21,7 @@ use tokio::sync::mpsc::Receiver;
 use common::db::get_entity_update_columns;
 use entity::sea_orm::prelude::Decimal;
 
-const DAYS_AGO: u64 = 120;
+const DAYS_AGO: u64 = 250;
 
 pub struct FetchStockDailyTask(DatabaseConnection);
 
