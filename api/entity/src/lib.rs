@@ -39,5 +39,6 @@ mod stock_margin_detail;
 pub mod etf;
 pub mod fund_portfolio;
 pub mod stk_holdertrade;
+pub mod dc_member;
 
 pub use sea_orm;

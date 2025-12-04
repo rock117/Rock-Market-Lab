@@ -32,6 +32,7 @@ use tracing::{error, info};
 use crate::task::fetch_dc_index_task::FetchDcIndexTask;
 use crate::task::fetch_fund_portfolio_task::FetchFundPortfolioTask;
 use crate::task::fetch_stk_holdertrade_task::FetchStkHoldertradeTask;
+use crate::task::fetch_dc_member_task::FetchDcMemberTask;
 
 mod task;
 
@@ -137,7 +138,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
       //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
       //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
       //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
-        Arc::new(FetchDcIndexTask::new(conn.clone())),
+      //  Arc::new(FetchDcIndexTask::new(conn.clone())),
+        Arc::new(FetchDcMemberTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
         // Arc::new(FetchThsIndexTask::new(conn.clone())),

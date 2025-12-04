@@ -36,6 +36,7 @@ pub(crate) mod fetch_etf_task;
 pub mod fetch_fund_portfolio_task;
 pub mod fetch_stk_holdertrade_task;
 pub mod fetch_dc_index_task;
+pub mod fetch_dc_member_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {
