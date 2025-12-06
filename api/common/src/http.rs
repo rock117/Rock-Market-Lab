@@ -26,6 +26,7 @@ fn build_client(conn_timeout: u64, read_timeout: u64) -> Client {
     reqwest::ClientBuilder::new()
         .timeout(Duration::from_secs(read_timeout))
         .connect_timeout(Duration::from_secs(conn_timeout))
+        .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
         .build()
         .unwrap()
 }
