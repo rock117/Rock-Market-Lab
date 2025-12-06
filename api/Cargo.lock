@@ -507,7 +507,7 @@ dependencies = [
  "pinyin",
  "reqwest",
  "rocket",
- "scraper",
+ "scraper 0.19.1",
  "serde",
  "serde_json",
  "strum",
@@ -1018,6 +1018,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-rate-limit",
+ "async-trait",
  "bytes",
  "chrono",
  "common",
@@ -1030,7 +1031,7 @@ dependencies = [
  "once_cell",
  "quick-xml",
  "reqwest",
- "scraper",
+ "scraper 0.19.1",
  "serde",
  "serde_json",
  "tokio",
@@ -3228,6 +3229,9 @@ dependencies = [
  "common",
  "entity",
  "ext_api",
+ "reqwest",
+ "scraper 0.20.0",
+ "serde",
  "serde_json",
  "service",
  "tokio",
@@ -3254,6 +3258,22 @@ name = "scraper"
 version = "0.19.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "761fb705fdf625482d2ed91d3f0559dcfeab2798fe2771c69560a774865d0802"
+dependencies = [
+ "ahash 0.8.11",
+ "cssparser",
+ "ego-tree",
+ "getopts",
+ "html5ever",
+ "once_cell",
+ "selectors",
+ "tendril",
+]
+
+[[package]]
+name = "scraper"
+version = "0.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b90460b31bfe1fc07be8262e42c665ad97118d4585869de9345a84d501a9eaf0"
 dependencies = [
  "ahash 0.8.11",
  "cssparser",
@@ -3486,7 +3506,7 @@ dependencies = [
  "num-traits",
  "once_cell",
  "rust_decimal",
- "scraper",
+ "scraper 0.19.1",
  "serde",
  "serde_json",
  "tokio",

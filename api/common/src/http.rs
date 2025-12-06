@@ -10,7 +10,7 @@ use std::time::Duration;
 use tokio::time::Instant;
 use tracing::{debug, error, info, instrument, warn};
 
-static CLIENT: Lazy<Client> = Lazy::new(|| build_client(120, 30));
+static CLIENT: Lazy<Client> = Lazy::new(|| build_client(120, 300));
 
 trait Headers {
     fn to_map(self) -> anyhow::Result<HashMap<String, String>>;

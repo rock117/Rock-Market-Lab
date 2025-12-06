@@ -1,8 +1,12 @@
 use crate::task::Task;
 use crate::task::fetch_balancesheet_task::FetchBalancesheetTask;
 use crate::task::fetch_cashflow_task::FetchCashflowTask;
+use crate::task::fetch_dc_index_task::FetchDcIndexTask;
+use crate::task::fetch_dc_member_task::FetchDcMemberTask;
+use crate::task::fetch_etf_task::FetchEtfTask;
 use crate::task::fetch_finance_indicator_task::FetchFinanceIndicatorTask;
 use crate::task::fetch_fund_daily_task::FetchFundDailyTask;
+use crate::task::fetch_fund_portfolio_task::FetchFundPortfolioTask;
 use crate::task::fetch_fund_task::FetchFundTask;
 use crate::task::fetch_income_task::FetchIncomeTask;
 use crate::task::fetch_index_daily_task::FetchIndexDailyTask;
@@ -12,6 +16,7 @@ use crate::task::fetch_index_weekly_task::FetchIndexWeeklyTask;
 use crate::task::fetch_margin_detail_task::FetchMarginDetailTask;
 use crate::task::fetch_margin_task::FetchMarginTask;
 use crate::task::fetch_moneyflow_task::FetchMoneyflowTask;
+use crate::task::fetch_stk_holdertrade_task::FetchStkHoldertradeTask;
 use crate::task::fetch_stock_daily_basic_task::FetchStockDailyBasicTask;
 use crate::task::fetch_stock_daily_task::FetchStockDailyTask;
 use crate::task::fetch_stock_holder_number_task::FetchStockHolderNumberTask;
@@ -23,16 +28,11 @@ use crate::task::fetch_ths_member_task::FetchThsMemberTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
 use crate::task::fetch_us_basic_task::FetchUsBasicTask;
 use crate::task::fetch_us_daily_task::FetchUsDailyTask;
-use crate::task::fetch_etf_task::FetchEtfTask;
 use entity::sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
-use crate::task::fetch_dc_index_task::FetchDcIndexTask;
-use crate::task::fetch_fund_portfolio_task::FetchFundPortfolioTask;
-use crate::task::fetch_stk_holdertrade_task::FetchStkHoldertradeTask;
-use crate::task::fetch_dc_member_task::FetchDcMemberTask;
 
 mod task;
 
@@ -99,7 +99,7 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //   Arc::new(FetchMarginTradingSummaryTask::new(conn.clone())),
         // Arc::new(FetchStockMarginDetailTask::new(conn.clone())),
     ];
-    let mut security_list:Vec<Arc<dyn Task>> = vec![
+    let mut security_list: Vec<Arc<dyn Task>> = vec![
         // Arc::new(FetchStockListTask::new(conn.clone())),
         Arc::new(FetchEtfTask::new(conn.clone())),
     ];
@@ -107,17 +107,16 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //  Arc::new(FetchFundTask::new(conn.clone())),
         Arc::new(FetchStockDailyTask::new(conn.clone())),
         Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
-      //  Arc::new(FetchFundDailyTask::new(conn.clone())),
+        //  Arc::new(FetchFundDailyTask::new(conn.clone())),
         // Arc::new(FetchIndexDailyTask::new(conn.clone())),
         // Arc::new(FetchStockMonthlyTask::new(conn.clone())),
 
         // Arc::new(FetchIndexMonthlyTask::new(conn.clone())),
 
-
         //     Arc::new(FetchIndexTask::new(conn.clone())),
         //   Arc::new(FetchStockListTask::new(conn.clone())),
-         Arc::new(FetchMarginTask::new(conn.clone())),
-         Arc::new(FetchMarginDetailTask::new(conn.clone())),
+        Arc::new(FetchMarginTask::new(conn.clone())),
+        Arc::new(FetchMarginDetailTask::new(conn.clone())),
         //   Arc::new(FetchFinanceIndicatorTask::new(conn.clone())),
 
         // Arc::new(FetchStockListTask::new(conn.clone())),
@@ -126,19 +125,19 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
 
     let finances: Vec<Arc<dyn Task>> = vec![
-          Arc::new(FetchIncomeTask::new(conn.clone())),
-      //   Arc::new(FetchCashflowTask::new(conn.clone())),
-      //  Arc::new(FetchBalancesheetTask::new(conn.clone())),
+        Arc::new(FetchIncomeTask::new(conn.clone())),
+        //   Arc::new(FetchCashflowTask::new(conn.clone())),
+        //  Arc::new(FetchBalancesheetTask::new(conn.clone())),
     ];
     let us: Vec<Arc<dyn Task>> = vec![
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         Arc::new(FetchUsDailyTask::new(conn.clone())),
     ];
     let others: Vec<Arc<dyn Task>> = vec![
-      //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
-      //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
-      //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
-      //  Arc::new(FetchDcIndexTask::new(conn.clone())),
+        //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
+        //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
+        //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
+        //  Arc::new(FetchDcIndexTask::new(conn.clone())),
         Arc::new(FetchDcMemberTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
@@ -147,11 +146,11 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
 
- // jobs.extend(dailys);
+    jobs.extend(dailys);
     jobs.extend(others);
-  //  jobs.extend(finances);
+    //  jobs.extend(finances);
     // jobs.extend(us);
-   // jobs.extend(security_list);
+    // jobs.extend(security_list);
 
     info!("Total tasks: {}", jobs.len());
     jobs

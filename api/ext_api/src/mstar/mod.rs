@@ -1,11 +1,22 @@
-mod auth;
+pub mod auth;
+mod equity;
+
 use serde::{Serialize, Deserialize};
 
 use common::http;
 pub async fn get_stock_list() -> anyhow::Result<()> {
     // let url = "https://equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetExchangeList&identifier=TWN&identifierType=CountryId&responseType=JSON";
-    // let exchanges = &["ARCX", "PINX", "ASE", "NAS", "NYS", "OTC", "GREY", "BATS"];
-    // let exchanges = http::get("", None).await?;
+    let exchanges = &[
+      "ARCX",
+      "ASE",
+      "BATS",
+      "GREY",
+      "NAS",
+      "NYS",
+      "OTC",
+      "PINX"
+    ];
+    let exchanges = http::get("", None).await?;
     // for exchange in exchanges {
     //
     // }

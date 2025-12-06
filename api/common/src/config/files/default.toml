@@ -7,3 +7,8 @@ token = "xxx"
 
 [alphavantage]
 token = "xx"
+
+[ms]
+email = ""
+password = ""
+login_url = ""

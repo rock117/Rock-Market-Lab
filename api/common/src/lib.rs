@@ -13,6 +13,7 @@ pub mod util;
 pub mod calc;
 mod pickup;
 pub mod config;
+pub use config::{AppConfig, Ms};
 pub mod cache;
 pub mod paging;
 pub mod db;

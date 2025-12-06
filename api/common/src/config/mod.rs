@@ -15,11 +15,20 @@ struct Tushare {
     token: String,
 }
 
+#[derive(Debug, Deserialize, Clone)]
+#[allow(unused)]
+pub struct Ms {
+    pub email: String,
+    pub password: String,
+    pub login_url: String,
+}
+
 #[derive(Debug, Deserialize)]
 #[allow(unused)]
 pub struct AppConfig {
     database: Database,
     tushare: Tushare,
+    ms: Ms,
 }
 
 impl AppConfig {
@@ -44,4 +53,7 @@ impl AppConfig {
         self.tushare.token.clone()
     }
 
+    pub fn mstar(&self) -> &Ms {
+        &self.ms
+    }
 }
