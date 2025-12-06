@@ -38,6 +38,7 @@ pub mod fetch_stk_holdertrade_task;
 pub mod fetch_dc_index_task;
 pub mod fetch_dc_member_task;
 pub mod us;
+pub mod fetch_us_stock_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {

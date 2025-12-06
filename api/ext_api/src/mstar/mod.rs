@@ -1,10 +1,10 @@
 pub mod auth;
-mod equity;
+pub mod equity;
 
 use serde::{Serialize, Deserialize};
 
 use common::http;
-pub async fn get_stock_list() -> anyhow::Result<()> {
+pub async fn get_stock_list2() -> anyhow::Result<()> {
     // let url = "https://equityapi.morningstar.com/DataCatalogOutput.aspx?category=GetExchangeList&identifier=TWN&identifierType=CountryId&responseType=JSON";
     let exchanges = &[
       "ARCX",

@@ -40,5 +40,7 @@ pub mod etf;
 pub mod fund_portfolio;
 pub mod stk_holdertrade;
 pub mod dc_member;
+pub mod us_stock;
+pub mod exchange;
 
 pub use sea_orm;

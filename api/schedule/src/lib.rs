@@ -33,6 +33,7 @@ use std::error::Error;
 use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
+use crate::task::fetch_us_stock_task::FetchUsStockTask;
 
 mod task;
 
@@ -146,8 +147,13 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         // Arc::new(FetchThsDailyTask::new(conn.clone())),
     ];
 
-    jobs.extend(dailys);
-    jobs.extend(others);
+    let us: Vec<Arc<dyn crate::task::Task >> = vec![
+        Arc::new(FetchUsStockTask::new(conn.clone())),
+    ];
+    
+    // jobs.extend(dailys);
+    // jobs.extend(others);
+    jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);
     // jobs.extend(security_list);

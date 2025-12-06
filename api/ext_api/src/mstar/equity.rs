@@ -22,9 +22,9 @@ pub struct StockEntity {
     pub company_id: Option<String>,
     pub investment_id: Option<String>,
     pub country_id: Option<String>,
-    pub company_name: String,
-    pub exchange_id: String,
-    pub symbol: String,
+    pub company_name: Option<String>,
+    pub exchange_id: Option<String>,
+    pub symbol: Option<String>,
     #[serde(rename = "CUSIP")]
     pub cusip: Option<String>,
     #[serde(rename = "CIK")]
