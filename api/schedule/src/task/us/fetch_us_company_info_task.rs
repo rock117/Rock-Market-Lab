@@ -2,14 +2,14 @@ use crate::task::Task;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{Days, Local, NaiveDate};
-use entity::sea_orm::ActiveModelTrait;
 use entity::sea_orm::ColumnTrait;
 use entity::sea_orm::EntityTrait;
 use entity::sea_orm::QueryFilter;
 use entity::sea_orm::QueryOrder;
+use entity::sea_orm::{ActiveModelTrait, QuerySelect};
 use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
 use entity::us_daily::{Model as UsDaily, Model};
-use entity::{us_stock, us_company_info};
+use entity::{us_company_info, us_stock};
 use ext_api::mstar;
 use tracing::{error, info, warn};
 
@@ -17,6 +17,7 @@ use common::db::get_entity_update_columns;
 use entity::sea_orm::prelude::Decimal;
 use entity::sea_orm::sea_query::OnConflict;
 use entity::sea_orm::EntityOrSelect;
+use std::collections::HashSet;
 use std::sync::Arc;
 
 pub struct FetchUsCompanyInfoTask(DatabaseConnection);
@@ -80,9 +81,26 @@ impl Task for FetchUsCompanyInfoTask {
     }
 
     async fn run(&self) -> anyhow::Result<()> {
-        let stocks = us_stock::Entity::find()
+        // existing company infos, build key set (exchange_id, symbol)
+        let existing_keys: HashSet<(String, String)> = us_company_info::Entity::find()
+            .select_only()
+            .column(us_company_info::Column::ExchangeId)
+            .column(us_company_info::Column::Symbol)
+            .into_tuple::<(String, String)>()
+            .all(&self.0)
+            .await?
+            .into_iter()
+            .collect();
+
+        // only keep stocks that don't have company info yet
+        let all_stocks = us_stock::Entity::find()
             .all(&self.0)
             .await?;
+        let stocks: Vec<us_stock::Model> = all_stocks
+            .into_iter()
+            .filter(|s| !existing_keys.contains(&(s.exchange_id.clone(), s.symbol.clone())))
+            .collect();
+
         let mut curr = 0;
         for stock in &stocks {
             let company = mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str()).await;
