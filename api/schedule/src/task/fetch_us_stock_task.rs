@@ -1,23 +1,23 @@
+use crate::task::Task;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::{Days, Local, NaiveDate};
-use tracing::{error, warn, info};
-use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
-use entity::{ths_member, us_basic, us_daily, us_stock};
-use crate::task::Task;
-use ext_api::mstar;
-use entity::us_daily::{Model as UsDaily, Model};
 use entity::sea_orm::ActiveModelTrait;
-use entity::sea_orm::EntityTrait;
-use entity::sea_orm::QueryOrder;
-use entity::sea_orm::QueryFilter;
 use entity::sea_orm::ColumnTrait;
+use entity::sea_orm::EntityTrait;
+use entity::sea_orm::QueryFilter;
+use entity::sea_orm::QueryOrder;
+use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
+use entity::us_daily::{Model as UsDaily, Model};
+use entity::{ths_member, us_basic, us_daily, us_stock};
+use ext_api::mstar;
+use tracing::{error, info, warn};
 
-use entity::sea_orm::EntityOrSelect;
-use std::sync::Arc;
 use common::db::get_entity_update_columns;
 use entity::sea_orm::prelude::Decimal;
 use entity::sea_orm::sea_query::OnConflict;
+use entity::sea_orm::EntityOrSelect;
+use std::sync::Arc;
 
 pub struct FetchUsStockTask(DatabaseConnection);
 
