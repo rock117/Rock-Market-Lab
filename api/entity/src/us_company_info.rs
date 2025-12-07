@@ -30,6 +30,7 @@ pub struct Model {
     pub country: Option<String>,
     pub symbol: String,
     pub exchange_id: String,
+    pub business_description: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
@@ -50,6 +51,7 @@ pub enum Column {
     Country,
     Symbol,
     ExchangeId,
+    BusinessDescription,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -88,6 +90,7 @@ impl ColumnTrait for Column {
             Self::Country => ColumnType::String(StringLen::N(10u32)).def().null(),
             Self::Symbol => ColumnType::String(StringLen::N(30u32)).def(),
             Self::ExchangeId => ColumnType::String(StringLen::N(10u32)).def(),
+            Self::BusinessDescription => ColumnType::Text.def().null(),
         }
     }
 }
