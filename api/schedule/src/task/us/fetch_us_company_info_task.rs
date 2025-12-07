@@ -28,6 +28,35 @@ impl FetchUsCompanyInfoTask {
         FetchUsCompanyInfoTask(connection)
     }
 
+    fn create_completion_handler(
+        completed_count: Arc<std::sync::atomic::AtomicUsize>,
+        db_conn: Arc<DatabaseConnection>,
+        total_count: usize,
+    ) -> impl Fn(us_stock::Model, (us_stock::Model, anyhow::Result<mstar::company::CompanyGeneralInfoResp>, anyhow::Result<mstar::company::CompanyBusinessDescriptionResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
+        move |original_stock, (stock, company_result, desc_result)| {
+            let completed_count = completed_count.clone();
+            let db_conn = db_conn.clone();
+            Box::pin(async move {
+                match (company_result, desc_result) {
+                    (Ok(company), Ok(desc)) => {
+                        if let Err(e) = Self::save_company_info(&*db_conn, &stock, &company, &desc).await {
+                            error!("save_company_info failed, stock: {:?}, err: {:?}", stock, e);
+                        } else {
+                            let current = completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                            info!("fetch us company info complete rate: {}/{}", current, total_count);
+                        }
+                    }
+                    (Err(e), _) => {
+                        error!("get_company_general_info failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                    }
+                    (_, Err(e)) => {
+                        error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                    }
+                }
+            })
+        }
+    }
+
     async fn save_company_info(
         db_conn: &DatabaseConnection,
         stock: &us_stock::Model,
@@ -106,6 +135,8 @@ impl Task for FetchUsCompanyInfoTask {
         let completed_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let db_conn = Arc::new(self.0.clone());
 
+        let handler = Self::create_completion_handler(completed_count, db_conn, total_count);
+        
         run_with_limit(
             5, // 并发数为5
             stocks,
@@ -117,33 +148,7 @@ impl Task for FetchUsCompanyInfoTask {
                 );
                 (stock, company_result, desc_result)
             },
-            {
-                let completed_count = completed_count.clone();
-                let db_conn = db_conn.clone();
-                move |original_stock, (stock, company_result, desc_result)| {
-                    let completed_count = completed_count.clone();
-                    let db_conn = db_conn.clone();
-                    async move {
-                        match (company_result, desc_result) {
-                            (Ok(company), Ok(desc)) => {
-                                // 直接在这里实现保存逻辑，避免创建新实例
-                                if let Err(e) = Self::save_company_info(&*db_conn, &stock, &company, &desc).await {
-                                    error!("save_company_info failed, stock: {:?}, err: {:?}", stock, e);
-                                } else {
-                                    let current = completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-                                    info!("fetch us company info complete rate: {}/{}", current, total_count);
-                                }
-                            }
-                            (Err(e), _) => {
-                                error!("get_company_general_info failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
-                            }
-                            (_, Err(e)) => {
-                                error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
-                            }
-                        }
-                    }
-                }
-            },
+            handler,
         ).await;
         info!("save company info complete");
         Ok(())
