@@ -14,6 +14,7 @@ use ext_api::mstar;
 use tracing::{error, info, warn};
 
 use common::db::get_entity_update_columns;
+use common::task_runner::run_with_limit;
 use entity::sea_orm::prelude::Decimal;
 use entity::sea_orm::sea_query::OnConflict;
 use entity::sea_orm::EntityOrSelect;
@@ -28,7 +29,7 @@ impl FetchUsCompanyInfoTask {
     }
 
     async fn save_company_info(
-        &self,
+        db_conn: &DatabaseConnection,
         stock: &us_stock::Model,
         company: &mstar::company::CompanyGeneralInfoResp,
         desc: &mstar::company::CompanyBusinessDescriptionResp,
@@ -53,7 +54,7 @@ impl FetchUsCompanyInfoTask {
             country: info.country.clone(),
             business_description: desc.business_description_entity.long_description.clone(),
         };
-        let tx = self.0.begin().await?;
+        let tx = db_conn.begin().await?;
         let pks = [
             us_company_info::Column::ExchangeId,
             us_company_info::Column::Symbol,
@@ -101,28 +102,49 @@ impl Task for FetchUsCompanyInfoTask {
             .filter(|s| !existing_keys.contains(&(s.exchange_id.clone(), s.symbol.clone())))
             .collect();
 
-        let mut curr = 0;
-        for stock in &stocks {
-            let company = mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str());
-            let desc = mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str());
+        let total_count = stocks.len();
+        let completed_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let db_conn = Arc::new(self.0.clone());
 
-            let (company, desc) = tokio::join!(company,desc);
-
-            let (company, desc) = match (company, desc) {
-                (Ok(c), Ok(d)) => (c, d),
-                (Err(e), _) => {
-                    error!("get_company_general_info failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
-                    continue;
+        run_with_limit(
+            5, // 并发数为5
+            stocks,
+            |stock| async move {
+                // 并发执行两个API调用
+                let (company_result, desc_result) = tokio::join!(
+                    mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str()),
+                    mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str())
+                );
+                (stock, company_result, desc_result)
+            },
+            {
+                let completed_count = completed_count.clone();
+                let db_conn = db_conn.clone();
+                move |original_stock, (stock, company_result, desc_result)| {
+                    let completed_count = completed_count.clone();
+                    let db_conn = db_conn.clone();
+                    async move {
+                        match (company_result, desc_result) {
+                            (Ok(company), Ok(desc)) => {
+                                // 直接在这里实现保存逻辑，避免创建新实例
+                                if let Err(e) = Self::save_company_info(&*db_conn, &stock, &company, &desc).await {
+                                    error!("save_company_info failed, stock: {:?}, err: {:?}", stock, e);
+                                } else {
+                                    let current = completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                                    info!("fetch us company info complete rate: {}/{}", current, total_count);
+                                }
+                            }
+                            (Err(e), _) => {
+                                error!("get_company_general_info failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                            }
+                            (_, Err(e)) => {
+                                error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                            }
+                        }
+                    }
                 }
-                (_, Err(e)) => {
-                    error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
-                    continue;
-                }
-            };
-            self.save_company_info(stock, &company, &desc).await?;
-            curr += 1;
-            info!("fetch us company info complete rate: {}/{}", curr, stocks.len());
-        }
+            },
+        ).await;
         info!("save company info complete");
         Ok(())
     }
