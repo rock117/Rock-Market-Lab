@@ -1,5 +1,6 @@
 pub mod auth;
 pub mod equity;
+pub mod company;
 
 use serde::{Serialize, Deserialize};
 

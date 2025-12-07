@@ -26,7 +26,28 @@ impl FetchUsStockTask {
         FetchUsStockTask(connection)
     }
 
-
+    async fn save_stocks(&self, stocks: &[us_stock::Model]) -> anyhow::Result<()> {
+        let tx = self.0.begin().await?;
+        for stock in stocks {
+            let pks = [
+                us_stock::Column::ExchangeId,
+                us_stock::Column::Symbol,
+            ];
+            let update_columns = get_entity_update_columns::<us_stock::Entity>(&pks);
+            let on_conflict = OnConflict::columns(pks)
+                .update_columns(update_columns)
+                .to_owned();
+            let am = us_stock::ActiveModel { ..stock.clone().into() };
+            if let Err(e) = us_stock::Entity::insert(am)
+                .on_conflict(on_conflict)
+                .exec(&tx)
+                .await {
+                error!("insert us_stock failed, stock: {:?}, err: {:?}", stock, e);
+            }
+        }
+        tx.commit().await?;
+        Ok(())
+    }
 }
 
 #[async_trait]
@@ -66,25 +87,7 @@ impl Task for FetchUsStockTask {
                 .collect();
             info!("Fetched {} stocks from {}", stocks.len(), exchange_id);
 
-            let tx = self.0.begin().await?;
-            for stock in &stocks {
-                let pks = [
-                    us_stock::Column::ExchangeId,
-                    us_stock::Column::Symbol,
-                ];
-                let update_columns = get_entity_update_columns::<us_stock::Entity>(&pks);
-                let on_conflict = OnConflict::columns(pks)
-                    .update_columns(update_columns)
-                    .to_owned();
-                let am = us_stock::ActiveModel { ..stock.clone().into() };
-                if let Err(e) = us_stock::Entity::insert(am)
-                    .on_conflict(on_conflict)
-                    .exec(&tx)
-                    .await {
-                    error!("insert us_stock failed,  stock: {:?}, err: {:?}", stock, e);
-                }
-            }
-            tx.commit().await?;
+            self.save_stocks(&stocks).await?;
             info!("Saved {} stocks from {} to database", stocks.len(), exchange_id);
         }
         Ok(())
