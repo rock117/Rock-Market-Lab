@@ -103,8 +103,11 @@ impl Task for FetchUsCompanyInfoTask {
 
         let mut curr = 0;
         for stock in &stocks {
-            let company = mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str()).await;
-            let desc = mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str()).await;
+            let company = mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str());
+            let desc = mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str());
+
+            let (company, desc) = tokio::join!(company,desc);
+
             let (company, desc) = match (company, desc) {
                 (Ok(c), Ok(d)) => (c, d),
                 (Err(e), _) => {
@@ -118,9 +121,7 @@ impl Task for FetchUsCompanyInfoTask {
             };
             self.save_company_info(stock, &company, &desc).await?;
             curr += 1;
-            if curr % 10 == 0 {
-                info!("fetch us company info rate: {}/{}", curr, stocks.len());
-            }
+            info!("fetch us company info complete rate: {}/{}", curr, stocks.len());
         }
         info!("save company info complete");
         Ok(())
