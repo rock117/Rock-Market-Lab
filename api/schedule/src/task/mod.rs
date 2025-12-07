@@ -27,8 +27,6 @@ pub mod fetch_margin_task;
 pub mod fetch_margin_detail_task;
 pub mod fetch_stock_monthly_task;
 pub mod fetch_fund_daily_task;
-pub mod fetch_us_basic_task;
-pub mod fetch_us_daily_task;
 pub mod fetch_ths_index_task;
 pub mod fetch_ths_member_task;
 pub mod fetch_ths_daily_task;
@@ -38,7 +36,6 @@ pub mod fetch_stk_holdertrade_task;
 pub mod fetch_dc_index_task;
 pub mod fetch_dc_member_task;
 pub mod us;
-pub mod fetch_us_stock_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {

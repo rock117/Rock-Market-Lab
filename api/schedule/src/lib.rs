@@ -26,14 +26,14 @@ use crate::task::fetch_ths_daily_task::FetchThsDailyTask;
 use crate::task::fetch_ths_index_task::FetchThsIndexTask;
 use crate::task::fetch_ths_member_task::FetchThsMemberTask;
 use crate::task::fetch_trade_calendar_task::FetchTradeCalendarTask;
-use crate::task::fetch_us_basic_task::FetchUsBasicTask;
-use crate::task::fetch_us_daily_task::FetchUsDailyTask;
+use task::us::fetch_us_basic_task::FetchUsBasicTask;
+use task::us::fetch_us_daily_task::FetchUsDailyTask;
 use entity::sea_orm::DatabaseConnection;
 use std::error::Error;
 use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
-use crate::task::fetch_us_stock_task::FetchUsStockTask;
+use task::us::fetch_us_stock_task::FetchUsStockTask;
 
 mod task;
 
