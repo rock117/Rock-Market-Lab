@@ -43,5 +43,6 @@ pub mod dc_member;
 pub mod us_stock;
 pub mod exchange;
 pub mod us_company_info;
+pub mod block_trade;
 
 pub use sea_orm;

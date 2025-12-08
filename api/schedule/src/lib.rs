@@ -34,6 +34,7 @@ use std::sync::Arc;
 use tokio_cron_scheduler::{Job, JobScheduler};
 use tracing::{error, info};
 use task::us::fetch_us_stock_task::FetchUsStockTask;
+use crate::task::fetch_block_trade_task::FetchBlockTradeTask;
 use crate::task::us::fetch_us_company_info_task::FetchUsCompanyInfoTask;
 
 mod task;
@@ -140,7 +141,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
         //  Arc::new(FetchDcIndexTask::new(conn.clone())),
-        Arc::new(FetchDcMemberTask::new(conn.clone())),
+       // Arc::new(FetchDcMemberTask::new(conn.clone())),
+        Arc::new(FetchBlockTradeTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
         // Arc::new(FetchThsIndexTask::new(conn.clone())),
@@ -154,8 +156,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     
     // jobs.extend(dailys);
-    // jobs.extend(others);
-    jobs.extend(us);
+    jobs.extend(others);
+  //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);
     // jobs.extend(security_list);
