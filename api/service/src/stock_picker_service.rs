@@ -9,7 +9,9 @@ use entity::sea_orm::{DatabaseConnection, EntityTrait, JsonValue, QueryFilter, Q
 use entity::{stock, stock_daily, stock_daily_basic, finance_indicator, income, cashflow, balancesheet};
 use entity::sea_orm::ColumnTrait;
 use std::collections::HashMap;
+use std::sync::{Arc, Mutex};
 use tracing::{info, warn};
+use common::task_runner::run_with_limit;
 use crate::strategy::{
     PriceVolumeCandlestickStrategy, PriceVolumeStrategyConfig,
     BottomVolumeSurgeStrategy, BottomVolumeSurgeConfig,
@@ -208,57 +210,108 @@ impl StockPickerService {
         let stocks = stock::Entity::find().all(&self.db).await?;
         info!("共获取 {} 只股票", stocks.len());
 
-        let mut results = Vec::new();
-        let mut processed = 0;
         let total = stocks.len();
-
-        // 遍历所有股票进行分析
-        for stock_model in stocks {
-            processed += 1;
-            
-            // 准备股票分析数据
-            let security_data = match self
-                .prepare_stock_data(
-                    &stock_model.ts_code,
-                    strategy_type,
-                    start_date,
-                    end_date,
-                    strategy.required_data_points(),
-                )
-                .await?
+        let prepared_data = Arc::new(Mutex::new(Vec::new()));
+        let processed_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+        let db_conn = Arc::new(self.db.clone());
+        
+        // 预先获取策略所需的数据点数
+        let required_data_points = strategy.required_data_points();
+        
+        // 第一阶段：使用 run_with_limit 并行准备数据
+        info!("开始并行准备股票数据...");
+        run_with_limit(
+            10, // 并发数设为10
+            stocks,
             {
-                Some(data) => data,
-                None => continue, // 数据不足，跳过
-            };
-
-            // 使用策略分析
+                let strategy_type = strategy_type.to_string();
+                let db_conn = db_conn.clone();
+                let start_date = *start_date;
+                let end_date = *end_date;
+                move |stock_model| {
+                    let strategy_type = strategy_type.clone();
+                    let db_conn = db_conn.clone();
+                    async move {
+                        // 使用静态方法准备股票分析数据
+                        match StockPickerService::prepare_stock_data(
+                            &*db_conn,
+                            &stock_model.ts_code,
+                            &strategy_type,
+                            &start_date,
+                            &end_date,
+                            required_data_points,
+                        )
+                        .await
+                        {
+                            Ok(Some(data)) => Some((stock_model, data)),
+                            Ok(None) => None, // 数据不足，跳过
+                            Err(e) => {
+                                warn!("准备股票 {} 数据失败: {}", stock_model.ts_code, e);
+                                None
+                            }
+                        }
+                    }
+                }
+            },
+            {
+                let prepared_data = prepared_data.clone();
+                let processed_count = processed_count.clone();
+                move |_original_stock, data_result| {
+                    let prepared_data = prepared_data.clone();
+                    let processed_count = processed_count.clone();
+                    async move {
+                        let current = processed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
+                        
+                        // 如果数据准备成功，添加到准备好的数据列表
+                        if let Some(data) = data_result {
+                            let mut prepared_guard = prepared_data.lock().unwrap();
+                            prepared_guard.push(data);
+                        }
+                        
+                        // 每处理100只股票输出进度
+                        if current % 100 == 0 {
+                            info!("数据准备进度: {}/{} ({:.1}%)", current, total, (current as f64 / total as f64) * 100.0);
+                        }
+                    }
+                }
+            },
+        ).await;
+        
+        // 第二阶段：串行进行策略分析
+        let prepared_stocks = Arc::try_unwrap(prepared_data).unwrap().into_inner().unwrap();
+        let prepared_count = prepared_stocks.len();
+        info!("数据准备完成，开始策略分析，共 {} 只股票有效数据", prepared_count);
+        
+        let mut results = Vec::new();
+        for (i, (stock_model, security_data)) in prepared_stocks.into_iter().enumerate() {
             match strategy.analyze(&stock_model.ts_code, &security_data) {
                 Ok(result) => {
                     // 筛选符合信号条件的股票
                     if self.meets_signal_criteria(&result.strategy_signal(), &min_signal) {
-                        results.push(StockPickResult {
+                        let pick_result = StockPickResult {
                             ts_code: stock_model.ts_code.clone(),
                             stock_name: stock_model.name.clone(),
                             strategy_result: result,
-                        });
+                        };
                         
                         info!(
                             "找到符合条件的股票: {} ({}), 信号: {:?}, 强度: {}",
-                            stock_model.ts_code,
-                            stock_model.name.as_deref().unwrap_or("未知"),
-                            results.last().unwrap().strategy_result.strategy_signal(),
-                            results.last().unwrap().strategy_result.signal_strength()
+                            pick_result.ts_code,
+                            pick_result.stock_name.as_deref().unwrap_or("未知"),
+                            pick_result.strategy_result.strategy_signal(),
+                            pick_result.strategy_result.signal_strength()
                         );
+                        results.push(pick_result);
                     }
                 }
                 Err(e) => {
                     warn!("分析股票 {} 失败: {}", stock_model.ts_code, e);
                 }
             }
-
-            // 每处理100只股票输出进度
-            if processed % 100 == 0 {
-                info!("选股进度: {}/{} ({:.1}%)", processed, total, (processed as f64 / total as f64) * 100.0);
+            
+            // 每分析100只股票输出进度
+            if (i + 1) % 100 == 0 {
+                info!("策略分析进度: {}/{}", i + 1, prepared_count);
             }
         }
 
@@ -277,14 +330,14 @@ impl StockPickerService {
         Ok(results)
     }
 
-
-
-    /// 准备股票分析数据
+    /// 准备股票分析数据（静态方法）
     /// 
     /// 获取股票日线数据并转换为策略所需的 SecurityData 格式
     /// 
     /// # 参数
+    /// - `db`: 数据库连接
     /// - `ts_code`: 股票代码
+    /// - `strategy_type`: 策略类型
     /// - `start_date`: 开始日期
     /// - `end_date`: 结束日期
     /// - `required_points`: 策略所需的最少数据点数
@@ -294,7 +347,7 @@ impl StockPickerService {
     /// - `Ok(None)`: 数据不足，无法进行分析
     /// - `Err`: 数据库查询错误
     async fn prepare_stock_data(
-        &self,
+        db: &DatabaseConnection,
         ts_code: &str,
         strategy_type: &str,
         start_date: &NaiveDate,
@@ -303,9 +356,9 @@ impl StockPickerService {
     ) -> Result<Option<Vec<SecurityData>>> {
         // 获取股票日线数据
         if strategy_type == "" {
-            self.get_financial_data(ts_code).await
+            Self::get_financial_data(db, ts_code).await
         } else {
-            let daily_data = self.get_stock_daily_data(ts_code, start_date, end_date).await?;
+            let daily_data = Self::get_stock_daily_data_static(db, ts_code, start_date, end_date).await?;
             // 检查数据是否足够
             if daily_data.len() < required_points {
                 warn!(
@@ -327,9 +380,19 @@ impl StockPickerService {
         }
     }
 
-    /// 获取股票日线数据（包含基本面数据）
+    /// 获取股票日线数据（实例方法）
     async fn get_stock_daily_data(
         &self,
+        ts_code: &str,
+        start_date: &NaiveDate,
+        end_date: &NaiveDate,
+    ) -> Result<Vec<(stock_daily::Model, stock_daily_basic::Model)>> {
+        Self::get_stock_daily_data_static(&self.db, ts_code, start_date, end_date).await
+    }
+
+    /// 获取股票日线数据（静态方法，包含基本面数据）
+    async fn get_stock_daily_data_static(
+        db: &DatabaseConnection,
         ts_code: &str,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
@@ -343,7 +406,7 @@ impl StockPickerService {
             .filter(stock_daily::Column::TradeDate.gte(&start))
             .filter(stock_daily::Column::TradeDate.lte(&end))
             .order_by_asc(stock_daily::Column::TradeDate)
-            .all(&self.db)
+            .all(db)
             .await?;
 
         // 获取基本面数据
@@ -352,7 +415,7 @@ impl StockPickerService {
             .filter(stock_daily_basic::Column::TradeDate.gte(&start))
             .filter(stock_daily_basic::Column::TradeDate.lte(&end))
             .order_by_asc(stock_daily_basic::Column::TradeDate)
-            .all(&self.db)
+            .all(db)
             .await?;
 
         // 将两个数据集按日期匹配
@@ -397,13 +460,14 @@ impl StockPickerService {
     /// - `accounts_receivable` <- balancesheet.accounts_receiv
     /// - `advances_from_customers` <- balancesheet.adv_receipts
     /// - `accounts_payable` <- balancesheet.acct_payable
-    pub async fn get_financial_data(&self, ts_code: &str) -> Result<Option<Vec<SecurityData>>> {
+    /// 获取财务数据（静态方法）
+    async fn get_financial_data(db: &DatabaseConnection, ts_code: &str) -> Result<Option<Vec<SecurityData>>> {
         let report_type = "1"; //合并报表
         // 1. 查询财务指标表（毛利率）
         let indicators = finance_indicator::Entity::find()
             .filter(finance_indicator::Column::TsCode.eq(ts_code))
             .order_by_asc(finance_indicator::Column::EndDate)
-            .all(&self.db)
+            .all(db)
             .await?;
         
         // 2. 查询利润表（营收、净利润、三费）
@@ -412,7 +476,7 @@ impl StockPickerService {
             .filter(ColumnTrait::eq(&income::Column::ReportType, report_type))
             .filter(income::Column::EndDate.is_not_null())
             .order_by_asc(income::Column::EndDate)
-            .all(&self.db)
+            .all(db)
             .await?;
         
         // 3. 查询现金流量表（经营现金流）
@@ -420,7 +484,7 @@ impl StockPickerService {
             .filter(ColumnTrait::eq(&cashflow::Column::TsCode, ts_code))
             .filter(ColumnTrait::eq(&cashflow::Column::ReportType, ts_code))
             .order_by_asc(cashflow::Column::EndDate)
-            .all(&self.db)
+            .all(db)
             .await?;
         
         // 4. 查询资产负债表（存货、应收、预收、应付）
@@ -428,7 +492,7 @@ impl StockPickerService {
             .filter(ColumnTrait::eq(&balancesheet::Column::TsCode, ts_code))
             .filter(ColumnTrait::eq(&balancesheet::Column::ReportType, ts_code))
             .order_by_asc(balancesheet::Column::EndDate)
-            .all(&self.db)
+            .all(db)
             .await?;
         
         // 构建 end_date -> 各表数据的映射
