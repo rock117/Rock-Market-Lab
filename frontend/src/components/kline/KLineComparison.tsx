@@ -25,12 +25,17 @@ import {
   BarChart3, 
   Activity,
   Target,
-  Zap
+  Zap,
+  Calendar,
+  Clock
 } from 'lucide-react'
 
 interface KLineComparisonProps {
   className?: string
 }
+
+// 时间周期类型
+type TimePeriod = 'daily' | 'weekly' | 'monthly'
 
 export default function KLineComparison({ className }: KLineComparisonProps) {
   const [selectedSecurities, setSelectedSecurities] = useState<Security[]>([
@@ -40,19 +45,38 @@ export default function KLineComparison({ className }: KLineComparisonProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<Security[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+  
+  // 时间控制状态
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setMonth(date.getMonth() - 3) // 默认3个月前
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0] // 默认今天
+  })
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>('daily') // 默认日线
 
   // 获取K线数据
   const { data: klineData, isLoading: klineLoading } = useQuery({
-    queryKey: ['kline-data', selectedSecurities],
-    queryFn: () => klineApi.getSecurityKLineData(selectedSecurities),
+    queryKey: ['kline-data', selectedSecurities, startDate, endDate, timePeriod],
+    queryFn: () => klineApi.getSecurityKLineData(selectedSecurities, {
+      startDate,
+      endDate,
+      period: timePeriod
+    }),
     enabled: selectedSecurities.length > 0,
     staleTime: 5 * 60 * 1000,
   })
 
   // 获取趋势分析
   const { data: trendAnalysis, isLoading: analysisLoading } = useQuery({
-    queryKey: ['trend-analysis', selectedSecurities],
-    queryFn: () => klineApi.analyzeTrendCorrelation(selectedSecurities),
+    queryKey: ['trend-analysis', selectedSecurities, startDate, endDate, timePeriod],
+    queryFn: () => klineApi.analyzeTrendCorrelation(selectedSecurities, {
+      startDate,
+      endDate,
+      period: timePeriod
+    }),
     enabled: selectedSecurities.length >= 2,
     staleTime: 5 * 60 * 1000,
   })
@@ -223,6 +247,120 @@ export default function KLineComparison({ className }: KLineComparisonProps) {
                   </button>
                 </div>
               ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* 时间控制组件 */}
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Calendar className="h-5 w-5" />
+            时间设置
+          </CardTitle>
+          <CardDescription>
+            设置K线数据的时间范围和周期
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* 开始时间 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">开始时间</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              />
+            </div>
+
+            {/* 结束时间 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">结束时间</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              />
+            </div>
+
+            {/* 时间周期 */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">时间周期</label>
+              <select
+                value={timePeriod}
+                onChange={(e) => setTimePeriod(e.target.value as TimePeriod)}
+                className="w-full px-3 py-2 border rounded-md text-sm"
+              >
+                <option value="daily">日线</option>
+                <option value="weekly">周线</option>
+                <option value="monthly">月线</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 快捷时间选择 */}
+          <div className="mt-4">
+            <label className="text-sm font-medium mb-2 block">快捷选择</label>
+            <div className="flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  const end = new Date().toISOString().split('T')[0]
+                  const start = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                  setStartDate(start)
+                  setEndDate(end)
+                }}
+                className="px-3 py-1 text-xs border rounded hover:bg-muted"
+              >
+                近1个月
+              </button>
+              <button
+                onClick={() => {
+                  const end = new Date().toISOString().split('T')[0]
+                  const start = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                  setStartDate(start)
+                  setEndDate(end)
+                }}
+                className="px-3 py-1 text-xs border rounded hover:bg-muted"
+              >
+                近3个月
+              </button>
+              <button
+                onClick={() => {
+                  const end = new Date().toISOString().split('T')[0]
+                  const start = new Date(Date.now() - 180 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                  setStartDate(start)
+                  setEndDate(end)
+                }}
+                className="px-3 py-1 text-xs border rounded hover:bg-muted"
+              >
+                近6个月
+              </button>
+              <button
+                onClick={() => {
+                  const end = new Date().toISOString().split('T')[0]
+                  const start = new Date(Date.now() - 365 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+                  setStartDate(start)
+                  setEndDate(end)
+                }}
+                className="px-3 py-1 text-xs border rounded hover:bg-muted"
+              >
+                近1年
+              </button>
+            </div>
+          </div>
+
+          {/* 当前设置显示 */}
+          <div className="mt-4 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="h-4 w-4" />
+              <span className="font-medium">当前设置:</span>
+              <span>{startDate} 至 {endDate}</span>
+              <span className="text-muted-foreground">|</span>
+              <span>{timePeriod === 'daily' ? '日线' : timePeriod === 'weekly' ? '周线' : '月线'}</span>
             </div>
           </div>
         </CardContent>

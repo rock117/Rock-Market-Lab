@@ -317,17 +317,69 @@ const mockStockDetail: StockDetail = {
   }
 }
 
+// 股票搜索模拟数据
+const mockStockList = [
+  { ts_code: '000001.SZ', name: '平安银行', market: 'SZ' },
+  { ts_code: '000002.SZ', name: '万科A', market: 'SZ' },
+  { ts_code: '000858.SZ', name: '五粮液', market: 'SZ' },
+  { ts_code: '300750.SZ', name: '宁德时代', market: 'SZ' },
+  { ts_code: '600036.SH', name: '招商银行', market: 'SH' },
+  { ts_code: '600519.SH', name: '贵州茅台', market: 'SH' },
+  { ts_code: '600887.SH', name: '伊利股份', market: 'SH' },
+  { ts_code: '002415.SZ', name: '海康威视', market: 'SZ' },
+  { ts_code: '000725.SZ', name: '京东方A', market: 'SZ' },
+  { ts_code: '601318.SH', name: '中国平安', market: 'SH' },
+  { ts_code: '600276.SH', name: '恒瑞医药', market: 'SH' },
+  { ts_code: '000063.SZ', name: '中兴通讯', market: 'SZ' }
+]
+
 // 股票详情API
 export const stockDetailApi = {
+  // 搜索股票
+  searchStocks: async (keyword: string) => {
+    await delay(300)
+    
+    if (!keyword || keyword.length < 1) {
+      return { stocks: [] }
+    }
+    
+    const filteredStocks = mockStockList.filter(stock => 
+      stock.name.toLowerCase().includes(keyword.toLowerCase()) ||
+      stock.ts_code.toLowerCase().includes(keyword.toLowerCase())
+    )
+    
+    return { stocks: filteredStocks }
+  },
+
+  // 获取股票详情
   getStockDetail: async (ts_code: string): Promise<StockDetail> => {
     await delay(400)
-    // 根据不同股票代码返回不同数据，这里简化为同一个模拟数据
+    
+    // 根据不同股票代码返回不同数据
+    const stockInfo = mockStockList.find(stock => stock.ts_code === ts_code)
+    const stockName = stockInfo?.name || '示例股票'
+    
+    // 为不同股票生成不同的模拟数据
+    const basePrice = ts_code === '600519.SH' ? 1680 : // 贵州茅台
+                     ts_code === '300750.SZ' ? 185 :   // 宁德时代
+                     ts_code === '000858.SZ' ? 158 :   // 五粮液
+                     ts_code === '600036.SH' ? 38 :    // 招商银行
+                     ts_code === '000002.SZ' ? 8.5 :   // 万科A
+                     12.58 // 平安银行等其他
+    
+    const changePercent = (Math.random() - 0.5) * 6 // -3% 到 3%
+    const change = basePrice * (changePercent / 100)
+    
     return {
       ...mockStockDetail,
       ts_code,
-      name: ts_code === '000001.SZ' ? '平安银行' : 
-            ts_code === '000002.SZ' ? '万科A' :
-            ts_code === '600036.SH' ? '招商银行' : '示例股票'
+      name: stockName,
+      current_price: Number((basePrice + change).toFixed(2)),
+      change: Number(change.toFixed(2)),
+      pct_chg: Number(changePercent.toFixed(2)),
+      pe_ratio: Number((Math.random() * 30 + 5).toFixed(1)),
+      pb_ratio: Number((Math.random() * 3 + 0.5).toFixed(2)),
+      five_day_return: Number((Math.random() * 10 - 5).toFixed(2))
     }
   }
 }
@@ -416,8 +468,20 @@ export const klineApi = {
   },
 
   // 获取证券K线数据
-  getSecurityKLineData: async (securities: Security[]): Promise<SecurityKLineData[]> => {
+  getSecurityKLineData: async (
+    securities: Security[], 
+    options?: {
+      startDate?: string
+      endDate?: string
+      period?: 'daily' | 'weekly' | 'monthly'
+    }
+  ): Promise<SecurityKLineData[]> => {
     await delay(600)
+    
+    // 计算数据天数
+    const startDate = options?.startDate ? new Date(options.startDate) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    const endDate = options?.endDate ? new Date(options.endDate) : new Date()
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
     
     return securities.map((security, index) => {
       // 根据证券类型设置不同的起始价格
@@ -438,14 +502,21 @@ export const klineApi = {
       
       return {
         security,
-        data: generateKLineData(startPrice, 60),
+        data: generateKLineDataWithDateRange(startPrice, startDate, endDate, options?.period || 'daily'),
         color: chartColors[index % chartColors.length]
       }
     })
   },
 
   // 分析趋势相关性
-  analyzeTrendCorrelation: async (securities: Security[]): Promise<TrendAnalysis> => {
+  analyzeTrendCorrelation: async (
+    securities: Security[],
+    options?: {
+      startDate?: string
+      endDate?: string
+      period?: 'daily' | 'weekly' | 'monthly'
+    }
+  ): Promise<TrendAnalysis> => {
     await delay(300)
     
     // 模拟相关性分析结果
@@ -459,11 +530,92 @@ export const klineApi = {
     
     const sync_rate = absCorrelation * 100
     
+    // 根据时间周期生成分析周期描述
+    const startDate = options?.startDate ? new Date(options.startDate) : new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)
+    const endDate = options?.endDate ? new Date(options.endDate) : new Date()
+    const daysDiff = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+    
+    let periodDesc = ''
+    if (options?.period === 'weekly') {
+      periodDesc = `近${Math.ceil(daysDiff / 7)}周`
+    } else if (options?.period === 'monthly') {
+      periodDesc = `近${Math.ceil(daysDiff / 30)}个月`
+    } else {
+      periodDesc = `近${daysDiff}个交易日`
+    }
+    
     return {
       correlation: Number(correlation.toFixed(3)),
       trend_consistency,
       sync_rate: Number(sync_rate.toFixed(1)),
-      analysis_period: '近60个交易日'
+      analysis_period: periodDesc
     }
   }
+}
+
+// 根据日期范围和周期生成K线数据
+function generateKLineDataWithDateRange(
+  startPrice: number, 
+  startDate: Date, 
+  endDate: Date, 
+  period: 'daily' | 'weekly' | 'monthly'
+): KLineData[] {
+  const data: KLineData[] = []
+  let currentPrice = startPrice
+  let currentDate = new Date(startDate)
+  
+  // 根据周期设置日期增量
+  const getNextDate = (date: Date, period: string): Date => {
+    const nextDate = new Date(date)
+    switch (period) {
+      case 'weekly':
+        nextDate.setDate(nextDate.getDate() + 7)
+        break
+      case 'monthly':
+        nextDate.setMonth(nextDate.getMonth() + 1)
+        break
+      default: // daily
+        nextDate.setDate(nextDate.getDate() + 1)
+        break
+    }
+    return nextDate
+  }
+  
+  // 根据周期调整波动率
+  const getVolatility = (period: string): number => {
+    switch (period) {
+      case 'weekly':
+        return 0.06 // 6%波动率
+      case 'monthly':
+        return 0.12 // 12%波动率
+      default: // daily
+        return 0.03 // 3%波动率
+    }
+  }
+  
+  const volatility = getVolatility(period)
+  
+  while (currentDate <= endDate) {
+    // 模拟价格波动
+    const change = (Math.random() - 0.5) * 2 * volatility
+    const open = currentPrice
+    const close = currentPrice * (1 + change)
+    const high = Math.max(open, close) * (1 + Math.random() * 0.02)
+    const low = Math.min(open, close) * (1 - Math.random() * 0.02)
+    const volume = Math.floor(Math.random() * 1000000 + 500000)
+    
+    data.push({
+      date: currentDate.toISOString().split('T')[0],
+      open: Number(open.toFixed(2)),
+      high: Number(high.toFixed(2)),
+      low: Number(low.toFixed(2)),
+      close: Number(close.toFixed(2)),
+      volume
+    })
+    
+    currentPrice = close
+    currentDate = getNextDate(currentDate, period)
+  }
+  
+  return data
 }

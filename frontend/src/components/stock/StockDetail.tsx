@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -12,7 +12,8 @@ import {
   formatPercent, 
   formatDate, 
   getTrendColorClass, 
-  getStockTrend 
+  getStockTrend,
+  debounce
 } from '@/lib/utils'
 import { 
   TrendingUp, 
@@ -24,27 +25,66 @@ import {
   PieChart,
   ArrowUpDown,
   Target,
-  Briefcase
+  Briefcase,
+  Search,
+  X
 } from 'lucide-react'
 
 interface StockDetailProps {
   className?: string
 }
 
+interface StockSearchResult {
+  ts_code: string
+  name: string
+  market: string
+}
+
 export default function StockDetail({ className }: StockDetailProps) {
-  const [selectedStock, setSelectedStock] = useState('000001.SZ')
+  const [selectedStock, setSelectedStock] = useState('000001.SZ') // 默认选择平安银行
+  const [searchKeyword, setSearchKeyword] = useState('')
+  const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
+  const [showSearchResults, setShowSearchResults] = useState(false)
   
+  // 获取股票详情
   const { data: stockDetail, isLoading, error } = useQuery({
     queryKey: ['stock-detail', selectedStock],
     queryFn: () => stockDetailApi.getStockDetail(selectedStock),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
   })
 
-  const stockOptions = [
-    { value: '000001.SZ', label: '平安银行 (000001.SZ)' },
-    { value: '000002.SZ', label: '万科A (000002.SZ)' },
-    { value: '600036.SH', label: '招商银行 (600036.SH)' }
-  ]
+  // 搜索股票
+  const { data: searchData } = useQuery({
+    queryKey: ['search-stocks', searchKeyword],
+    queryFn: () => stockDetailApi.searchStocks(searchKeyword),
+    enabled: searchKeyword.length >= 1,
+    staleTime: 2 * 60 * 1000,
+  })
+
+  useEffect(() => {
+    if (searchData?.stocks) {
+      setSearchResults(searchData.stocks)
+      setShowSearchResults(true)
+    }
+  }, [searchData])
+
+  // 防抖搜索
+  const debouncedSearch = debounce((keyword: string) => {
+    setSearchKeyword(keyword)
+  }, 300)
+
+  // 选择股票
+  const selectStock = (stock: StockSearchResult) => {
+    setSelectedStock(stock.ts_code)
+    setSearchKeyword('')
+    setShowSearchResults(false)
+  }
+
+  // 清空搜索
+  const clearSearch = () => {
+    setSearchKeyword('')
+    setShowSearchResults(false)
+  }
 
   if (isLoading) {
     return (
@@ -99,19 +139,58 @@ export default function StockDetail({ className }: StockDetailProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <label className="text-sm font-medium">选择股票:</label>
-            <select
-              value={selectedStock}
-              onChange={(e) => setSelectedStock(e.target.value)}
-              className="px-3 py-2 border rounded-md text-sm min-w-[200px]"
-            >
-              {stockOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+          {/* 股票搜索框 */}
+          <div className="relative mb-6">
+            <div className="flex items-center gap-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <div className="relative flex-1 max-w-md">
+                <input
+                  type="text"
+                  placeholder="搜索股票代码或名称..."
+                  className="w-full px-3 py-2 border rounded-md text-sm pr-8"
+                  onChange={(e) => debouncedSearch(e.target.value)}
+                  onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
+                />
+                {searchKeyword && (
+                  <button
+                    onClick={clearSearch}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            {/* 搜索结果下拉框 */}
+            {showSearchResults && searchResults.length > 0 && (
+              <div className="absolute top-full left-6 right-0 mt-1 bg-white border rounded-md shadow-lg z-10 max-h-60 overflow-y-auto max-w-md">
+                {searchResults.map((stock) => (
+                  <div
+                    key={stock.ts_code}
+                    className="p-3 hover:bg-muted cursor-pointer border-b last:border-b-0"
+                    onClick={() => selectStock(stock)}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="font-medium">{stock.name}</span>
+                        <span className="text-sm text-muted-foreground ml-2">{stock.ts_code}</span>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{stock.market}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* 当前选中股票信息 */}
+          <div className="mb-4 p-3 bg-muted rounded-lg">
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">当前股票:</span>
+              <span className="font-medium">{stockDetail.name}</span>
+              <span className="text-sm text-muted-foreground">({stockDetail.ts_code})</span>
+            </div>
           </div>
           
           {/* 股票基本信息 */}
