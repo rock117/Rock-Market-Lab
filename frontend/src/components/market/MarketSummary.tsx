@@ -24,9 +24,7 @@ export default function MarketSummary({ className }: MarketSummaryProps) {
   // 获取主要指数数据
   const { data: indexData, isLoading: indexLoading } = useQuery({
     queryKey: ['index-data'],
-    queryFn: () => stockApi.getIndexData({
-      ts_codes: ['000001.SH', '399001.SZ', '399006.SZ'] // 上证指数、深证成指、创业板指
-    }),
+    queryFn: () => stockApi.getIndexData(),
     staleTime: 2 * 60 * 1000,
   })
 

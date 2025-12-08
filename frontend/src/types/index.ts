@@ -16,43 +16,7 @@ export interface UsStock {
   address?: string;
 }
 
-export interface UsCompanyInfo {
-  symbol: string;
-  company_name: string;
-  exchange: string;
-  founded_date?: string;
-  employee_count?: number;
-  address?: string;
-  website?: string;
-  description?: string;
-}
-
-export interface UsDaily {
-  symbol: string;
-  trade_date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  volume: number;
-  amount?: number;
-}
-
 // A股相关类型定义
-export interface StockDaily {
-  ts_code: string;
-  trade_date: string;
-  open: number;
-  high: number;
-  low: number;
-  close: number;
-  pre_close: number;
-  change: number;
-  pct_chg: number;
-  vol: number;
-  amount: number;
-}
-
 export interface MarketSummary {
   trade_date: string;
   total_stocks: number;
@@ -81,30 +45,6 @@ export interface IndexData {
   amount: number;
 }
 
-// 涨跌分布数据
-export interface PriceDistribution {
-  range: string; // 如 ">9%", "7-9%", "5-7%" 等
-  count: number;
-  percentage: number;
-}
-
-// 均线数据
-export interface MovingAverageData {
-  ma5: number;
-  ma10: number;
-  ma20: number;
-  ma60: number;
-  ma120: number;
-  ma250: number;
-}
-
-// API响应类型
-export interface ApiResponse<T> {
-  code: number;
-  message: string;
-  data: T;
-}
-
 // 分页响应
 export interface PagedResponse<T> {
   items: T[];
@@ -114,39 +54,130 @@ export interface PagedResponse<T> {
   total_pages: number;
 }
 
-// 通用筛选参数
-export interface FilterParams {
-  page?: number;
-  page_size?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
-
-// 美股筛选参数
-export interface UsStockFilterParams extends FilterParams {
-  exchange?: string;
-  industry?: string;
-  sector?: string;
-  min_market_cap?: number;
-  max_market_cap?: number;
-  min_pe?: number;
-  max_pe?: number;
-  min_roe?: number;
-  max_roe?: number;
-}
-
 // 颜色工具类型
 export type StockTrend = 'up' | 'down' | 'neutral';
 
 // 图表数据类型
-export interface ChartDataPoint {
-  date: string;
-  value: number;
-  label?: string;
-}
-
 export interface PieChartData {
   name: string;
   value: number;
   color?: string;
+}
+
+// 股票详情相关类型定义
+export interface StockDetail {
+  ts_code: string;
+  name: string;
+  current_price: number;
+  change: number;
+  pct_chg: number;
+  pe_ratio?: number;
+  pb_ratio?: number;
+  five_day_return: number;
+  fundamentals: StockFundamentals;
+  block_trades: BlockTrade[];
+  concepts: string[];
+  sectors: string[];
+  shareholding_changes: ShareholdingChange[];
+  margin_trading: MarginTradingData;
+  shareholder_count: ShareholderData;
+}
+
+// 基本面数据
+export interface StockFundamentals {
+  roe: number; // 净资产收益率
+  gross_margin: number; // 毛利率
+  net_margin: number; // 净利率
+  debt_ratio: number; // 资产负债率
+  current_ratio: number; // 流动比率
+  revenue_growth: number; // 营收增长率
+  net_profit_growth: number; // 净利润增长率
+}
+
+// 大宗交易
+export interface BlockTrade {
+  trade_date: string;
+  price: number;
+  volume: number;
+  amount: number;
+  buyer: string;
+  seller: string;
+  premium_rate: number; // 溢价率
+}
+
+// 增减持数据
+export interface ShareholdingChange {
+  holder_name: string;
+  change_type: 'increase' | 'decrease'; // 增持/减持
+  change_shares: number; // 变动股数
+  change_ratio: number; // 变动比例
+  change_date: string;
+  current_ratio: number; // 变动后持股比例
+}
+
+// 融资融券数据
+export interface MarginTradingData {
+  margin_balance: number; // 融资余额
+  margin_buy: number; // 融资买入额
+  short_balance: number; // 融券余额
+  short_sell: number; // 融券卖出量
+  margin_ratio: number; // 融资融券比例
+}
+
+// 股东人数数据
+export interface ShareholderData {
+  holder_count: number; // 股东人数
+  avg_holding: number; // 户均持股
+  change_ratio: number; // 股东人数变化率
+  report_date: string;
+}
+
+// K线比较相关类型定义
+export type SecurityType = 'stock' | 'fund' | 'index';
+
+export interface Security {
+  code: string;
+  name: string;
+  type: SecurityType;
+  market?: string; // 市场：SH/SZ
+}
+
+export interface KLineData {
+  date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  amount?: number;
+}
+
+export interface SecurityKLineData {
+  security: Security;
+  data: KLineData[];
+  color: string; // 图表显示颜色
+}
+
+// 证券搜索结果
+export interface SecuritySearchResult {
+  securities: Security[];
+}
+
+// K线图表配置
+export interface KLineChartConfig {
+  showVolume: boolean; // 是否显示成交量
+  period: '1D' | '1W' | '1M'; // 时间周期
+  indicators: string[]; // 技术指标
+  dateRange: {
+    start: string;
+    end: string;
+  };
+}
+
+// 涨跌趋势分析结果
+export interface TrendAnalysis {
+  correlation: number; // 相关系数 (-1 到 1)
+  trend_consistency: 'high' | 'medium' | 'low'; // 趋势一致性
+  sync_rate: number; // 同步率 (0-100%)
+  analysis_period: string;
 }

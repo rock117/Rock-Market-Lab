@@ -36,11 +36,11 @@ export default function RootLayout({
                     <a href="#us-stocks" className="text-sm font-medium hover:text-primary">
                       美股市场
                     </a>
-                    <a href="#analysis" className="text-sm font-medium hover:text-primary">
-                      技术分析
+                    <a href="#stock-detail" className="text-sm font-medium hover:text-primary">
+                      个股详情
                     </a>
-                    <a href="#portfolio" className="text-sm font-medium hover:text-primary">
-                      投资组合
+                    <a href="#kline-comparison" className="text-sm font-medium hover:text-primary">
+                      K线对比
                     </a>
                   </nav>
                 </div>
