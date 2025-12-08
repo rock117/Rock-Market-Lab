@@ -19,44 +19,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <body className={inter.className}>
         <QueryProvider>
-          <div className="min-h-screen bg-background">
-            <header className="border-b bg-card">
-              <div className="container mx-auto px-4 py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-                      <span className="text-primary-foreground font-bold text-sm">R</span>
-                    </div>
-                    <h1 className="text-xl font-bold">Rock Market Lab</h1>
-                  </div>
-                  <nav className="flex items-center gap-6">
-                    <a href="#market" className="text-sm font-medium hover:text-primary">
-                      A股大盘
-                    </a>
-                    <a href="#us-stocks" className="text-sm font-medium hover:text-primary">
-                      美股市场
-                    </a>
-                    <a href="#stock-detail" className="text-sm font-medium hover:text-primary">
-                      个股详情
-                    </a>
-                    <a href="#kline-comparison" className="text-sm font-medium hover:text-primary">
-                      K线对比
-                    </a>
-                  </nav>
-                </div>
-              </div>
-            </header>
-            <main className="container mx-auto px-4 py-6">
-              {children}
-            </main>
-            <footer className="border-t bg-card mt-12">
-              <div className="container mx-auto px-4 py-6">
-                <div className="text-center text-sm text-muted-foreground">
-                  © 2024 Rock Market Lab. 专业股票分析平台
-                </div>
-              </div>
-            </footer>
-          </div>
+          {children}
         </QueryProvider>
       </body>
     </html>
