@@ -1,37 +1,108 @@
-//! 大模型调用模块
-//! 
-//! 提供统一的大模型调用接口，支持多种大模型提供商：
-//! - OpenAI (ChatGPT)
-//! - DeepSeek
-//! - Google Gemini
-//! - Anthropic Claude
-//! - 其他兼容 OpenAI API 的模型
+use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
+use crate::http;
 
-pub mod types;
-pub mod providers;
-pub mod client;
-pub mod config;
-pub mod error;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatMessage {
+    pub content: String,
+    pub role: String,
+}
 
-pub use types::*;
-pub use client::{LlmClient, LlmClientBuilder};
-pub use config::{LlmConfig, LlmConfigManager};
-pub use error::{LlmError, LlmResult};
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ThinkingConfig {
+    #[serde(rename = "type")]
+    pub thinking_type: String,
+}
 
-// 重新导出主要的提供商
-pub use providers::openai::OpenAiProvider;
-pub use providers::deepseek::DeepSeekProvider;
-pub use providers::gemini::GeminiProvider;
-pub use providers::claude::ClaudeProvider;
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ResponseFormat {
+    #[serde(rename = "type")]
+    pub format_type: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatRequest {
+    pub messages: Vec<ChatMessage>,
+    pub model: String,
+    pub thinking: Option<ThinkingConfig>,
+    pub frequency_penalty: Option<f64>,
+    pub max_tokens: Option<u32>,
+    pub presence_penalty: Option<f64>,
+    pub response_format: Option<ResponseFormat>,
+    pub stop: Option<String>,
+    pub stream: Option<bool>,
+    pub stream_options: Option<serde_json::Value>,
+    pub temperature: Option<f64>,
+    pub top_p: Option<f64>,
+    pub tools: Option<serde_json::Value>,
+    pub tool_choice: Option<String>,
+    pub logprobs: Option<bool>,
+    pub top_logprobs: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatChoice {
+    pub index: Option<u32>,
+    pub message: Option<ChatMessage>,
+    pub logprobs: Option<serde_json::Value>,
+    pub finish_reason: Option<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PromptTokensDetails {
+    pub cached_tokens: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Usage {
+    pub prompt_tokens: Option<u32>,
+    pub completion_tokens: Option<u32>,
+    pub total_tokens: Option<u32>,
+    pub prompt_tokens_details: Option<PromptTokensDetails>,
+    pub prompt_cache_hit_tokens: Option<u32>,
+    pub prompt_cache_miss_tokens: Option<u32>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ChatResponse {
+    pub id: Option<String>,
+    pub object: Option<String>,
+    pub created: Option<u64>,
+    pub model: Option<String>,
+    pub choices: Option<Vec<ChatChoice>>,
+    pub usage: Option<Usage>,
+    pub system_fingerprint: Option<String>,
+}
+
+pub async fn chat(request: &ChatRequest) -> anyhow::Result<ChatResponse>{
+    let request = serde_json::to_string(&request)?;
+    let key = "sk-47b29c3eac324b2a8a137b4a7838a93b";
+    let mut headers = HashMap::new();
+    headers.insert("Content-Type".into(), "application/json".into());
+    headers.insert("Authorization".into(), format!("Bearer {}", key));
+    let res = http::post("https://api.deepseek.com/chat/completions", Some(request), Some(&headers)).await?;
+    Ok(res.json().await?)
+}
 
 
 mod tests {
     use crate::http;
+    use crate::llm::{chat, ChatRequest};
 
     #[tokio::test]
     async fn get_page() {
-        let res = http::get("https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/gsgk", None).await.unwrap();
-        let s = res.text().await.unwrap();
-        println!("{}", s);
+        let req = r#"
+        {
+        "model": "deepseek-chat",
+        "messages": [
+          {"role": "system", "content": "You are a helpful assistant."},
+          {"role": "user", "content": "Hello!"}
+        ],
+        "stream": false
+      }
+        "#;
+        let req = serde_json::from_str::<ChatRequest>(req).unwrap();
+        let s = chat(&req).await.unwrap();
+        println!("{:?}", serde_json::to_string(&s));
     }
 }
