@@ -21,6 +21,7 @@ mod security_name;
 pub mod web;
 pub mod domain;
 pub mod indicators;
+pub mod llm;
 
 use anyhow::{anyhow, bail};
 pub use data_type::SingleElement;

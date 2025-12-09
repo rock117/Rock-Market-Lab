@@ -43,3 +43,8 @@ pinyin = "0.10.0"
 rocket = { version = "0.5.1", features = ["json"]}
 thiserror = "1.0"
 approx = "0.5"
+
+# AI/LLM related dependencies
+async-openai = "0.23"
+async-trait = "0.1"
+uuid = { version = "1.0", features = ["v4"] }
