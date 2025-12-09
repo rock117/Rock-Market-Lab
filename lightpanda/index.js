@@ -14,6 +14,16 @@ const { chromium } = require('playwright');
                    contentType.includes('application/json') || 
                    contentType.includes('application/javascript') ||
                    contentType.includes('application/xml');
+
+    if(!isText) {
+         try {
+            let t = await response.text()
+            isText = true   
+         }catch(e) {
+
+         }
+    }
+
     if (isText) {
     //   console.log('=== 拦截到响应 ===');
     //   console.log('状态码:', response.status());
