@@ -27,6 +27,7 @@ use crate::strategy::{
     StrongCloseStrategy, StrongCloseConfig,
     QualityValueStrategy, QualityValueConfig,
     TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
+    LowShadowStrategy, LowShadowConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -174,7 +175,27 @@ impl StockPickerService {
                     _ => bail!("换手率均线多头策略不支持预设 '{}', 可用预设: standard, active, conservative, short_term", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish", strategy_type)
+            "low_shadow" => create_strategy!(LowShadowConfig, LowShadowStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => LowShadowConfig::default(),
+                    "conservative" => LowShadowConfig {
+                        min_lower_shadow_ratio: 0.5,   // 下影线至少50%
+                        low_position_threshold: 0.25,  // 价格在下25%
+                        require_bullish_close: true,   // 必须阳线
+                        min_volume_ratio: 1.5,         // 成交量1.5倍
+                        ..Default::default()
+                    },
+                    "aggressive" => LowShadowConfig {
+                        min_lower_shadow_ratio: 0.3,   // 下影线30%即可
+                        low_position_threshold: 0.4,   // 价格在下40%
+                        require_bullish_close: false,  // 不要求阳线
+                        min_volume_ratio: 1.0,         // 成交量正常即可
+                        ..Default::default()
+                    },
+                    _ => bail!("低位下影线策略不支持预设 '{}', 可用预设: standard, conservative, aggressive", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow", strategy_type)
         }
     }
 

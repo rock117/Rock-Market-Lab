@@ -181,3 +181,64 @@ export interface TrendAnalysis {
   sync_rate: number; // 同步率 (0-100%)
   analysis_period: string;
 }
+
+// 策略相关类型定义
+export type StrategyType = 
+  | 'price_volume_candlestick'
+  | 'bottom_volume_surge'
+  | 'long_term_bottom_reversal'
+  | 'yearly_high'
+  | 'price_strength'
+  | 'distressed_reversal'
+  | 'single_limit_up'
+  | 'fundamental'
+  | 'consecutive_strong'
+  | 'turtle'
+  | 'limit_up_pullback'
+  | 'strong_close'
+  | 'quality_value'
+  | 'turnover_ma_bullish'
+  | 'low_shadow';
+
+export type StrategySignal = 'BUY' | 'SELL' | 'HOLD';
+
+export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+
+// 策略结果中的股票信息
+export interface StrategyStock {
+  ts_code: string;
+  name: string;
+  current_price: number;
+  change_percent: number;
+  signal: StrategySignal;
+  signal_strength: number; // 0-1之间的信号强度
+  updated_at?: string;
+}
+
+// 策略性能指标
+export interface StrategyPerformance {
+  success_rate: number; // 成功率 0-1
+  avg_return: number; // 平均收益率
+  max_drawdown: number; // 最大回撤
+  sharpe_ratio: number; // 夏普比率
+  total_trades: number; // 总交易次数
+}
+
+// 策略运行结果
+export interface StrategyResult {
+  strategy_type: StrategyType;
+  stocks: StrategyStock[];
+  performance?: StrategyPerformance;
+  risk_level: RiskLevel;
+  execution_time: number; // 执行时间(毫秒)
+  parameters: Record<string, any>; // 策略参数
+  created_at: string;
+}
+
+// 策略配置
+export interface StrategyConfig {
+  strategy_type: StrategyType;
+  parameters: Record<string, any>;
+  enabled: boolean;
+  description?: string;
+}

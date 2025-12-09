@@ -7,6 +7,7 @@ import MarketSummary from '@/components/market/MarketSummary'
 import UsStockList from '@/components/us-stocks/UsStockList'
 import StockDetail from '@/components/stock/StockDetail'
 import KLineComparison from '@/components/kline/KLineComparison'
+import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import { 
   TrendingUp, 
   Globe, 
@@ -71,6 +72,15 @@ const modules = [
     description: '多证券走势对比',
     icon: BarChart3,
     color: 'text-orange-500',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'stock-selection-strategy',
+    name: '选股策略',
+    description: '智能选股策略分析',
+    icon: Target,
+    color: 'text-pink-500',
     category: 'analysis',
     status: 'active'
   },
@@ -150,6 +160,8 @@ export default function HomePage() {
         return <StockDetail />
       case 'kline-comparison':
         return <KLineComparison />
+      case 'stock-selection-strategy':
+        return <StockSelectionStrategy />
       default:
         return <ComingSoonModule moduleName={modules.find(m => m.id === activeModule)?.name || ''} />
     }

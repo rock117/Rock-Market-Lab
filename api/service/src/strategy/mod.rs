@@ -17,6 +17,7 @@ pub mod limit_up_pullback_strategy;
 pub mod strong_close_strategy;
 pub mod quality_value_strategy;
 pub mod turnover_ma_bullish_strategy;
+pub mod low_shadow_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -136,4 +137,11 @@ pub use turnover_ma_bullish_strategy::{
     TurnoverMaBullishStrategy,
     TurnoverMaBullishConfig,
     TurnoverMaBullishResult,
+};
+
+// 重新导出低位下影线策略相关类型
+pub use low_shadow_strategy::{
+    LowShadowStrategy,
+    LowShadowConfig,
+    LowShadowResult,
 };

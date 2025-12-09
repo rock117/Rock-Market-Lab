@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis } from '@/types'
+import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -779,4 +779,181 @@ function generateKLineDataWithDateRange(
   }
   
   return data
+}
+
+// 策略模拟数据
+const mockStrategyStocks: StrategyStock[] = [
+  {
+    ts_code: '000001.SZ',
+    name: '平安银行',
+    current_price: 12.58,
+    change_percent: 0.0235,
+    signal: 'BUY',
+    signal_strength: 0.85,
+    updated_at: new Date().toISOString()
+  },
+  {
+    ts_code: '000002.SZ',
+    name: '万科A',
+    current_price: 8.45,
+    change_percent: -0.0123,
+    signal: 'HOLD',
+    signal_strength: 0.62,
+    updated_at: new Date().toISOString()
+  },
+  {
+    ts_code: '600036.SH',
+    name: '招商银行',
+    current_price: 38.76,
+    change_percent: 0.0456,
+    signal: 'BUY',
+    signal_strength: 0.91,
+    updated_at: new Date().toISOString()
+  },
+  {
+    ts_code: '600519.SH',
+    name: '贵州茅台',
+    current_price: 1680.50,
+    change_percent: 0.0189,
+    signal: 'HOLD',
+    signal_strength: 0.73,
+    updated_at: new Date().toISOString()
+  },
+  {
+    ts_code: '000858.SZ',
+    name: '五粮液',
+    current_price: 158.32,
+    change_percent: 0.0298,
+    signal: 'BUY',
+    signal_strength: 0.78,
+    updated_at: new Date().toISOString()
+  },
+  {
+    ts_code: '300750.SZ',
+    name: '宁德时代',
+    current_price: 185.67,
+    change_percent: -0.0267,
+    signal: 'SELL',
+    signal_strength: 0.68,
+    updated_at: new Date().toISOString()
+  }
+]
+
+// 策略API
+export const strategyApi = {
+  // 运行策略
+  runStrategy: async (strategyType: StrategyType, parameters: Record<string, any>): Promise<StrategyResult> => {
+    await delay(1500) // 模拟策略运行时间
+    
+    // 根据策略类型生成不同的结果
+    let selectedStocks = [...mockStrategyStocks]
+    let performance: StrategyPerformance
+    let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM'
+    
+    // 根据策略类型调整结果
+    switch (strategyType) {
+      case 'fundamental':
+        selectedStocks = selectedStocks.filter(stock => stock.signal === 'BUY')
+        performance = {
+          success_rate: 0.78,
+          avg_return: 0.156,
+          max_drawdown: -0.12,
+          sharpe_ratio: 1.45,
+          total_trades: 45
+        }
+        riskLevel = 'LOW'
+        break
+        
+      case 'turtle':
+        selectedStocks = selectedStocks.slice(0, 3)
+        performance = {
+          success_rate: 0.65,
+          avg_return: 0.234,
+          max_drawdown: -0.18,
+          sharpe_ratio: 1.23,
+          total_trades: 28
+        }
+        riskLevel = 'MEDIUM'
+        break
+        
+      case 'price_volume_candlestick':
+        selectedStocks = selectedStocks.filter(stock => stock.signal_strength > 0.7)
+        performance = {
+          success_rate: 0.72,
+          avg_return: 0.189,
+          max_drawdown: -0.15,
+          sharpe_ratio: 1.34,
+          total_trades: 67
+        }
+        riskLevel = 'MEDIUM'
+        break
+        
+      case 'yearly_high':
+        selectedStocks = selectedStocks.filter(stock => stock.change_percent > 0)
+        performance = {
+          success_rate: 0.58,
+          avg_return: 0.298,
+          max_drawdown: -0.25,
+          sharpe_ratio: 0.98,
+          total_trades: 34
+        }
+        riskLevel = 'HIGH'
+        break
+        
+      default:
+        selectedStocks = selectedStocks.slice(0, 4)
+        performance = {
+          success_rate: 0.68,
+          avg_return: 0.178,
+          max_drawdown: -0.16,
+          sharpe_ratio: 1.15,
+          total_trades: 52
+        }
+        riskLevel = 'MEDIUM'
+    }
+    
+    // 根据参数调整结果（简单模拟）
+    if (parameters.volume_threshold && parameters.volume_threshold > 2.0) {
+      selectedStocks = selectedStocks.slice(0, Math.max(1, selectedStocks.length - 2))
+    }
+    
+    if (parameters.min_roe && parameters.min_roe > 0.2) {
+      selectedStocks = selectedStocks.filter(stock => stock.signal_strength > 0.8)
+    }
+    
+    return {
+      strategy_type: strategyType,
+      stocks: selectedStocks,
+      performance,
+      risk_level: riskLevel,
+      execution_time: Math.floor(Math.random() * 1000) + 500,
+      parameters,
+      created_at: new Date().toISOString()
+    }
+  },
+
+  // 获取策略列表
+  getStrategies: async () => {
+    await delay(300)
+    return [
+      {
+        strategy_type: 'price_volume_candlestick' as StrategyType,
+        parameters: { volume_threshold: 1.5, price_change_threshold: 0.03 },
+        enabled: true,
+        description: '基于价格和成交量的K线形态分析'
+      },
+      {
+        strategy_type: 'fundamental' as StrategyType,
+        parameters: { min_roe: 0.15, max_pe: 25 },
+        enabled: true,
+        description: '基于财务指标的价值投资策略'
+      },
+      {
+        strategy_type: 'turtle' as StrategyType,
+        parameters: { entry_period: 20, exit_period: 10 },
+        enabled: true,
+        description: '经典的趋势跟踪策略'
+      }
+    ]
+  }
 }

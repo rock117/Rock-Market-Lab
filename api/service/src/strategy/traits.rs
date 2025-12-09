@@ -357,6 +357,8 @@ pub enum StrategyResult {
     QualityValue(super::quality_value_strategy::QualityValueResult),
     /// 换手率均线多头策略结果
     TurnoverMaBullish(super::turnover_ma_bullish_strategy::TurnoverMaBullishResult),
+    /// 低位下影线策略结果
+    LowShadow(super::low_shadow_strategy::LowShadowResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -376,6 +378,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => &r.stock_code,
             StrategyResult::QualityValue(r) => &r.stock_code,
             StrategyResult::TurnoverMaBullish(r) => &r.stock_code,
+            StrategyResult::LowShadow(r) => &r.stock_code,
         }
     }
     
@@ -396,6 +399,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => r.analysis_date,
             StrategyResult::QualityValue(r) => r.analysis_date,
             StrategyResult::TurnoverMaBullish(r) => r.analysis_date,
+            StrategyResult::LowShadow(r) => r.analysis_date,
         }
     }
     
@@ -416,6 +420,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => r.current_price,
             StrategyResult::QualityValue(r) => r.current_price,
             StrategyResult::TurnoverMaBullish(r) => r.current_price,
+            StrategyResult::LowShadow(r) => r.current_price,
         }
     }
     
@@ -436,6 +441,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => r.strategy_signal.clone(),
             StrategyResult::QualityValue(r) => r.strategy_signal.clone(),
             StrategyResult::TurnoverMaBullish(r) => r.strategy_signal.clone(),
+            StrategyResult::LowShadow(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -456,6 +462,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => r.signal_strength,
             StrategyResult::QualityValue(r) => r.signal_strength,
             StrategyResult::TurnoverMaBullish(r) => r.signal_strength,
+            StrategyResult::LowShadow(r) => r.signal_strength,
         }
     }
     
@@ -476,6 +483,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => &r.analysis_description,
             StrategyResult::QualityValue(r) => &r.analysis_description,
             StrategyResult::TurnoverMaBullish(r) => &r.analysis_description,
+            StrategyResult::LowShadow(r) => &r.analysis_description,
         }
     }
     
@@ -496,6 +504,7 @@ impl StrategyResult {
             StrategyResult::StrongClose(r) => r.risk_level,
             StrategyResult::QualityValue(r) => r.risk_level,
             StrategyResult::TurnoverMaBullish(r) => r.risk_level,
+            StrategyResult::LowShadow(r) => r.risk_level,
         }
     }
 }
