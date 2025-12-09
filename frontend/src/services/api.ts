@@ -100,6 +100,150 @@ const mockUsStocks: UsStock[] = [
     employee_count: 26196,
     founded_date: '1993-04-05',
     address: '2788 San Tomas Expressway, Santa Clara, CA 95051'
+  },
+  {
+    symbol: 'META',
+    name: 'Meta Platforms Inc.',
+    exchange: 'NASDAQ',
+    industry: 'Technology',
+    sector: 'Social Media',
+    market_cap: 8500000,
+    pe_ratio: 23.4,
+    roe: 16.8,
+    list_date: '2012-05-18',
+    description: 'Meta Platforms, Inc. develops products that enable people to connect and share with friends and family through mobile devices, personal computers, virtual reality headsets, and wearables worldwide.',
+    website: 'https://www.meta.com',
+    employee_count: 67317,
+    founded_date: '2004-02-04',
+    address: '1 Meta Way, Menlo Park, CA 94025'
+  },
+  {
+    symbol: 'BRK.A',
+    name: 'Berkshire Hathaway Inc.',
+    exchange: 'NYSE',
+    industry: 'Financial',
+    sector: 'Diversified Investments',
+    market_cap: 7800000,
+    pe_ratio: 8.9,
+    roe: 11.2,
+    list_date: '1980-03-17',
+    description: 'Berkshire Hathaway Inc., through its subsidiaries, engages in the insurance, freight rail transportation, and utility businesses worldwide.',
+    website: 'https://www.berkshirehathaway.com',
+    employee_count: 383000,
+    founded_date: '1839-01-01',
+    address: '3555 Farnam Street, Omaha, NE 68131'
+  },
+  {
+    symbol: 'UNH',
+    name: 'UnitedHealth Group Inc.',
+    exchange: 'NYSE',
+    industry: 'Healthcare',
+    sector: 'Health Insurance',
+    market_cap: 5200000,
+    pe_ratio: 24.7,
+    roe: 25.3,
+    list_date: '1984-10-17',
+    description: 'UnitedHealth Group Incorporated operates as a diversified health care company in the United States.',
+    website: 'https://www.unitedhealthgroup.com',
+    employee_count: 400000,
+    founded_date: '1977-01-01',
+    address: '9900 Bren Road East, Minnetonka, MN 55343'
+  },
+  {
+    symbol: 'JNJ',
+    name: 'Johnson & Johnson',
+    exchange: 'NYSE',
+    industry: 'Healthcare',
+    sector: 'Pharmaceuticals',
+    market_cap: 4600000,
+    pe_ratio: 15.2,
+    roe: 18.7,
+    list_date: '1944-09-25',
+    description: 'Johnson & Johnson researches and develops, manufactures, and sells a range of products in the health care field worldwide.',
+    website: 'https://www.jnj.com',
+    employee_count: 152700,
+    founded_date: '1886-01-01',
+    address: 'One Johnson & Johnson Plaza, New Brunswick, NJ 08933'
+  },
+  {
+    symbol: 'V',
+    name: 'Visa Inc.',
+    exchange: 'NYSE',
+    industry: 'Financial',
+    sector: 'Payment Processing',
+    market_cap: 5100000,
+    pe_ratio: 32.8,
+    roe: 38.2,
+    list_date: '2008-03-19',
+    description: 'Visa Inc. operates as a payments technology company worldwide.',
+    website: 'https://www.visa.com',
+    employee_count: 26500,
+    founded_date: '1958-09-18',
+    address: '900 Metro Center Boulevard, Foster City, CA 94404'
+  },
+  {
+    symbol: 'JPM',
+    name: 'JPMorgan Chase & Co.',
+    exchange: 'NYSE',
+    industry: 'Financial',
+    sector: 'Banking',
+    market_cap: 4800000,
+    pe_ratio: 12.3,
+    roe: 15.4,
+    list_date: '1969-03-05',
+    description: 'JPMorgan Chase & Co. operates as a financial services company worldwide.',
+    website: 'https://www.jpmorganchase.com',
+    employee_count: 296877,
+    founded_date: '1799-01-01',
+    address: '383 Madison Avenue, New York, NY 10017'
+  },
+  {
+    symbol: 'WMT',
+    name: 'Walmart Inc.',
+    exchange: 'NYSE',
+    industry: 'Consumer Discretionary',
+    sector: 'Retail',
+    market_cap: 4300000,
+    pe_ratio: 26.1,
+    roe: 19.8,
+    list_date: '1972-08-25',
+    description: 'Walmart Inc. engages in the operation of retail, wholesale, and other units worldwide.',
+    website: 'https://www.walmart.com',
+    employee_count: 2300000,
+    founded_date: '1962-07-02',
+    address: '702 SW 8th Street, Bentonville, AR 72716'
+  },
+  {
+    symbol: 'PG',
+    name: 'Procter & Gamble Co.',
+    exchange: 'NYSE',
+    industry: 'Consumer Staples',
+    sector: 'Personal Care',
+    market_cap: 3700000,
+    pe_ratio: 24.5,
+    roe: 31.2,
+    list_date: '1891-01-01',
+    description: 'The Procter & Gamble Company provides branded consumer packaged goods to consumers in North and Latin America, Europe, the Asia Pacific, Greater China, India, the Middle East, and Africa.',
+    website: 'https://www.pg.com',
+    employee_count: 101000,
+    founded_date: '1837-01-01',
+    address: 'One Procter & Gamble Plaza, Cincinnati, OH 45202'
+  },
+  {
+    symbol: 'MA',
+    name: 'Mastercard Inc.',
+    exchange: 'NYSE',
+    industry: 'Financial',
+    sector: 'Payment Processing',
+    market_cap: 3900000,
+    pe_ratio: 33.7,
+    roe: 148.2,
+    list_date: '2006-05-25',
+    description: 'Mastercard Incorporated, a technology company, provides transaction processing and other payment-related products and services in the United States and internationally.',
+    website: 'https://www.mastercard.com',
+    employee_count: 24000,
+    founded_date: '1966-01-01',
+    address: '2000 Purchase Street, Purchase, NY 10577'
   }
 ]
 
@@ -185,25 +329,42 @@ export const usStockApi = {
     page_size?: number
     exchange?: string
     industry?: string
+    search?: string
   }): Promise<PagedResponse<UsStock>> => {
     await delay(500) // 模拟网络延迟
     
     let filteredStocks = [...mockUsStocks]
     
-    // 简单筛选逻辑
+    // 筛选逻辑
     if (params?.exchange) {
       filteredStocks = filteredStocks.filter(stock => stock.exchange === params.exchange)
     }
     if (params?.industry) {
       filteredStocks = filteredStocks.filter(stock => stock.industry === params.industry)
     }
+    if (params?.search) {
+      const searchTerm = params.search.toLowerCase()
+      filteredStocks = filteredStocks.filter(stock => 
+        stock.symbol.toLowerCase().includes(searchTerm) ||
+        stock.name.toLowerCase().includes(searchTerm) ||
+        (stock.sector && stock.sector.toLowerCase().includes(searchTerm))
+      )
+    }
+    
+    // 分页逻辑
+    const page = params?.page || 1
+    const pageSize = params?.page_size || 10
+    const totalPages = Math.ceil(filteredStocks.length / pageSize)
+    const startIndex = (page - 1) * pageSize
+    const endIndex = startIndex + pageSize
+    const paginatedStocks = filteredStocks.slice(startIndex, endIndex)
     
     return {
-      items: filteredStocks,
+      items: paginatedStocks,
       total: filteredStocks.length,
-      page: params?.page || 1,
-      page_size: params?.page_size || 50,
-      total_pages: 1
+      page: page,
+      page_size: pageSize,
+      total_pages: totalPages
     }
   }
 }

@@ -15,7 +15,7 @@ interface UsStockListProps {
 
 export default function UsStockList({ className }: UsStockListProps) {
   const [page, setPage] = useState(1)
-  const [pageSize] = useState(50)
+  const [pageSize, setPageSize] = useState(10)
   const [filters, setFilters] = useState({
     exchange: '',
     industry: '',
@@ -29,9 +29,15 @@ export default function UsStockList({ className }: UsStockListProps) {
       page_size: pageSize,
       exchange: filters.exchange || undefined,
       industry: filters.industry || undefined,
+      search: filters.search || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
   })
+
+  // 当筛选条件变化时重置到第一页
+  useEffect(() => {
+    setPage(1)
+  }, [filters])
 
   // 模拟数据（在实际API未完成时使用）
   const mockData = {
@@ -275,13 +281,41 @@ export default function UsStockList({ className }: UsStockListProps) {
           </Table>
         </div>
 
-        {/* 分页 */}
-        {stockData.total_pages > 1 && (
-          <div className="flex items-center justify-between mt-4">
+        {/* 分页控制 */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t">
+          {/* 分页信息和每页条数选择 */}
+          <div className="flex items-center gap-4">
             <div className="text-sm text-muted-foreground">
               显示 {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, stockData.total)} 条，共 {stockData.total} 条
             </div>
             <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">每页显示</span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value))
+                  setPage(1)
+                }}
+                className="px-2 py-1 border rounded text-sm"
+              >
+                <option value={5}>5条</option>
+                <option value={10}>10条</option>
+                <option value={20}>20条</option>
+                <option value={50}>50条</option>
+              </select>
+            </div>
+          </div>
+
+          {/* 分页按钮 */}
+          {stockData.total_pages > 1 && (
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage(1)}
+                disabled={page === 1}
+                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+              >
+                首页
+              </button>
               <button
                 onClick={() => setPage(p => Math.max(1, p - 1))}
                 disabled={page === 1}
@@ -289,9 +323,80 @@ export default function UsStockList({ className }: UsStockListProps) {
               >
                 上一页
               </button>
-              <span className="px-3 py-1 text-sm">
-                {page} / {stockData.total_pages}
-              </span>
+              
+              {/* 页码按钮 */}
+              <div className="flex items-center gap-1">
+                {(() => {
+                  const totalPages = stockData.total_pages
+                  const currentPage = page
+                  const pages = []
+                  
+                  // 计算显示的页码范围
+                  let startPage = Math.max(1, currentPage - 2)
+                  let endPage = Math.min(totalPages, currentPage + 2)
+                  
+                  // 确保显示5个页码（如果可能）
+                  if (endPage - startPage < 4) {
+                    if (startPage === 1) {
+                      endPage = Math.min(totalPages, startPage + 4)
+                    } else {
+                      startPage = Math.max(1, endPage - 4)
+                    }
+                  }
+                  
+                  // 添加第一页和省略号
+                  if (startPage > 1) {
+                    pages.push(
+                      <button
+                        key={1}
+                        onClick={() => setPage(1)}
+                        className="px-3 py-1 border rounded text-sm hover:bg-muted"
+                      >
+                        1
+                      </button>
+                    )
+                    if (startPage > 2) {
+                      pages.push(<span key="ellipsis1" className="px-2 text-sm text-muted-foreground">...</span>)
+                    }
+                  }
+                  
+                  // 添加中间页码
+                  for (let i = startPage; i <= endPage; i++) {
+                    pages.push(
+                      <button
+                        key={i}
+                        onClick={() => setPage(i)}
+                        className={`px-3 py-1 border rounded text-sm ${
+                          i === currentPage 
+                            ? 'bg-primary text-primary-foreground' 
+                            : 'hover:bg-muted'
+                        }`}
+                      >
+                        {i}
+                      </button>
+                    )
+                  }
+                  
+                  // 添加最后一页和省略号
+                  if (endPage < totalPages) {
+                    if (endPage < totalPages - 1) {
+                      pages.push(<span key="ellipsis2" className="px-2 text-sm text-muted-foreground">...</span>)
+                    }
+                    pages.push(
+                      <button
+                        key={totalPages}
+                        onClick={() => setPage(totalPages)}
+                        className="px-3 py-1 border rounded text-sm hover:bg-muted"
+                      >
+                        {totalPages}
+                      </button>
+                    )
+                  }
+                  
+                  return pages
+                })()}
+              </div>
+              
               <button
                 onClick={() => setPage(p => Math.min(stockData.total_pages, p + 1))}
                 disabled={page === stockData.total_pages}
@@ -299,9 +404,16 @@ export default function UsStockList({ className }: UsStockListProps) {
               >
                 下一页
               </button>
+              <button
+                onClick={() => setPage(stockData.total_pages)}
+                disabled={page === stockData.total_pages}
+                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+              >
+                末页
+              </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   )
