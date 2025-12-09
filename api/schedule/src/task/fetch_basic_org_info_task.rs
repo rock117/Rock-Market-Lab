@@ -159,10 +159,10 @@ impl Task for FetchBasicOrgInfoTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         // existing company infos, build key set (exchange_id, symbol)
-        let existing_keys: HashSet<(String)> = stock::Entity::find()
+        let existing_keys: HashSet<String> = cn_security_info::Entity::find()
             .select_only()
-            .column(stock::Column::TsCode)
-            .into_tuple::<(String)>()
+            .column(cn_security_info::Column::Secucode)
+            .into_tuple::<String>()
             .all(&self.0)
             .await?
             .into_iter()
@@ -174,7 +174,7 @@ impl Task for FetchBasicOrgInfoTask {
             .await?;
         let stocks: Vec<stock::Model> = all_stocks
             .into_iter()
-            .filter(|s| !existing_keys.contains(&(s.ts_code.clone())))
+            .filter(|s| !existing_keys.contains(&s.ts_code))
             .collect();
 
         info!("total stocks: {}", stocks.len());

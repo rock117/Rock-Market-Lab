@@ -22,7 +22,7 @@ const { chromium } = require('playwright');
       try {
         // 获取响应体（文本）
         const body = await response.text();
-        if (body.includes('光电子器件制造')) {
+        if (body.includes('商业航天')) {
           console.log('URL:', url);
            console.log('body ===>:', body);
         } else {
@@ -34,7 +34,9 @@ const { chromium } = require('playwright');
     }
   });
 
-  await page.goto('https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/gsgk', { timeout: 60000 });
+  // https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/hxtc
+  // https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/gsgk
+  await page.goto('https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/gsgk', { timeout: 160000 });
   await page.waitForTimeout(20000);
   await browser.close();
 })();
