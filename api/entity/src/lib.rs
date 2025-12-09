@@ -44,5 +44,7 @@ pub mod us_stock;
 pub mod exchange;
 pub mod us_company_info;
 pub mod block_trade;
+pub mod cn_security_info;
+pub mod limit_list_d;
 
 pub use sea_orm;

@@ -33,7 +33,7 @@ impl FetchUsCompanyInfoTask {
         db_conn: Arc<DatabaseConnection>,
         total_count: usize,
     ) -> impl Fn(us_stock::Model, (us_stock::Model, anyhow::Result<mstar::company::CompanyGeneralInfoResp>, anyhow::Result<mstar::company::CompanyBusinessDescriptionResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
-        move |original_stock, (stock, company_result, desc_result)| {
+        move |_original_stock, (stock, company_result, desc_result)| {
             let completed_count = completed_count.clone();
             let db_conn = db_conn.clone();
             Box::pin(async move {
