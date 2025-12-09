@@ -65,7 +65,7 @@ mod tests {
                 println!("MessageCode: {}", resp.message_info.message_code);
                 println!("Stock count: {}", resp.full_stock_exchange_security_entity_list.len());
                 if let Some(first) = resp.full_stock_exchange_security_entity_list.first() {
-                    println!("First stock: {} - {}", first.symbol, first.company_name);
+                    println!("First stock: {:?} - {:?}", first.symbol, first.company_name);
                 }
                 assert!(!resp.full_stock_exchange_security_entity_list.is_empty());
             }
