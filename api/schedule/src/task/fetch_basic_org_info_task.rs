@@ -117,9 +117,9 @@ impl FetchBasicOrgInfoTask {
             org_profile: basic_info.org_profile.clone(),
             business_scope: basic_info.business_scope.clone(),
             main_business: basic_info.main_business.clone(),
-            listing_date: Self::parse_date_string(&basic_info.listing_date),
-            found_date: Self::parse_date_string(&basic_info.found_date),
-            marketing_start_date: Self::parse_date_string(&basic_info.marketing_start_date),
+            listing_date: basic_info.listing_date.clone(),
+            found_date: basic_info.found_date.clone(),
+            marketing_start_date: basic_info.marketing_start_date.clone(),
             expand_name_abbrn: basic_info.expand_name_abbrn.clone(),
             expand_name_pinyin: basic_info.expand_name_pinyin.clone(),
             expand_name_abbr: basic_info.expand_name_abbr.clone(),
@@ -177,6 +177,7 @@ impl Task for FetchBasicOrgInfoTask {
             .filter(|s| !existing_keys.contains(&(s.ts_code.clone())))
             .collect();
 
+        info!("total stocks: {}", stocks.len());
         let total_count = stocks.len();
         let completed_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let db_conn = Arc::new(self.0.clone());

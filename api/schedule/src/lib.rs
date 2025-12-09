@@ -36,6 +36,7 @@ use tracing::{error, info};
 use task::us::fetch_us_stock_task::FetchUsStockTask;
 use crate::task::fetch_block_trade_task::FetchBlockTradeTask;
 use crate::task::us::fetch_us_company_info_task::FetchUsCompanyInfoTask;
+use crate::task::fetch_basic_org_info_task::FetchBasicOrgInfoTask;
 
 mod task;
 
@@ -142,7 +143,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
         //  Arc::new(FetchDcIndexTask::new(conn.clone())),
        // Arc::new(FetchDcMemberTask::new(conn.clone())),
-        Arc::new(FetchBlockTradeTask::new(conn.clone())),
+       //  Arc::new(FetchBlockTradeTask::new(conn.clone())),
+        Arc::new(FetchBasicOrgInfoTask::new(conn.clone()))
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
         // Arc::new(FetchThsIndexTask::new(conn.clone())),
@@ -155,8 +157,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         Arc::new(FetchUsCompanyInfoTask::new(conn.clone())),
     ];
     
-    jobs.extend(dailys);
-    // jobs.extend(others);
+    // jobs.extend(dailys);
+    jobs.extend(others);
   //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);
