@@ -7,3 +7,4 @@ pub mod security;
 pub mod fund;
 pub mod strategy;
 pub mod stock_picker_service;
+pub mod diagnosis;

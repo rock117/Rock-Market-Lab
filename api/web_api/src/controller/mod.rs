@@ -11,3 +11,4 @@ pub mod security;
 mod stock_market_summary_controller;
 pub mod stock_asset_controller;
 pub mod stock_pick_controller;
+pub mod stock_diagnosis_controller;
