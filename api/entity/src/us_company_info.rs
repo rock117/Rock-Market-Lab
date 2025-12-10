@@ -108,4 +108,10 @@ impl RelationTrait for Relation {
     }
 }
 
+impl Related<super::us_stock::Entity> for Entity {
+    fn to() -> RelationDef {
+        Relation::UsStock.def()
+    }
+}
+
 impl ActiveModelBehavior for ActiveModel {}

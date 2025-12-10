@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use entity::sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, PaginatorTrait, JoinType, QuerySelect};
+use entity::sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, PaginatorTrait, JoinType, QuerySelect, RelationTrait};
 use entity::{us_stock, us_company_info};
 use entity::sea_orm;
 /// 美股列表响应结构
