@@ -271,12 +271,61 @@ export default function StockDetail({ className }: StockDetailProps) {
         </CardContent>
       </Card>
 
+      {/* 概念板块 - 公共部分 */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Target className="h-5 w-5" />
+            概念板块
+          </CardTitle>
+          <CardDescription>
+            股票所属的概念和行业板块
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <PieChart className="h-4 w-4" />
+                概念
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {stockDetail.concepts.map((concept, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                  >
+                    {concept}
+                  </span>
+                ))}
+              </div>
+            </div>
+            <div>
+              <h4 className="font-medium mb-3 flex items-center gap-2">
+                <Briefcase className="h-4 w-4" />
+                板块
+              </h4>
+              <div className="flex flex-wrap gap-2">
+                {stockDetail.sectors.map((sector, index) => (
+                  <span 
+                    key={index}
+                    className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
+                  >
+                    {sector}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 标签页内容 */}
-      <Tabs defaultValue="overview" className="mt-6">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview" className="flex items-center gap-2">
-            <Target className="h-4 w-4" />
-            概念板块 & 历史数据
+      <Tabs defaultValue="history" className="mt-6">
+        <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-auto">
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <LineChart className="h-4 w-4" />
+            历史数据
           </TabsTrigger>
           <TabsTrigger value="details" className="flex items-center gap-2">
             <BarChart3 className="h-4 w-4" />
@@ -284,56 +333,8 @@ export default function StockDetail({ className }: StockDetailProps) {
           </TabsTrigger>
         </TabsList>
 
-        {/* 第一个标签页：概念板块和历史数据 */}
-        <TabsContent value="overview" className="space-y-6">
-          {/* 概念板块 */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Target className="h-5 w-5" />
-                概念板块
-              </CardTitle>
-              <CardDescription>
-                股票所属的概念和行业板块
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <PieChart className="h-4 w-4" />
-                    概念
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {stockDetail.concepts.map((concept, index) => (
-                      <span 
-                        key={index}
-                        className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                      >
-                        {concept}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <h4 className="font-medium mb-3 flex items-center gap-2">
-                    <Briefcase className="h-4 w-4" />
-                    板块
-                  </h4>
-                  <div className="flex flex-wrap gap-2">
-                    {stockDetail.sectors.map((sector, index) => (
-                      <span 
-                        key={index}
-                        className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm"
-                      >
-                        {sector}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* 第一个标签页：历史数据 */}
+        <TabsContent value="history" className="space-y-6">
 
           {/* 历史价格数据 */}
           <Card>
