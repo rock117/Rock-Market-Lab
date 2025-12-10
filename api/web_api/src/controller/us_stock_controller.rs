@@ -1,5 +1,6 @@
 use rocket::{get, State};
-use serde::{Deserialize, Serialize};
+use rocket::serde::{Deserialize, Serialize};
+use rocket::form::FromForm;
 use tracing::info;
 
 use entity::sea_orm::DatabaseConnection;
@@ -9,7 +10,7 @@ use crate::response::WebResponse;
 use crate::result::{IntoResult, Result};
 
 /// 美股列表查询参数（用于接收URL参数）
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromForm)]
 pub struct UsStockParams {
     /// 页码，从1开始
     pub page: Option<u64>,
