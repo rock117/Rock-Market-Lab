@@ -151,7 +151,7 @@ impl TechnicalIndicators {
             let k = if i == 0 {
                 (rsv_values[i] + 2.0 * k_values[0]) / 3.0
             } else {
-                (rsv_values[i] + 2.0 * k_values[i]) / 3.0
+                (rsv_values[i] + 2.0 * k_values[i - 1]) / 3.0
             };
             if i > 0 {
                 k_values.push(k);
@@ -168,7 +168,7 @@ impl TechnicalIndicators {
             let d = if i == 0 {
                 (k_values[i] + 2.0 * d_values[0]) / 3.0
             } else {
-                (k_values[i] + 2.0 * d_values[i]) / 3.0
+                (k_values[i] + 2.0 * d_values[i - 1]) / 3.0
             };
             if i > 0 {
                 d_values.push(d);

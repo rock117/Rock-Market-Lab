@@ -54,9 +54,28 @@ async fn main3() -> anyhow::Result<()> {
     // stock_overview_controller::stock_overview2(conn).await.unwrap();
     Ok(())
 }
+fn init_panic_hook() {
+    std::panic::set_hook(Box::new(|panic_info| {
+        if let Some(loc) = panic_info.location() {
+            eprintln!(
+                "[PANIC] occurred in file '{}' at line {}",
+                loc.file(),
+                loc.line()
+            );
+        }
+
+        if let Some(msg) = panic_info.payload().downcast_ref::<&str>() {
+            eprintln!("[PANIC] message: {}", msg);
+        } else {
+            eprintln!("[PANIC] unknown panic payload");
+        }
+    }));
+}
+
 
 #[launch]
 async fn rocket() -> _ {
+    init_panic_hook();
     dotenvy::dotenv().ok();
     init_log_context().expect("Failed to init log context");
    // tracing_subscriber::fmt::init();
