@@ -106,8 +106,9 @@ async fn rocket() -> _ {
             security::security_volatility_controller::filter_by_volatility,
             stock_pick_controller::pick,
             stock_diagnosis_controller::stock_diagnosis,
+            us_stock_controller::get_us_stocks,
         ])
-        .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
+        .register("/", catchers![error_handlers_v2::internal_error_detailed, error_handlers_v2::not_found_detailed])
 }
 
 

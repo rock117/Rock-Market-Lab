@@ -68,7 +68,9 @@ impl PrimaryKeyTrait for PrimaryKey {
 }
 
 #[derive(Copy, Clone, Debug, EnumIter)]
-pub enum Relation {}
+pub enum Relation {
+    UsStock,
+}
 
 impl ColumnTrait for Column {
     type EntityName = Entity;
@@ -97,7 +99,12 @@ impl ColumnTrait for Column {
 
 impl RelationTrait for Relation {
     fn def(&self) -> RelationDef {
-        panic!("No RelationDef")
+        match self {
+            Self::UsStock => Entity::belongs_to(super::us_stock::Entity)
+                .from((Column::ExchangeId, Column::Symbol))
+                .to((super::us_stock::Column::ExchangeId, super::us_stock::Column::Symbol))
+                .into(),
+        }
     }
 }
 
