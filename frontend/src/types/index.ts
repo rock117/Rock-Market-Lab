@@ -242,3 +242,25 @@ export interface StrategyConfig {
   enabled: boolean;
   description?: string;
 }
+
+// 股票历史价格数据
+export interface StockHistoryData {
+  trade_date: string;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+  amount: number;
+  turnover_rate: number; // 换手率
+  pct_chg: number; // 涨跌幅
+  change: number; // 涨跌额
+}
+
+// 股票历史价格响应
+export interface StockHistoryResponse {
+  ts_code: string;
+  name: string;
+  data: StockHistoryData[];
+  total: number;
+}

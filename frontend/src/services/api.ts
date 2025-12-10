@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance } from '@/types'
+import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -541,6 +541,87 @@ export const stockDetailApi = {
       pe_ratio: Number((Math.random() * 30 + 5).toFixed(1)),
       pb_ratio: Number((Math.random() * 3 + 0.5).toFixed(2)),
       five_day_return: Number((Math.random() * 10 - 5).toFixed(2))
+    }
+  },
+
+  // 获取股票历史价格
+  getStockHistory: async (
+    ts_code: string, 
+    startDate: string, 
+    endDate: string
+  ): Promise<StockHistoryResponse> => {
+    await delay(600)
+    
+    const stockInfo = mockStockList.find(stock => stock.ts_code === ts_code)
+    const stockName = stockInfo?.name || '示例股票'
+    
+    // 计算日期范围
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+    
+    // 基础价格
+    const basePrice = ts_code === '600519.SH' ? 1680 : // 贵州茅台
+                     ts_code === '300750.SZ' ? 185 :   // 宁德时代
+                     ts_code === '000858.SZ' ? 158 :   // 五粮液
+                     ts_code === '600036.SH' ? 38 :    // 招商银行
+                     ts_code === '000002.SZ' ? 8.5 :   // 万科A
+                     12.58 // 平安银行等其他
+    
+    const historyData: StockHistoryData[] = []
+    let currentPrice = basePrice
+    
+    for (let i = 0; i <= daysDiff; i++) {
+      const currentDate = new Date(start)
+      currentDate.setDate(start.getDate() + i)
+      
+      // 跳过周末
+      if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
+        continue
+      }
+      
+      // 模拟价格波动
+      const dailyChange = (Math.random() - 0.5) * 0.08 // -4% 到 4%
+      const open = currentPrice
+      const close = currentPrice * (1 + dailyChange)
+      const high = Math.max(open, close) * (1 + Math.random() * 0.03)
+      const low = Math.min(open, close) * (1 - Math.random() * 0.03)
+      
+      // 成交量和成交额
+      const volume = Math.floor(Math.random() * 50000000 + 10000000) // 1000万到6000万
+      const amount = volume * ((high + low) / 2)
+      
+      // 换手率 (0.5% - 8%)
+      const turnoverRate = Math.random() * 7.5 + 0.5
+      
+      // 涨跌幅和涨跌额
+      const pctChg = dailyChange * 100
+      const change = close - open
+      
+      historyData.push({
+        trade_date: currentDate.toISOString().split('T')[0],
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(close.toFixed(2)),
+        volume,
+        amount: Math.floor(amount),
+        turnover_rate: Number(turnoverRate.toFixed(2)),
+        pct_chg: Number(pctChg.toFixed(2)),
+        change: Number(change.toFixed(2))
+      })
+      
+      currentPrice = close
+    }
+    
+    // 按日期倒序排列（最新的在前面）
+    historyData.sort((a, b) => new Date(b.trade_date).getTime() - new Date(a.trade_date).getTime())
+    
+    return {
+      ts_code,
+      name: stockName,
+      data: historyData,
+      total: historyData.length
     }
   }
 }

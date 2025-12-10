@@ -5,7 +5,8 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { stockDetailApi } from '@/services/api'
-import { StockDetail as StockDetailType } from '@/types'
+import { StockDetail as StockDetailType, StockHistoryResponse } from '@/types'
+import KLineChart from '@/components/charts/KLineChart'
 import { 
   formatNumber, 
   formatLargeNumber, 
@@ -27,7 +28,11 @@ import {
   Target,
   Briefcase,
   Search,
-  X
+  X,
+  Calendar,
+  Clock,
+  LineChart,
+  TableIcon
 } from 'lucide-react'
 
 interface StockDetailProps {
@@ -46,6 +51,19 @@ export default function StockDetail({ className }: StockDetailProps) {
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
   
+  // 时间选择状态
+  const [startDate, setStartDate] = useState(() => {
+    const date = new Date()
+    date.setMonth(date.getMonth() - 1) // 默认显示近1个月
+    return date.toISOString().split('T')[0]
+  })
+  const [endDate, setEndDate] = useState(() => {
+    return new Date().toISOString().split('T')[0]
+  })
+  
+  // 显示模式：table 或 chart
+  const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
+  
   // 获取股票详情
   const { data: stockDetail, isLoading, error } = useQuery({
     queryKey: ['stock-detail', selectedStock],
@@ -59,6 +77,13 @@ export default function StockDetail({ className }: StockDetailProps) {
     queryFn: () => stockDetailApi.searchStocks(searchKeyword),
     enabled: searchKeyword.length >= 1,
     staleTime: 2 * 60 * 1000,
+  })
+
+  // 获取历史价格数据
+  const { data: historyData, isLoading: historyLoading, error: historyError } = useQuery({
+    queryKey: ['stock-history', selectedStock, startDate, endDate],
+    queryFn: () => stockDetailApi.getStockHistory(selectedStock, startDate, endDate),
+    staleTime: 5 * 60 * 1000,
   })
 
   useEffect(() => {
@@ -84,6 +109,16 @@ export default function StockDetail({ className }: StockDetailProps) {
   const clearSearch = () => {
     setSearchKeyword('')
     setShowSearchResults(false)
+  }
+
+  // 快捷时间选择
+  const setQuickTimeRange = (days: number) => {
+    const end = new Date()
+    const start = new Date()
+    start.setDate(end.getDate() - days)
+    
+    setStartDate(start.toISOString().split('T')[0])
+    setEndDate(end.toISOString().split('T')[0])
   }
 
   if (isLoading) {
@@ -416,6 +451,184 @@ export default function StockDetail({ className }: StockDetailProps) {
               </TableBody>
             </Table>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* 历史价格数据 */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5" />
+            历史价格数据
+          </CardTitle>
+          <CardDescription>
+            查看股票在指定时间范围内的历史价格走势
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* 时间选择和显示模式控制 */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+            {/* 时间选择 */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    开始时间
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                    <Calendar className="h-4 w-4" />
+                    结束时间
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-3 py-2 border rounded-md text-sm"
+                  />
+                </div>
+              </div>
+              
+              {/* 快捷时间选择 */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setQuickTimeRange(7)}
+                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                >
+                  近7天
+                </button>
+                <button
+                  onClick={() => setQuickTimeRange(30)}
+                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                >
+                  近1个月
+                </button>
+                <button
+                  onClick={() => setQuickTimeRange(90)}
+                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                >
+                  近3个月
+                </button>
+                <button
+                  onClick={() => setQuickTimeRange(180)}
+                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                >
+                  近6个月
+                </button>
+              </div>
+            </div>
+
+            {/* 显示模式选择 */}
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">显示模式</label>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setDisplayMode('table')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm ${
+                      displayMode === 'table' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'border hover:bg-muted'
+                    }`}
+                  >
+                    <TableIcon className="h-4 w-4" />
+                    表格模式
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode('chart')}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm ${
+                      displayMode === 'chart' 
+                        ? 'bg-primary text-primary-foreground' 
+                        : 'border hover:bg-muted'
+                    }`}
+                  >
+                    <LineChart className="h-4 w-4" />
+                    K线模式
+                  </button>
+                </div>
+              </div>
+              
+              {/* 数据统计 */}
+              {historyData && (
+                <div className="text-sm text-muted-foreground">
+                  时间范围：{startDate} 至 {endDate}<br />
+                  数据条数：{historyData.total} 条
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 历史数据展示 */}
+          {historyLoading && (
+            <div className="flex items-center justify-center py-8">
+              <div className="text-muted-foreground">加载历史数据中...</div>
+            </div>
+          )}
+
+          {historyError && (
+            <div className="text-center py-8">
+              <p className="text-destructive mb-4">历史数据加载失败</p>
+            </div>
+          )}
+
+          {historyData && displayMode === 'table' && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>交易日期</TableHead>
+                    <TableHead className="text-right">开盘价</TableHead>
+                    <TableHead className="text-right">最高价</TableHead>
+                    <TableHead className="text-right">最低价</TableHead>
+                    <TableHead className="text-right">收盘价</TableHead>
+                    <TableHead className="text-right">涨跌幅</TableHead>
+                    <TableHead className="text-right">涨跌额</TableHead>
+                    <TableHead className="text-right">成交量</TableHead>
+                    <TableHead className="text-right">换手率</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {historyData.data.map((item, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{formatDate(item.trade_date)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(item.open, 2)}</TableCell>
+                      <TableCell className="text-right text-red-600">{formatNumber(item.high, 2)}</TableCell>
+                      <TableCell className="text-right text-green-600">{formatNumber(item.low, 2)}</TableCell>
+                      <TableCell className="text-right font-medium">{formatNumber(item.close, 2)}</TableCell>
+                      <TableCell className={`text-right font-medium ${
+                        item.pct_chg > 0 ? 'text-red-600' : item.pct_chg < 0 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {item.pct_chg > 0 ? '+' : ''}{formatPercent(item.pct_chg / 100)}
+                      </TableCell>
+                      <TableCell className={`text-right ${
+                        item.change > 0 ? 'text-red-600' : item.change < 0 ? 'text-green-600' : 'text-gray-600'
+                      }`}>
+                        {item.change > 0 ? '+' : ''}{formatNumber(item.change, 2)}
+                      </TableCell>
+                      <TableCell className="text-right">{formatLargeNumber(item.volume)}</TableCell>
+                      <TableCell className="text-right">{formatPercent(item.turnover_rate / 100)}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+
+          {historyData && displayMode === 'chart' && (
+            <KLineChart 
+              data={historyData.data} 
+              stockName={historyData.name}
+              className="w-full"
+            />
+          )}
         </CardContent>
       </Card>
 
