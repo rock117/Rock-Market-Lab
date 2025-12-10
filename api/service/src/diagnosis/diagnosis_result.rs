@@ -61,6 +61,8 @@ impl DiagnosisLevel {
             40..=59 => DiagnosisLevel::Neutral,
             20..=39 => DiagnosisLevel::Bearish,
             0..=19 => DiagnosisLevel::StrongBearish,
+            // 处理超出正常范围的值（101-255），视为强烈看多
+            _ => DiagnosisLevel::StrongBullish,
         }
     }
 }
