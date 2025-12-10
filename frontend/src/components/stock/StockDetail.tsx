@@ -65,6 +65,9 @@ export default function StockDetail({ className }: StockDetailProps) {
   // 显示模式：table 或 chart
   const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
   
+  // 时间选择模式：custom 或 quick
+  const [timeMode, setTimeMode] = useState<'custom' | 'quick'>('quick')
+  
   // 获取股票详情
   const { data: stockDetail, isLoading, error } = useQuery({
     queryKey: ['stock-detail', selectedStock],
@@ -321,20 +324,21 @@ export default function StockDetail({ className }: StockDetailProps) {
       </Card>
 
       {/* 标签页内容 */}
-      <Tabs defaultValue="history" className="mt-6">
-        <TabsList className="inline-flex h-10 items-center justify-start rounded-md bg-muted p-1 text-muted-foreground w-auto">
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <LineChart className="h-4 w-4" />
-            历史数据
-          </TabsTrigger>
-          <TabsTrigger value="details" className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4" />
-            基本面 & 交易数据
-          </TabsTrigger>
-        </TabsList>
+      <div className="mt-6 border rounded-lg bg-card">
+        <Tabs defaultValue="history" className="w-full">
+          <TabsList className="inline-flex h-12 items-center justify-start rounded-t-lg rounded-b-none bg-muted/50 p-1 text-muted-foreground w-auto border-b">
+            <TabsTrigger value="history" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              <LineChart className="h-4 w-4" />
+              历史数据
+            </TabsTrigger>
+            <TabsTrigger value="details" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:border-b-2 data-[state=active]:border-primary">
+              <BarChart3 className="h-4 w-4" />
+              基本面 & 交易数据
+            </TabsTrigger>
+          </TabsList>
 
-        {/* 第一个标签页：历史数据 */}
-        <TabsContent value="history" className="space-y-6">
+          {/* 第一个标签页：历史数据 */}
+          <TabsContent value="history" className="p-6 space-y-6 m-0">
 
           {/* 历史价格数据 */}
           <Card>
@@ -352,60 +356,81 @@ export default function StockDetail({ className }: StockDetailProps) {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
             {/* 时间选择 */}
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium mb-2 block flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    开始时间
-                  </label>
-                  <input
-                    type="date"
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md text-sm"
-                  />
-                </div>
-                <div>
-                  <label className="text-sm font-medium mb-2 block flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    结束时间
-                  </label>
-                  <input
-                    type="date"
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full px-3 py-2 border rounded-md text-sm"
-                  />
-                </div>
+              {/* 时间选择模式下拉框 */}
+              <div>
+                <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                  <Clock className="h-4 w-4" />
+                  时间选择方式
+                </label>
+                <select
+                  value={timeMode}
+                  onChange={(e) => setTimeMode(e.target.value as 'custom' | 'quick')}
+                  className="w-48 px-3 py-2 border rounded-md text-sm bg-background"
+                >
+                  <option value="quick">快捷时间选择</option>
+                  <option value="custom">自定义时间范围</option>
+                </select>
               </div>
-              
-              {/* 快捷时间选择 */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setQuickTimeRange(7)}
-                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                >
-                  近7天
-                </button>
-                <button
-                  onClick={() => setQuickTimeRange(30)}
-                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                >
-                  近1个月
-                </button>
-                <button
-                  onClick={() => setQuickTimeRange(90)}
-                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                >
-                  近3个月
-                </button>
-                <button
-                  onClick={() => setQuickTimeRange(180)}
-                  className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                >
-                  近6个月
-                </button>
-              </div>
+
+              {/* 根据模式显示不同的时间选择方式 */}
+              {timeMode === 'custom' ? (
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      开始时间
+                    </label>
+                    <input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                      <Calendar className="h-4 w-4" />
+                      结束时间
+                    </label>
+                    <input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md text-sm"
+                    />
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="text-sm font-medium mb-2 block">快捷时间选择</label>
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      onClick={() => setQuickTimeRange(7)}
+                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                    >
+                      近7天
+                    </button>
+                    <button
+                      onClick={() => setQuickTimeRange(30)}
+                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                    >
+                      近1个月
+                    </button>
+                    <button
+                      onClick={() => setQuickTimeRange(90)}
+                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                    >
+                      近3个月
+                    </button>
+                    <button
+                      onClick={() => setQuickTimeRange(180)}
+                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
+                    >
+                      近6个月
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* 显示模式选择 */}
@@ -516,7 +541,7 @@ export default function StockDetail({ className }: StockDetailProps) {
         </TabsContent>
 
         {/* 第二个标签页：基本面和交易数据 */}
-        <TabsContent value="details" className="space-y-6">
+        <TabsContent value="details" className="p-6 space-y-6 m-0">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* 基本面数据 */}
             <Card>
@@ -709,7 +734,8 @@ export default function StockDetail({ className }: StockDetailProps) {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      </div>
     </div>
   )
 }
