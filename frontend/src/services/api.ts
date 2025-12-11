@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse } from '@/types'
+import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -322,7 +322,32 @@ const mockDistributionData = [
   { range: '<-9%', count: 120, percentage: 2.29 }
 ]
 
-// 美股相关API（使用假数据）
+// API基础配置 - 使用相对路径，通过Next.js rewrites转发
+const API_BASE_URL = ''
+
+// 数据转换函数：将API数据转换为前端格式
+function transformUsStock(apiStock: any): UsStock {
+  return {
+    // 新API字段
+    tsCode: apiStock.tsCode,
+    name: apiStock.name,
+    exchangeId: apiStock.exchangeId,
+    businessDescription: apiStock.businessDescription,
+    businessCountry: apiStock.businessCountry,
+    sectorName: apiStock.sectorName,
+    industryName: apiStock.industryName,
+    webAddress: apiStock.webAddress,
+    // 兼容字段映射
+    symbol: apiStock.tsCode,
+    exchange: apiStock.exchangeId,
+    industry: apiStock.industryName,
+    sector: apiStock.sectorName,
+    description: apiStock.businessDescription,
+    website: apiStock.webAddress,
+  }
+}
+
+// 美股相关API（使用真实数据）
 export const usStockApi = {
   getUsStocks: async (params?: {
     page?: number
@@ -331,40 +356,54 @@ export const usStockApi = {
     industry?: string
     search?: string
   }): Promise<PagedResponse<UsStock>> => {
-    await delay(500) // 模拟网络延迟
-    
-    let filteredStocks = [...mockUsStocks]
-    
-    // 筛选逻辑
-    if (params?.exchange) {
-      filteredStocks = filteredStocks.filter(stock => stock.exchange === params.exchange)
-    }
-    if (params?.industry) {
-      filteredStocks = filteredStocks.filter(stock => stock.industry === params.industry)
-    }
-    if (params?.search) {
-      const searchTerm = params.search.toLowerCase()
-      filteredStocks = filteredStocks.filter(stock => 
-        stock.symbol.toLowerCase().includes(searchTerm) ||
-        stock.name.toLowerCase().includes(searchTerm) ||
-        (stock.sector && stock.sector.toLowerCase().includes(searchTerm))
-      )
-    }
-    
-    // 分页逻辑
-    const page = params?.page || 1
-    const pageSize = params?.page_size || 10
-    const totalPages = Math.ceil(filteredStocks.length / pageSize)
-    const startIndex = (page - 1) * pageSize
-    const endIndex = startIndex + pageSize
-    const paginatedStocks = filteredStocks.slice(startIndex, endIndex)
-    
-    return {
-      items: paginatedStocks,
-      total: filteredStocks.length,
-      page: page,
-      page_size: pageSize,
-      total_pages: totalPages
+    try {
+      // 构建查询参数
+      const queryParams = new URLSearchParams()
+      if (params?.page) queryParams.append('page', params.page.toString())
+      if (params?.page_size) queryParams.append('page_size', params.page_size.toString())
+      if (params?.exchange) queryParams.append('exchange', params.exchange)
+      if (params?.industry) queryParams.append('industry', params.industry)
+      if (params?.search) queryParams.append('search', params.search)
+      
+      const url = `${API_BASE_URL}/api/us-stocks?${queryParams.toString()}`
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const apiResponse: ApiResponse<ApiPagedData<any>> = await response.json()
+      
+      if (!apiResponse.success) {
+        throw new Error('API returned unsuccessful response')
+      }
+      
+      const { data } = apiResponse.data
+      const transformedStocks = data.map(transformUsStock)
+      
+      return {
+        items: transformedStocks,
+        total: apiResponse.data.total,
+        page: apiResponse.data.page,
+        page_size: apiResponse.data.page_size,
+        total_pages: apiResponse.data.total_pages
+      }
+    } catch (error) {
+      console.error('Error fetching US stocks:', error)
+      // 如果API调用失败，返回空结果
+      return {
+        items: [],
+        total: 0,
+        page: params?.page || 1,
+        page_size: params?.page_size || 20,
+        total_pages: 0
+      }
     }
   }
 }

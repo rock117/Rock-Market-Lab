@@ -16,6 +16,8 @@ pub struct UsStockParams {
     pub page: Option<u64>,
     /// 每页大小，默认20
     pub page_size: Option<u64>,
+    /// 搜索关键词（股票代码或名称）
+    pub keyword: Option<String>,
 }
 
 /// 获取美股列表接口
@@ -23,13 +25,14 @@ pub struct UsStockParams {
 /// # 参数
 /// * `page` - 页码，从1开始，默认1
 /// * `page_size` - 每页大小，默认20
+/// * `keyword` - 搜索关键词，支持股票代码或名称模糊搜索，可选
 /// 
 /// # 返回
 /// 返回分页的美股列表数据
 /// 
 /// # 示例
 /// ```
-/// GET /api/us-stocks?page=1&page_size=20
+/// GET /api/us-stocks?page=1&page_size=20&keyword=AAPL
 /// ```
 #[get("/api/us-stocks?<params..>")]
 pub async fn get_us_stocks(
@@ -44,6 +47,7 @@ pub async fn get_us_stocks(
     let query_params = UsStockQueryParams {
         page: params.page,
         page_size: params.page_size,
+        keyword: params.keyword,
     };
     
     // 调用服务层

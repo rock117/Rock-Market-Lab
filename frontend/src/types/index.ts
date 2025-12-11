@@ -1,8 +1,16 @@
 // 美股相关类型定义
 export interface UsStock {
-  symbol: string;
-  name: string;
-  exchange: string;
+  tsCode: string; // 股票代码
+  name: string; // 公司名称
+  exchangeId: string; // 交易所ID
+  businessDescription?: string; // 业务描述
+  businessCountry?: string; // 业务国家
+  sectorName?: string; // 行业名称
+  industryName?: string; // 细分行业名称
+  webAddress?: string; // 官网地址
+  // 保留旧字段以兼容现有代码
+  symbol?: string;
+  exchange?: string;
   industry?: string;
   sector?: string;
   market_cap?: number;
@@ -48,6 +56,20 @@ export interface IndexData {
 // 分页响应
 export interface PagedResponse<T> {
   items: T[];
+  total: number;
+  page: number;
+  page_size: number;
+  total_pages: number;
+}
+
+// 真实API响应格式
+export interface ApiResponse<T> {
+  data: T;
+  success: boolean;
+}
+
+export interface ApiPagedData<T> {
+  data: T[];
   total: number;
   page: number;
   page_size: number;

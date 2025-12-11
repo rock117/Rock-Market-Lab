@@ -240,40 +240,44 @@ export default function UsStockList({ className }: UsStockListProps) {
             </TableHeader>
             <TableBody>
               {stockData.items.map((stock) => (
-                <TableRow key={stock.symbol} className="hover:bg-muted/50">
+                <TableRow key={stock.tsCode || stock.symbol} className="hover:bg-muted/50">
                   <TableCell className="font-mono font-medium">
-                    {stock.symbol}
+                    {stock.tsCode || stock.symbol}
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
                       <span className="font-medium">{stock.name}</span>
-                      <span className="text-xs text-muted-foreground">{stock.sector}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {stock.sectorName || stock.sector}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                      {stock.exchange}
+                      {stock.exchangeId || stock.exchange}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm">{stock.industry}</span>
+                    <span className="text-sm">{stock.industryName || stock.industry}</span>
                   </TableCell>
                   <TableCell className="text-right font-medium">
-                    {formatMarketCap(stock.market_cap)}
+                    {stock.market_cap ? formatMarketCap(stock.market_cap) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatNumber(stock.pe_ratio, 1)}
+                    {stock.pe_ratio ? formatNumber(stock.pe_ratio, 1) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    <span className={getTrendColorClass(getStockTrend(stock.roe))}>
-                      {formatPercent(stock.roe, 1)}
-                    </span>
+                    {stock.roe ? (
+                      <span className={getTrendColorClass(getStockTrend(stock.roe))}>
+                        {formatPercent(stock.roe, 1)}
+                      </span>
+                    ) : 'N/A'}
                   </TableCell>
                   <TableCell>
-                    {formatDate(stock.list_date)}
+                    {stock.list_date ? formatDate(stock.list_date) : 'N/A'}
                   </TableCell>
                   <TableCell className="text-right">
-                    {formatNumber(stock.employee_count, 0)}
+                    {stock.employee_count ? formatNumber(stock.employee_count, 0) : 'N/A'}
                   </TableCell>
                 </TableRow>
               ))}

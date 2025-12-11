@@ -1,6 +1,6 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use entity::sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, PaginatorTrait, JoinType, QuerySelect, RelationTrait};
+use entity::sea_orm::{DatabaseConnection, EntityTrait, ColumnTrait, QueryFilter, PaginatorTrait, JoinType, QuerySelect, RelationTrait, QueryOrder};
 use entity::{us_stock, us_company_info};
 use entity::sea_orm;
 /// 美股列表响应结构
@@ -38,6 +38,8 @@ pub struct UsStockQueryParams {
     pub page: Option<u64>,
     /// 每页大小，默认20
     pub page_size: Option<u64>,
+    /// 搜索关键词（股票代码或名称）
+    pub keyword: Option<String>,
 }
 
 /// 分页响应结构
@@ -64,11 +66,25 @@ pub async fn get_us_stock_list(
     let page_size = params.page_size.unwrap_or(20);
     let offset = (page - 1) * page_size;
 
-    // 获取总数
-    let total = us_stock::Entity::find().count(conn).await?;
+    // 构建基础查询
+    let mut base_query = us_stock::Entity::find();
+    
+    // 添加关键词搜索条件
+    if let Some(keyword) = &params.keyword {
+        if !keyword.trim().is_empty() {
+            let keyword_pattern = format!("%{}%", keyword.trim());
+            base_query = base_query.filter(
+                us_stock::Column::Symbol.like(&keyword_pattern)
+                    .or(us_stock::Column::Name.like(&keyword_pattern))
+            );
+        }
+    }
 
-    // 使用 JOIN 查询获取股票和公司信息
-    let query_results = us_stock::Entity::find()
+    // 获取总数（应用搜索条件后的总数）
+    let total = base_query.clone().count(conn).await?;
+
+    // 构建完整的 JOIN 查询
+    let mut query = base_query
         .join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def())
         .select_only()
         .column_as(us_stock::Column::Symbol, "symbol")
@@ -78,7 +94,17 @@ pub async fn get_us_stock_list(
         .column_as(us_company_info::Column::BusinessCountry, "business_country")
         .column_as(us_company_info::Column::SectorName, "sector_name")
         .column_as(us_company_info::Column::IndustryName, "industry_name")
-        .column_as(us_company_info::Column::WebAddress, "web_address")
+        .column_as(us_company_info::Column::WebAddress, "web_address");
+
+    // 添加排序：如果有关键词搜索，ts_code匹配的优先级更高
+    if let Some(keyword) = &params.keyword {
+        if !keyword.trim().is_empty() {
+            // 简单按 symbol 排序，让代码匹配的排在前面
+            query = query.order_by_asc(us_stock::Column::Symbol);
+        }
+    }
+
+    let query_results = query
         .offset(offset)
         .limit(page_size)
         .into_model::<UsStockQueryResult>()
