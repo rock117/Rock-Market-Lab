@@ -352,18 +352,14 @@ export const usStockApi = {
   getUsStocks: async (params?: {
     page?: number
     page_size?: number
-    exchange?: string
-    industry?: string
-    search?: string
+    keyword?: string
   }): Promise<PagedResponse<UsStock>> => {
     try {
       // 构建查询参数
       const queryParams = new URLSearchParams()
       if (params?.page) queryParams.append('page', params.page.toString())
       if (params?.page_size) queryParams.append('page_size', params.page_size.toString())
-      if (params?.exchange) queryParams.append('exchange', params.exchange)
-      if (params?.industry) queryParams.append('industry', params.industry)
-      if (params?.search) queryParams.append('search', params.search)
+      if (params?.keyword) queryParams.append('keyword', params.keyword)
       
       const url = `${API_BASE_URL}/api/us-stocks?${queryParams.toString()}`
       

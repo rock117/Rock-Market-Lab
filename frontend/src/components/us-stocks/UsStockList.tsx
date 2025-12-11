@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback, useRef, useMemo, useTransition } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -13,34 +13,239 @@ interface UsStockListProps {
   className?: string
 }
 
-export default function UsStockList({ className }: UsStockListProps) {
+// 搜索框组件 - 带搜索按钮
+const SearchBox = React.memo(({ 
+  onSearch 
+}: { 
+  onSearch: (keyword: string) => void 
+}) => {
+  const [inputValue, setInputValue] = useState('')
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSearch(inputValue)
+  }
+
+  const handleClear = () => {
+    setInputValue('')
+    onSearch('')
+  }
+
+  return (
+    <div className="mb-6">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl">
+        <div className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+          <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+          <input
+            type="text"
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            placeholder="输入股票代码或名称，按Enter或点击搜索按钮..."
+            className="flex-1 text-sm focus:outline-none bg-transparent"
+            autoComplete="off"
+          />
+        </div>
+        {inputValue && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+          >
+            清空
+          </button>
+        )}
+        <button
+          type="submit"
+          className="px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+        >
+          <Search className="h-4 w-4" />
+          搜索
+        </button>
+      </form>
+    </div>
+  )
+})
+
+SearchBox.displayName = 'SearchBox'
+
+// 独立的表格组件，只在数据变化时重新渲染
+const StockTable = React.memo(({ 
+  stockData, 
+  page, 
+  pageSize, 
+  onPageChange, 
+  onPageSizeChange 
+}: {
+  stockData: PagedResponse<UsStock>
+  page: number
+  pageSize: number
+  onPageChange: (newPage: number) => void
+  onPageSizeChange: (newSize: number) => void
+}) => {
+  return (
+    <>
+      {/* 股票列表表格 */}
+      <div className="rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">代码</TableHead>
+              <TableHead className="w-[200px]">公司名称</TableHead>
+              <TableHead className="w-[80px]">交易所</TableHead>
+              <TableHead className="w-[120px]">行业</TableHead>
+              <TableHead className="w-[120px] text-right">市值</TableHead>
+              <TableHead className="w-[80px] text-right">PE</TableHead>
+              <TableHead className="w-[80px] text-right">ROE</TableHead>
+              <TableHead className="w-[100px]">上市时间</TableHead>
+              <TableHead className="w-[100px] text-right">员工数</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {stockData.items.map((stock) => (
+              <TableRow key={stock.tsCode || stock.symbol} className="hover:bg-muted/50">
+                <TableCell className="font-mono font-medium">
+                  {stock.tsCode || stock.symbol}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-col">
+                    <span className="font-medium">{stock.name}</span>
+                    <span className="text-xs text-muted-foreground">
+                      {stock.sectorName || stock.sector}
+                    </span>
+                  </div>
+                </TableCell>
+                <TableCell>
+                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                    {stock.exchangeId || stock.exchange}
+                  </span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{stock.industryName || stock.industry}</span>
+                </TableCell>
+                <TableCell className="text-right font-medium">
+                  {stock.market_cap ? formatMarketCap(stock.market_cap) : 'N/A'}
+                </TableCell>
+                <TableCell className="text-right">
+                  {stock.pe_ratio ? formatNumber(stock.pe_ratio, 1) : 'N/A'}
+                </TableCell>
+                <TableCell className="text-right">
+                  {stock.roe ? (
+                    <span className={getTrendColorClass(getStockTrend(stock.roe))}>
+                      {formatPercent(stock.roe, 1)}
+                    </span>
+                  ) : 'N/A'}
+                </TableCell>
+                <TableCell>
+                  {stock.list_date ? formatDate(stock.list_date) : 'N/A'}
+                </TableCell>
+                <TableCell className="text-right">
+                  {stock.employee_count ? formatNumber(stock.employee_count, 0) : 'N/A'}
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* 分页控制 */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t">
+        <div className="flex items-center gap-4">
+          <div className="text-sm text-muted-foreground">
+            显示 {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, stockData.total)} 条，共 {stockData.total} 条
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">每页显示</span>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                onPageSizeChange(Number(e.target.value))
+                onPageChange(1)
+              }}
+              className="px-2 py-1 border rounded text-sm"
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={20}>20</option>
+              <option value={50}>50</option>
+            </select>
+          </div>
+        </div>
+
+        {stockData.total_pages > 1 && (
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => onPageChange(1)}
+              disabled={page === 1}
+              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+            >
+              首页
+            </button>
+            <button
+              onClick={() => onPageChange(page - 1)}
+              disabled={page === 1}
+              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+            >
+              上一页
+            </button>
+            <span className="text-sm text-muted-foreground">
+              第 {page} / {stockData.total_pages} 页
+            </span>
+            <button
+              onClick={() => onPageChange(page + 1)}
+              disabled={page === stockData.total_pages}
+              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+            >
+              下一页
+            </button>
+            <button
+              onClick={() => onPageChange(stockData.total_pages)}
+              disabled={page === stockData.total_pages}
+              className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+            >
+              末页
+            </button>
+          </div>
+        )}
+      </div>
+    </>
+  )
+})
+
+StockTable.displayName = 'StockTable'
+
+function UsStockList({ className }: UsStockListProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
-  const [filters, setFilters] = useState({
-    exchange: '',
-    industry: '',
-    search: ''
-  })
+  const [searchKeyword, setSearchKeyword] = useState('')
+
+  // 搜索回调函数
+  const handleSearch = useCallback((keyword: string) => {
+    setSearchKeyword(keyword)
+    setPage(1) // 搜索时重置到第一页
+  }, [])
+
+  // 分页回调函数，使用useCallback确保引用稳定
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage)
+  }, [])
+
+  const handlePageSizeChange = useCallback((newSize: number) => {
+    setPageSize(newSize)
+  }, [])
 
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['us-stocks', page, pageSize, filters],
+    queryKey: ['us-stocks', page, pageSize, searchKeyword],
     queryFn: () => usStockApi.getUsStocks({
       page,
       page_size: pageSize,
-      exchange: filters.exchange || undefined,
-      industry: filters.industry || undefined,
-      search: filters.search || undefined,
+      keyword: searchKeyword || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
+    keepPreviousData: true, // 保持之前的数据，避免闪烁
   })
 
-  // 当筛选条件变化时重置到第一页
-  useEffect(() => {
-    setPage(1)
-  }, [filters])
-
-  // 模拟数据（在实际API未完成时使用）
-  const mockData = {
+  // 使用useMemo缓存模拟数据，避免重新渲染
+  const mockData = useMemo(() => ({
     items: [
       {
         symbol: 'AAPL',
@@ -48,7 +253,7 @@ export default function UsStockList({ className }: UsStockListProps) {
         exchange: 'NASDAQ',
         industry: 'Technology',
         sector: 'Consumer Electronics',
-        market_cap: 30000000, // 3万亿美元，以万元为单位
+        market_cap: 30000000,
         pe_ratio: 28.5,
         roe: 15.6,
         list_date: '1980-12-12',
@@ -127,7 +332,7 @@ export default function UsStockList({ className }: UsStockListProps) {
     page: 1,
     page_size: 50,
     total_pages: 1
-  }
+  }), [])
 
   const stockData = data || mockData
 
@@ -188,237 +393,20 @@ export default function UsStockList({ className }: UsStockListProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* 筛选器 */}
-        <div className="mb-6 flex flex-wrap gap-4">
-          <div className="flex items-center gap-2">
-            <Search className="h-4 w-4 text-muted-foreground" />
-            <input
-              type="text"
-              placeholder="搜索股票代码或名称..."
-              className="px-3 py-2 border rounded-md text-sm w-64"
-              value={filters.search}
-              onChange={(e) => setFilters(prev => ({ ...prev, search: e.target.value }))}
-            />
-          </div>
-          <select
-            className="px-3 py-2 border rounded-md text-sm"
-            value={filters.exchange}
-            onChange={(e) => setFilters(prev => ({ ...prev, exchange: e.target.value }))}
-          >
-            <option value="">所有交易所</option>
-            <option value="NASDAQ">NASDAQ</option>
-            <option value="NYSE">NYSE</option>
-          </select>
-          <select
-            className="px-3 py-2 border rounded-md text-sm"
-            value={filters.industry}
-            onChange={(e) => setFilters(prev => ({ ...prev, industry: e.target.value }))}
-          >
-            <option value="">所有行业</option>
-            <option value="Technology">科技</option>
-            <option value="Healthcare">医疗保健</option>
-            <option value="Financial">金融</option>
-            <option value="Automotive">汽车</option>
-          </select>
-        </div>
+        {/* 搜索框 - 点击搜索按钮才触发查询 */}
+        <SearchBox onSearch={handleSearch} />
 
-        {/* 股票列表表格 */}
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-[100px]">代码</TableHead>
-                <TableHead className="w-[200px]">公司名称</TableHead>
-                <TableHead className="w-[80px]">交易所</TableHead>
-                <TableHead className="w-[120px]">行业</TableHead>
-                <TableHead className="w-[120px] text-right">市值</TableHead>
-                <TableHead className="w-[80px] text-right">PE</TableHead>
-                <TableHead className="w-[80px] text-right">ROE</TableHead>
-                <TableHead className="w-[100px]">上市时间</TableHead>
-                <TableHead className="w-[100px] text-right">员工数</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stockData.items.map((stock) => (
-                <TableRow key={stock.tsCode || stock.symbol} className="hover:bg-muted/50">
-                  <TableCell className="font-mono font-medium">
-                    {stock.tsCode || stock.symbol}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{stock.name}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {stock.sectorName || stock.sector}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
-                      {stock.exchangeId || stock.exchange}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-sm">{stock.industryName || stock.industry}</span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {stock.market_cap ? formatMarketCap(stock.market_cap) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {stock.pe_ratio ? formatNumber(stock.pe_ratio, 1) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {stock.roe ? (
-                      <span className={getTrendColorClass(getStockTrend(stock.roe))}>
-                        {formatPercent(stock.roe, 1)}
-                      </span>
-                    ) : 'N/A'}
-                  </TableCell>
-                  <TableCell>
-                    {stock.list_date ? formatDate(stock.list_date) : 'N/A'}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {stock.employee_count ? formatNumber(stock.employee_count, 0) : 'N/A'}
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* 分页控制 */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t">
-          {/* 分页信息和每页条数选择 */}
-          <div className="flex items-center gap-4">
-            <div className="text-sm text-muted-foreground">
-              显示 {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, stockData.total)} 条，共 {stockData.total} 条
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">每页显示</span>
-              <select
-                value={pageSize}
-                onChange={(e) => {
-                  setPageSize(Number(e.target.value))
-                  setPage(1)
-                }}
-                className="px-2 py-1 border rounded text-sm"
-              >
-                <option value={5}>5条</option>
-                <option value={10}>10条</option>
-                <option value={20}>20条</option>
-                <option value={50}>50条</option>
-              </select>
-            </div>
-          </div>
-
-          {/* 分页按钮 */}
-          {stockData.total_pages > 1 && (
-            <div className="flex items-center gap-1">
-              <button
-                onClick={() => setPage(1)}
-                disabled={page === 1}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
-              >
-                首页
-              </button>
-              <button
-                onClick={() => setPage(p => Math.max(1, p - 1))}
-                disabled={page === 1}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
-              >
-                上一页
-              </button>
-              
-              {/* 页码按钮 */}
-              <div className="flex items-center gap-1">
-                {(() => {
-                  const totalPages = stockData.total_pages
-                  const currentPage = page
-                  const pages = []
-                  
-                  // 计算显示的页码范围
-                  let startPage = Math.max(1, currentPage - 2)
-                  let endPage = Math.min(totalPages, currentPage + 2)
-                  
-                  // 确保显示5个页码（如果可能）
-                  if (endPage - startPage < 4) {
-                    if (startPage === 1) {
-                      endPage = Math.min(totalPages, startPage + 4)
-                    } else {
-                      startPage = Math.max(1, endPage - 4)
-                    }
-                  }
-                  
-                  // 添加第一页和省略号
-                  if (startPage > 1) {
-                    pages.push(
-                      <button
-                        key={1}
-                        onClick={() => setPage(1)}
-                        className="px-3 py-1 border rounded text-sm hover:bg-muted"
-                      >
-                        1
-                      </button>
-                    )
-                    if (startPage > 2) {
-                      pages.push(<span key="ellipsis1" className="px-2 text-sm text-muted-foreground">...</span>)
-                    }
-                  }
-                  
-                  // 添加中间页码
-                  for (let i = startPage; i <= endPage; i++) {
-                    pages.push(
-                      <button
-                        key={i}
-                        onClick={() => setPage(i)}
-                        className={`px-3 py-1 border rounded text-sm ${
-                          i === currentPage 
-                            ? 'bg-primary text-primary-foreground' 
-                            : 'hover:bg-muted'
-                        }`}
-                      >
-                        {i}
-                      </button>
-                    )
-                  }
-                  
-                  // 添加最后一页和省略号
-                  if (endPage < totalPages) {
-                    if (endPage < totalPages - 1) {
-                      pages.push(<span key="ellipsis2" className="px-2 text-sm text-muted-foreground">...</span>)
-                    }
-                    pages.push(
-                      <button
-                        key={totalPages}
-                        onClick={() => setPage(totalPages)}
-                        className="px-3 py-1 border rounded text-sm hover:bg-muted"
-                      >
-                        {totalPages}
-                      </button>
-                    )
-                  }
-                  
-                  return pages
-                })()}
-              </div>
-              
-              <button
-                onClick={() => setPage(p => Math.min(stockData.total_pages, p + 1))}
-                disabled={page === stockData.total_pages}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
-              >
-                下一页
-              </button>
-              <button
-                onClick={() => setPage(stockData.total_pages)}
-                disabled={page === stockData.total_pages}
-                className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
-              >
-                末页
-              </button>
-            </div>
-          )}
-        </div>
+        {/* 使用独立的表格组件 */}
+        <StockTable
+          stockData={stockData}
+          page={page}
+          pageSize={pageSize}
+          onPageChange={handlePageChange}
+          onPageSizeChange={handlePageSizeChange}
+        />
       </CardContent>
     </Card>
   )
 }
+
+export default UsStockList
