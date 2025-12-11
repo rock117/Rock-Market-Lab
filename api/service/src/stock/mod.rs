@@ -8,13 +8,13 @@ use entity::stock;
 use entity::sea_orm::EntityOrSelect;
 use entity::sea_orm::QuerySelect;
 
-
 mod stock_filter_service;
 pub mod stock_overview_service;
 pub mod filter;
 pub mod stock_bias_ratio_service;
 pub mod stock_search_service;
 pub mod stock_price_service;
+pub mod volume_distribution_service;
 
 pub async fn get_stock(ts_code: &str, conn: &DatabaseConnection) -> anyhow::Result<stock::Model> {
     let data = stock::Entity::find_by_id(ts_code).one(conn).await;

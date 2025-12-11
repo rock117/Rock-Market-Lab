@@ -13,3 +13,4 @@ pub mod stock_asset_controller;
 pub mod stock_pick_controller;
 pub mod stock_diagnosis_controller;
 pub mod us_stock_controller;
+pub mod volume_distribution_controller;
