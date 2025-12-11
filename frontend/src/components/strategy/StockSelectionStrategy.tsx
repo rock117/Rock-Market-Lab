@@ -6,18 +6,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { strategyApi } from '@/services/api'
 import { StrategyResult, StrategyType } from '@/types'
-import { formatNumber, formatPercent, formatDate, getTrendColorClass, getStockTrend } from '@/lib/utils'
+import { formatNumber } from '@/lib/utils'
 import { 
   Target, 
   Settings, 
   Play, 
-  TrendingUp, 
   BarChart3, 
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  DollarSign
+  AlertTriangle
 } from 'lucide-react'
+import { useToast } from '@/components/ui/toast'
 
 interface StockSelectionStrategyProps {
   className?: string
@@ -69,33 +66,63 @@ const DEFAULT_PARAMS: Record<string, any> = {
 }
 
 export default function StockSelectionStrategy({ className }: StockSelectionStrategyProps) {
+  const { showToast } = useToast()
   const [selectedStrategy, setSelectedStrategy] = useState<string>('')
   const [parameters, setParameters] = useState<string>('')
   const [isRunning, setIsRunning] = useState(false)
+  const [executionTime, setExecutionTime] = useState<number>(0)
+  const [page, setPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
 
-  const { data: strategyResult, isLoading, error, refetch } = useQuery({
+  const { data: apiResponse, isLoading, error, refetch } = useQuery({
     queryKey: ['strategy-result', selectedStrategy, parameters],
     queryFn: () => strategyApi.runStrategy(selectedStrategy as StrategyType, JSON.parse(parameters || '{}')),
-    enabled: false, // 手动触发
+    enabled: false,
     staleTime: 5 * 60 * 1000,
   })
+
+  // 从API响应中提取数据
+  const allResults = Array.isArray(apiResponse?.data) ? apiResponse.data : []
+  
+  // 计算分页数据
+  const totalItems = allResults.length
+  const totalPages = Math.ceil(totalItems / pageSize)
+  const startIndex = (page - 1) * pageSize
+  const endIndex = startIndex + pageSize
+  const strategyResult = allResults.slice(startIndex, endIndex)
 
   // 运行策略
   const runStrategy = async () => {
     if (!selectedStrategy) {
-      alert('请选择策略类型')
+      showToast('请选择策略类型', 'warning')
       return
     }
 
     try {
       JSON.parse(parameters || '{}') // 验证JSON格式
-      setIsRunning(true)
-      await refetch() // 手动触发查询
-      setIsRunning(false)
     } catch (error) {
-      alert('参数格式错误，请输入有效的JSON格式')
-      setIsRunning(false)
+      showToast('参数格式错误，请输入有效的JSON格式', 'error')
       return
+    }
+
+    try {
+      setIsRunning(true)
+      setPage(1) // 重置到第一页
+      const startTime = Date.now()
+      const result = await refetch() // 手动触发查询
+      const endTime = Date.now()
+      setExecutionTime(endTime - startTime)
+      setIsRunning(false)
+      
+      // 检查是否有错误
+      if (result.error) {
+        showToast(`策略运行失败：${result.error.message}`, 'error')
+      } else {
+        showToast(`策略运行成功，找到 ${allResults.length} 只股票`, 'success')
+      }
+    } catch (error: any) {
+      setIsRunning(false)
+      showToast(`策略运行失败：${error.message || '未知错误'}`, 'error')
     }
   }
 
@@ -104,26 +131,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     setSelectedStrategy(strategyType)
     const defaultParams = DEFAULT_PARAMS[strategyType] || {}
     setParameters(JSON.stringify(defaultParams, null, 2))
-  }
-
-  // 获取策略状态颜色
-  const getStrategyStatusColor = (signal: string) => {
-    switch (signal) {
-      case 'BUY': return 'text-green-600'
-      case 'SELL': return 'text-red-600'
-      case 'HOLD': return 'text-yellow-600'
-      default: return 'text-gray-600'
-    }
-  }
-
-  // 获取策略状态图标
-  const getStrategyStatusIcon = (signal: string) => {
-    switch (signal) {
-      case 'BUY': return <TrendingUp className="h-4 w-4" />
-      case 'SELL': return <AlertTriangle className="h-4 w-4" />
-      case 'HOLD': return <Clock className="h-4 w-4" />
-      default: return <CheckCircle className="h-4 w-4" />
-    }
   }
 
   return (
@@ -233,7 +240,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {strategyResult && (
+      {allResults.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -242,112 +249,142 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
             </CardTitle>
             <CardDescription>
               {STRATEGY_TYPES.find(s => s.value === selectedStrategy)?.label} - 
-              共找到 {strategyResult.stocks?.length || 0} 只符合条件的股票
+              共找到 {totalItems} 只符合条件的股票
+              {executionTime > 0 && ` · 运行耗时 ${(executionTime / 1000).toFixed(2)}s`}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {/* 策略统计 */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="p-4 border rounded-lg text-center">
-                <div className="text-2xl font-bold text-primary">{strategyResult.stocks?.length || 0}</div>
-                <div className="text-sm text-muted-foreground">选中股票</div>
-              </div>
-              <div className="p-4 border rounded-lg text-center">
-                <div className="text-2xl font-bold text-green-600">
-                  {strategyResult.performance?.success_rate ? formatPercent(strategyResult.performance.success_rate) : 'N/A'}
-                </div>
-                <div className="text-sm text-muted-foreground">成功率</div>
-              </div>
-              <div className="p-4 border rounded-lg text-center">
-                <div className="text-2xl font-bold text-blue-600">
-                  {strategyResult.performance?.avg_return ? formatPercent(strategyResult.performance.avg_return) : 'N/A'}
-                </div>
-                <div className="text-sm text-muted-foreground">平均收益</div>
-              </div>
-              <div className="p-4 border rounded-lg text-center">
-                <div className="text-2xl font-bold text-orange-600">
-                  {strategyResult.risk_level || 'MEDIUM'}
-                </div>
-                <div className="text-sm text-muted-foreground">风险等级</div>
-              </div>
+            {/* 股票列表 */}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>股票代码</TableHead>
+                    <TableHead>股票名称</TableHead>
+                    <TableHead>当前价格</TableHead>
+                    <TableHead>涨跌幅</TableHead>
+                    <TableHead>信号强度</TableHead>
+                    <TableHead className="min-w-[300px]">分析结果</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {strategyResult.map((item: any, index: number) => (
+                    <TableRow key={item.ts_code || index}>
+                      <TableCell className="font-medium font-mono">{item.ts_code}</TableCell>
+                      <TableCell>{item.stock_name}</TableCell>
+                      <TableCell className="text-right">
+                        ¥{formatNumber(item.strategy_result?.current_price || 0, 2)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={`font-medium ${
+                          (item.strategy_result?.pct_chg || 0) > 0 ? 'text-red-600' :
+                          (item.strategy_result?.pct_chg || 0) < 0 ? 'text-green-600' :
+                          'text-gray-600'
+                        }`}>
+                          {(item.strategy_result?.pct_chg || 0) > 0 ? '+' : ''}
+                          {formatNumber(item.strategy_result?.pct_chg || 0, 2)}%
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[60px]">
+                            <div 
+                              className={`h-2 rounded-full ${
+                                item.strategy_result?.signal_strength >= 100 ? 'bg-green-600' :
+                                item.strategy_result?.signal_strength >= 80 ? 'bg-blue-600' :
+                                'bg-yellow-600'
+                              }`}
+                              style={{ width: `${Math.min((item.strategy_result?.signal_strength || 0), 100)}%` }}
+                            ></div>
+                          </div>
+                          <span className="text-sm font-medium min-w-[40px]">
+                            {item.strategy_result?.signal_strength || 0}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {item.strategy_result?.analysis_description || 'N/A'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
 
-            {/* 股票列表 */}
-            {strategyResult.stocks && strategyResult.stocks.length > 0 && (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>股票代码</TableHead>
-                      <TableHead>股票名称</TableHead>
-                      <TableHead>当前价格</TableHead>
-                      <TableHead>涨跌幅</TableHead>
-                      <TableHead>策略信号</TableHead>
-                      <TableHead>信号强度</TableHead>
-                      <TableHead>推荐操作</TableHead>
-                      <TableHead>更新时间</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {strategyResult.stocks.map((stock, index) => (
-                      <TableRow key={stock.ts_code || index}>
-                        <TableCell className="font-medium">{stock.ts_code}</TableCell>
-                        <TableCell>{stock.name}</TableCell>
-                        <TableCell className="text-right">
-                          {formatNumber(stock.current_price, 2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <span className={getTrendColorClass(getStockTrend(stock.change_percent))}>
-                            {stock.change_percent > 0 ? '+' : ''}{formatPercent(stock.change_percent)}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <div className={`flex items-center gap-1 ${getStrategyStatusColor(stock.signal)}`}>
-                            {getStrategyStatusIcon(stock.signal)}
-                            <span className="text-sm font-medium">{stock.signal}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center gap-1">
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-primary h-2 rounded-full" 
-                                style={{ width: `${(stock.signal_strength || 0) * 100}%` }}
-                              ></div>
-                            </div>
-                            <span className="text-xs text-muted-foreground">
-                              {formatPercent(stock.signal_strength || 0)}
-                            </span>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-1 rounded-full text-xs ${
-                            stock.signal === 'BUY' ? 'bg-green-100 text-green-800' :
-                            stock.signal === 'SELL' ? 'bg-red-100 text-red-800' :
-                            'bg-yellow-100 text-yellow-800'
-                          }`}>
-                            {stock.signal === 'BUY' ? '买入' : 
-                             stock.signal === 'SELL' ? '卖出' : '观望'}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm text-muted-foreground">
-                          {formatDate(stock.updated_at || new Date().toISOString())}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+            {/* 分页控件 */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t">
+                <div className="flex items-center gap-4">
+                  <div className="text-sm text-muted-foreground">
+                    显示 {startIndex + 1} - {Math.min(endIndex, totalItems)} 条，共 {totalItems} 条
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-muted-foreground">每页显示</span>
+                    <select
+                      value={pageSize}
+                      onChange={(e) => {
+                        setPageSize(Number(e.target.value))
+                        setPage(1)
+                      }}
+                      className="px-2 py-1 border rounded text-sm"
+                    >
+                      <option value={10}>10</option>
+                      <option value={20}>20</option>
+                      <option value={50}>50</option>
+                      <option value={100}>100</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(1)}
+                    disabled={page === 1}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                  >
+                    首页
+                  </button>
+                  <button
+                    onClick={() => setPage(page - 1)}
+                    disabled={page === 1}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                  >
+                    上一页
+                  </button>
+                  <span className="text-sm text-muted-foreground">
+                    第 {page} / {totalPages} 页
+                  </span>
+                  <button
+                    onClick={() => setPage(page + 1)}
+                    disabled={page === totalPages}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                  >
+                    下一页
+                  </button>
+                  <button
+                    onClick={() => setPage(totalPages)}
+                    disabled={page === totalPages}
+                    className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                  >
+                    末页
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* 无结果提示 */}
-            {strategyResult.stocks && strategyResult.stocks.length === 0 && (
-              <div className="text-center py-8">
-                <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                <p className="text-muted-foreground mb-2">当前策略参数下未找到符合条件的股票</p>
-                <p className="text-sm text-muted-foreground">请尝试调整策略参数或选择其他策略类型</p>
-              </div>
-            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* 无结果提示 */}
+      {apiResponse && allResults.length === 0 && (
+        <Card>
+          <CardContent className="py-8">
+            <div className="text-center">
+              <Settings className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+              <p className="text-muted-foreground mb-2">当前策略参数下未找到符合条件的股票</p>
+              <p className="text-sm text-muted-foreground">请尝试调整策略参数或选择其他策略类型</p>
+            </div>
           </CardContent>
         </Card>
       )}
