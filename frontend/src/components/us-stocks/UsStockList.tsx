@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef, useMemo, useTransition
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tooltip } from '@/components/ui/tooltip'
 import { usStockApi } from '@/services/api'
 import { UsStock } from '@/types'
 import { formatNumber, formatMarketCap, formatPercent, formatDate, getTrendColorClass, getStockTrend } from '@/lib/utils'
@@ -166,9 +167,15 @@ const StockTable = React.memo(({
                   ) : 'N/A'}
                 </TableCell>
                 <TableCell>
-                  <div className="text-sm text-muted-foreground max-w-[300px] truncate" title={stock.businessDescription || 'N/A'}>
-                    {stock.businessDescription || 'N/A'}
-                  </div>
+                  {stock.businessDescription ? (
+                    <Tooltip content={stock.businessDescription}>
+                      <div className="text-sm text-muted-foreground max-w-[300px] truncate cursor-help">
+                        {stock.businessDescription}
+                      </div>
+                    </Tooltip>
+                  ) : (
+                    <span className="text-sm text-muted-foreground">N/A</span>
+                  )}
                 </TableCell>
               </TableRow>
             ))}
