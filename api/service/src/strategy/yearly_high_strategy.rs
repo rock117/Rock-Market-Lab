@@ -67,6 +67,9 @@ pub struct YearlyHighResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 前期高点价格
     pub previous_high: f64,
     
@@ -192,6 +195,7 @@ impl YearlyHighStrategy {
             stock_name: None,
             analysis_date: current_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             previous_high,
             previous_high_date,
             days_since_previous_high,

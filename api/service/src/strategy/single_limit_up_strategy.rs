@@ -198,6 +198,7 @@ impl SingleLimitUpStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price,
+                pct_chg: latest.pct_change.unwrap_or(0.0),
                 strategy_signal: StrategySignal::Hold,
                 signal_strength: 0,
                 analysis_description: "当天收盘价未高于开盘价且非涨停，不符合买入条件".to_string(),
@@ -261,6 +262,7 @@ impl SingleLimitUpStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             strategy_signal,
             signal_strength,
             analysis_description,
@@ -427,6 +429,8 @@ pub struct SingleLimitUpResult {
     pub analysis_date: NaiveDate,
     /// 当前价格
     pub current_price: f64,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-100)

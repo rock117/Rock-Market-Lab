@@ -76,6 +76,9 @@ pub struct PriceStrengthResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 平均强度分数（0-100）
     pub avg_strength_score: f64,
     
@@ -198,6 +201,7 @@ impl PriceStrengthStrategy {
             stock_name: None,
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             avg_strength_score,
             strong_days_count,
             strong_days_ratio,

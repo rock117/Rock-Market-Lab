@@ -174,6 +174,7 @@ impl PriceVolumeCandlestickStrategy {
             stock_code: symbol.to_string(),
             analysis_date: self.parse_date_string(&latest.trade_date),
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             strategy_signal,
             signal_strength,
             analysis_description,

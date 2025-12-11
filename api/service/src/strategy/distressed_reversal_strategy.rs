@@ -109,6 +109,8 @@ pub struct DistressedReversalResult {
     pub stock_code: String,
     /// 分析日期
     pub analysis_date: NaiveDate,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-10)
@@ -342,6 +344,7 @@ impl DistressedReversalStrategy {
         Ok(DistressedReversalResult {
             stock_code: symbol.to_string(),
             analysis_date,
+            pct_chg: 0.0,
             strategy_signal,
             signal_strength: total_score,
             analysis_description,
@@ -798,6 +801,7 @@ impl DistressedReversalStrategy {
         DistressedReversalResult {
             stock_code: symbol.to_string(),
             analysis_date: chrono::Local::now().date_naive(),
+            pct_chg: 0.0,
             strategy_signal: StrategySignal::Hold,
             signal_strength: 0,
             analysis_description: reason.to_string(),

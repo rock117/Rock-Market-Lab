@@ -107,6 +107,8 @@ pub struct LongTermBottomReversalResult {
     pub stock_code: String,
     pub analysis_date: NaiveDate,
     pub current_price: f64,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     pub strategy_signal: StrategySignal,
     pub signal_strength: u8,
     pub analysis_description: String,
@@ -232,6 +234,7 @@ impl LongTermBottomReversalStrategy {
             stock_code: symbol.to_string(),
             analysis_date: NaiveDate::parse_from_str(&latest.trade_date, "%Y%m%d")?,
             current_price: latest.close,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             strategy_signal,
             signal_strength,
             analysis_description,

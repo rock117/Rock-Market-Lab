@@ -522,6 +522,8 @@ pub struct BottomVolumeSurgeResult {
     pub open_price: f64,
     /// 当天收盘价
     pub close_price: f64,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-100)
@@ -563,6 +565,8 @@ pub struct PriceVolumeCandlestickResult {
     pub analysis_date: NaiveDate,
     /// 当前价格
     pub current_price: f64,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-100)
@@ -788,6 +792,9 @@ mod tests {
             stock_code: "000001.SZ".to_string(),
             analysis_date: chrono::NaiveDate::from_ymd_opt(2024, 1, 1).unwrap(),
             current_price: 10.5,
+            open_price: 10.2,
+            close_price: 10.5,
+            pct_chg: 2.94,
             strategy_signal: StrategySignal::Buy,
             signal_strength: 75,
             analysis_description: "测试分析".to_string(),

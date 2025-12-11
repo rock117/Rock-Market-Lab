@@ -153,6 +153,9 @@ pub struct LimitUpPullbackResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 涨停日期列表
     pub limit_up_dates: Vec<String>,
     
@@ -466,6 +469,7 @@ impl LimitUpPullbackStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             limit_up_dates,
             limit_up_count,
             last_limit_up_date,

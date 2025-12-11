@@ -77,6 +77,9 @@ pub struct StrongCloseResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 强势天数
     pub strong_days_count: usize,
     
@@ -237,6 +240,7 @@ impl StrongCloseStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             strong_days_count,
             strong_days_ratio_pct,
             daily_strong_flags,

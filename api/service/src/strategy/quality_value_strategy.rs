@@ -130,6 +130,9 @@ pub struct QualityValueResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// ROE（百分比）
     pub roe: f64,
     
@@ -344,6 +347,7 @@ impl QualityValueStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: 0.0,
             roe,
             roe_rating,
             operating_cashflow,

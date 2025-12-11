@@ -257,6 +257,9 @@ pub struct TurtleResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 入场突破价（N日最高价）
     pub entry_breakout_price: f64,
     
@@ -669,6 +672,7 @@ impl TurtleStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             entry_breakout_price,
             exit_breakout_price,
             is_entry_breakout,

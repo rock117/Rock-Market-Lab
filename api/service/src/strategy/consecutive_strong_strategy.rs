@@ -63,6 +63,9 @@ pub struct ConsecutiveStrongResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 分析周期
     pub analysis_period: usize,
     
@@ -222,6 +225,7 @@ impl ConsecutiveStrongStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             analysis_period: self.config.analysis_period,
             consecutive_strong_days,
             strong_days_ratio,

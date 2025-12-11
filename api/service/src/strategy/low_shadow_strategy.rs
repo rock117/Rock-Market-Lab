@@ -127,6 +127,9 @@ pub struct LowShadowResult {
     /// 当前价格
     pub current_price: f64,
     
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
+    
     /// 策略信号
     pub strategy_signal: StrategySignal,
     
@@ -451,6 +454,7 @@ impl LowShadowStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: latest.pct_change.unwrap_or(0.0),
             strategy_signal,
             signal_strength,
             analysis_description,

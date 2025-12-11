@@ -347,6 +347,7 @@ impl FundamentalStrategy {
                         stock_code: symbol.to_string(),
                         analysis_date,
                         current_price,
+                        pct_chg: 0.0,
                         strategy_signal: StrategySignal::Hold,
                         signal_strength: 0,
                         analysis_description: format!("市值{:.2}亿元，低于最小市值要求", market_cap_value),
@@ -376,6 +377,7 @@ impl FundamentalStrategy {
                         stock_code: symbol.to_string(),
                         analysis_date,
                         current_price,
+                        pct_chg: 0.0,
                         strategy_signal: StrategySignal::Hold,
                         signal_strength: 0,
                         analysis_description: format!("市值{:.2}亿元，高于最大市值要求", market_cap_value),
@@ -432,6 +434,7 @@ impl FundamentalStrategy {
             stock_code: symbol.to_string(),
             analysis_date,
             current_price,
+            pct_chg: 0.0,
             strategy_signal,
             signal_strength,
             analysis_description,
@@ -663,6 +666,8 @@ pub struct FundamentalResult {
     pub analysis_date: NaiveDate,
     /// 当前价格
     pub current_price: f64,
+    /// 当日涨跌幅（百分比）
+    pub pct_chg: f64,
     /// 策略信号
     pub strategy_signal: StrategySignal,
     /// 信号强度 (0-100)
