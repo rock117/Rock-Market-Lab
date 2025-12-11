@@ -13,19 +13,23 @@ interface UsStockListProps {
   className?: string
 }
 
-// 搜索框组件 - 带搜索按钮
+// 搜索框组件 - 完全独立的状态管理，避免父组件渲染影响
 const SearchBox = React.memo(({ 
-  onSearch 
+  onSearch
 }: { 
-  onSearch: (keyword: string) => void 
+  onSearch: (keyword: string) => void
 }) => {
+  console.log('🎨 SearchBox 渲染')
+  
+  // 搜索框内部管理自己的状态
   const [inputValue, setInputValue] = useState('')
-
+  
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+    console.log('📝 SearchBox handleSubmit 调用')
     onSearch(inputValue)
   }
-
+  
   const handleClear = () => {
     setInputValue('')
     onSearch('')
@@ -64,6 +68,11 @@ const SearchBox = React.memo(({
       </form>
     </div>
   )
+}, (prevProps, nextProps) => {
+  // 自定义比较函数：只要onSearch引用相同就不重新渲染
+  const shouldNotRerender = prevProps.onSearch === nextProps.onSearch
+  console.log('🔍 SearchBox props比较:', shouldNotRerender ? '相同，不渲染' : '不同，需要渲染')
+  return shouldNotRerender
 })
 
 SearchBox.displayName = 'SearchBox'
@@ -82,6 +91,8 @@ const StockTable = React.memo(({
   onPageChange: (newPage: number) => void
   onPageSizeChange: (newSize: number) => void
 }) => {
+  console.log('📊 StockTable 渲染')
+  
   return (
     <>
       {/* 股票列表表格 */}
@@ -214,14 +225,21 @@ const StockTable = React.memo(({
 StockTable.displayName = 'StockTable'
 
 function UsStockList({ className }: UsStockListProps) {
+  console.log('🔄 UsStockList 渲染')
+  
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [isPending, startTransition] = useTransition()
 
-  // 搜索回调函数
+  // 搜索回调函数 - 使用 useTransition 降低优先级，减少渲染次数
   const handleSearch = useCallback((keyword: string) => {
-    setSearchKeyword(keyword)
-    setPage(1) // 搜索时重置到第一页
+    console.log('🔍 执行搜索:', keyword)
+    startTransition(() => {
+      // 批量更新状态，减少渲染次数
+      setSearchKeyword(keyword)
+      setPage(1)
+    })
   }, [])
 
   // 分页回调函数，使用useCallback确保引用稳定
@@ -242,99 +260,10 @@ function UsStockList({ className }: UsStockListProps) {
     }),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
     keepPreviousData: true, // 保持之前的数据，避免闪烁
+    refetchOnWindowFocus: false, // 避免窗口聚焦时重新获取
+    refetchOnMount: false, // 避免组件挂载时重新获取
+    notifyOnChangeProps: ['data', 'error'], // 只在关键属性变化时通知
   })
-
-  // 使用useMemo缓存模拟数据，避免重新渲染
-  const mockData = useMemo(() => ({
-    items: [
-      {
-        symbol: 'AAPL',
-        name: 'Apple Inc.',
-        exchange: 'NASDAQ',
-        industry: 'Technology',
-        sector: 'Consumer Electronics',
-        market_cap: 30000000,
-        pe_ratio: 28.5,
-        roe: 15.6,
-        list_date: '1980-12-12',
-        description: 'Apple Inc. designs, manufactures, and markets smartphones, personal computers, tablets, wearables, and accessories worldwide.',
-        website: 'https://www.apple.com',
-        employee_count: 164000,
-        founded_date: '1976-04-01',
-        address: 'One Apple Park Way, Cupertino, CA 95014'
-      },
-      {
-        symbol: 'MSFT',
-        name: 'Microsoft Corporation',
-        exchange: 'NASDAQ',
-        industry: 'Technology',
-        sector: 'Software',
-        market_cap: 28000000,
-        pe_ratio: 32.1,
-        roe: 18.2,
-        list_date: '1986-03-13',
-        description: 'Microsoft Corporation develops, licenses, and supports software, services, devices, and solutions worldwide.',
-        website: 'https://www.microsoft.com',
-        employee_count: 221000,
-        founded_date: '1975-04-04',
-        address: 'One Microsoft Way, Redmond, WA 98052'
-      },
-      {
-        symbol: 'GOOGL',
-        name: 'Alphabet Inc.',
-        exchange: 'NASDAQ',
-        industry: 'Technology',
-        sector: 'Internet Services',
-        market_cap: 17000000,
-        pe_ratio: 25.8,
-        roe: 14.3,
-        list_date: '2004-08-19',
-        description: 'Alphabet Inc. provides online advertising services in the United States, Europe, the Middle East, Africa, the Asia-Pacific, Canada, and Latin America.',
-        website: 'https://www.alphabet.com',
-        employee_count: 190000,
-        founded_date: '1998-09-04',
-        address: '1600 Amphitheatre Parkway, Mountain View, CA 94043'
-      },
-      {
-        symbol: 'AMZN',
-        name: 'Amazon.com Inc.',
-        exchange: 'NASDAQ',
-        industry: 'Technology',
-        sector: 'E-commerce',
-        market_cap: 15000000,
-        pe_ratio: 45.2,
-        roe: 12.8,
-        list_date: '1997-05-15',
-        description: 'Amazon.com, Inc. engages in the retail sale of consumer products and subscriptions in North America and internationally.',
-        website: 'https://www.amazon.com',
-        employee_count: 1540000,
-        founded_date: '1994-07-05',
-        address: '410 Terry Avenue North, Seattle, WA 98109'
-      },
-      {
-        symbol: 'TSLA',
-        name: 'Tesla Inc.',
-        exchange: 'NASDAQ',
-        industry: 'Automotive',
-        sector: 'Electric Vehicles',
-        market_cap: 8000000,
-        pe_ratio: 65.4,
-        roe: 19.3,
-        list_date: '2010-06-29',
-        description: 'Tesla, Inc. designs, develops, manufactures, leases, and sells electric vehicles, and energy generation and storage systems.',
-        website: 'https://www.tesla.com',
-        employee_count: 140000,
-        founded_date: '2003-07-01',
-        address: '1 Tesla Road, Austin, TX 78725'
-      }
-    ] as UsStock[],
-    total: 5,
-    page: 1,
-    page_size: 50,
-    total_pages: 1
-  }), [])
-
-  const stockData = data || mockData
 
   if (isLoading) {
     return (
@@ -381,6 +310,24 @@ function UsStockList({ className }: UsStockListProps) {
     )
   }
 
+  if (!data) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Globe className="h-5 w-5" />
+            美股列表
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center h-64">
+            <div className="text-muted-foreground">暂无数据</div>
+          </div>
+        </CardContent>
+      </Card>
+    )
+  }
+
   return (
     <Card className={className}>
       <CardHeader>
@@ -389,16 +336,23 @@ function UsStockList({ className }: UsStockListProps) {
           美股列表
         </CardTitle>
         <CardDescription>
-          展示美股市场主要公司的基本信息和财务指标 (共 {stockData.total} 只股票)
+          展示美股市场主要公司的基本信息和财务指标 (共 {data.total} 只股票)
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* 搜索框 - 点击搜索按钮才触发查询 */}
+        {/* 搜索框 - 完全独立，只在点击搜索时通知父组件 */}
         <SearchBox onSearch={handleSearch} />
+
+        {/* 搜索加载状态指示器 */}
+        {isPending && (
+          <div className="mb-4 px-4 py-2 bg-blue-50 border border-blue-200 rounded-md text-sm text-blue-700">
+            正在搜索中...
+          </div>
+        )}
 
         {/* 使用独立的表格组件 */}
         <StockTable
-          stockData={stockData}
+          stockData={data}
           page={page}
           pageSize={pageSize}
           onPageChange={handlePageChange}
@@ -409,4 +363,5 @@ function UsStockList({ className }: UsStockListProps) {
   )
 }
 
-export default UsStockList
+// 使用 React.memo 包装主组件，减少不必要的重新渲染
+export default React.memo(UsStockList)

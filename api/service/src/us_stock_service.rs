@@ -84,7 +84,7 @@ pub async fn get_us_stock_list(
     let total = base_query.clone().count(conn).await?;
 
     // 构建完整的 JOIN 查询
-    let mut query = base_query
+    let query = base_query
         .join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def())
         .select_only()
         .column_as(us_stock::Column::Symbol, "symbol")
@@ -96,20 +96,30 @@ pub async fn get_us_stock_list(
         .column_as(us_company_info::Column::IndustryName, "industry_name")
         .column_as(us_company_info::Column::WebAddress, "web_address");
 
-    // 添加排序：如果有关键词搜索，ts_code匹配的优先级更高
-    if let Some(keyword) = &params.keyword {
-        if !keyword.trim().is_empty() {
-            // 简单按 symbol 排序，让代码匹配的排在前面
-            query = query.order_by_asc(us_stock::Column::Symbol);
-        }
-    }
-
-    let query_results = query
+    let mut query_results = query
         .offset(offset)
         .limit(page_size)
         .into_model::<UsStockQueryResult>()
         .all(conn)
         .await?;
+
+    // 如果有关键词搜索，按匹配优先级排序：symbol 匹配优先于 name 匹配
+    if let Some(keyword) = &params.keyword {
+        if !keyword.trim().is_empty() {
+            let keyword_lower = keyword.trim().to_lowercase();
+            query_results.sort_by(|a, b| {
+                let a_symbol_match = a.symbol.to_lowercase().contains(&keyword_lower);
+                let b_symbol_match = b.symbol.to_lowercase().contains(&keyword_lower);
+                
+                // symbol 匹配的排在前面
+                match (a_symbol_match, b_symbol_match) {
+                    (true, false) => std::cmp::Ordering::Less,    // a 的 symbol 匹配，排前面
+                    (false, true) => std::cmp::Ordering::Greater, // b 的 symbol 匹配，排前面
+                    _ => std::cmp::Ordering::Equal,               // 都匹配或都不匹配，保持原顺序
+                }
+            });
+        }
+    }
 
     // 转换为响应格式
     let data: Vec<UsStockResponse> = query_results

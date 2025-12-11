@@ -382,12 +382,12 @@ impl StockPickerService {
             let daily_data = Self::get_stock_daily_data_static(db, ts_code, start_date, end_date).await?;
             // 检查数据是否足够
             if daily_data.len() < required_points {
-                warn!(
-                "股票 {} 数据不足: 需要 {} 个数据点，实际 {} 个",
-                ts_code,
-                required_points,
-                daily_data.len()
-            );
+                // warn!(
+                // "股票 {} 数据不足: 需要 {} 个数据点，实际 {} 个",
+                // ts_code,
+                // required_points,
+                // daily_data.len()
+            // );
                 return Ok(None);
             }
 

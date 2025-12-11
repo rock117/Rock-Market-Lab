@@ -958,94 +958,31 @@ const mockStrategyStocks: StrategyStock[] = [
 // 策略API
 export const strategyApi = {
   // 运行策略
-  runStrategy: async (strategyType: StrategyType, parameters: Record<string, any>): Promise<StrategyResult> => {
-    await delay(1500) // 模拟策略运行时间
+  runStrategy: async (strategyType: StrategyType, parameters: Record<string, any>) => {
+    const response = await fetch('/api/stocks/pick', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        strategy: strategyType,
+        settings: parameters
+      })
+    })
     
-    // 根据策略类型生成不同的结果
-    let selectedStocks = [...mockStrategyStocks]
-    let performance: StrategyPerformance
-    let riskLevel: 'LOW' | 'MEDIUM' | 'HIGH' = 'MEDIUM'
+    const result = await response.json()
     
-    // 根据策略类型调整结果
-    switch (strategyType) {
-      case 'fundamental':
-        selectedStocks = selectedStocks.filter(stock => stock.signal === 'BUY')
-        performance = {
-          success_rate: 0.78,
-          avg_return: 0.156,
-          max_drawdown: -0.12,
-          sharpe_ratio: 1.45,
-          total_trades: 45
-        }
-        riskLevel = 'LOW'
-        break
-        
-      case 'turtle':
-        selectedStocks = selectedStocks.slice(0, 3)
-        performance = {
-          success_rate: 0.65,
-          avg_return: 0.234,
-          max_drawdown: -0.18,
-          sharpe_ratio: 1.23,
-          total_trades: 28
-        }
-        riskLevel = 'MEDIUM'
-        break
-        
-      case 'price_volume_candlestick':
-        selectedStocks = selectedStocks.filter(stock => stock.signal_strength > 0.7)
-        performance = {
-          success_rate: 0.72,
-          avg_return: 0.189,
-          max_drawdown: -0.15,
-          sharpe_ratio: 1.34,
-          total_trades: 67
-        }
-        riskLevel = 'MEDIUM'
-        break
-        
-      case 'yearly_high':
-        selectedStocks = selectedStocks.filter(stock => stock.change_percent > 0)
-        performance = {
-          success_rate: 0.58,
-          avg_return: 0.298,
-          max_drawdown: -0.25,
-          sharpe_ratio: 0.98,
-          total_trades: 34
-        }
-        riskLevel = 'HIGH'
-        break
-        
-      default:
-        selectedStocks = selectedStocks.slice(0, 4)
-        performance = {
-          success_rate: 0.68,
-          avg_return: 0.178,
-          max_drawdown: -0.16,
-          sharpe_ratio: 1.15,
-          total_trades: 52
-        }
-        riskLevel = 'MEDIUM'
+    // 检查业务逻辑错误
+    if (!result.success) {
+      throw new Error(result.data || '策略运行失败')
     }
     
-    // 根据参数调整结果（简单模拟）
-    if (parameters.volume_threshold && parameters.volume_threshold > 2.0) {
-      selectedStocks = selectedStocks.slice(0, Math.max(1, selectedStocks.length - 2))
+    // 检查HTTP错误
+    if (!response.ok) {
+      throw new Error('策略运行失败')
     }
     
-    if (parameters.min_roe && parameters.min_roe > 0.2) {
-      selectedStocks = selectedStocks.filter(stock => stock.signal_strength > 0.8)
-    }
-    
-    return {
-      strategy_type: strategyType,
-      stocks: selectedStocks,
-      performance,
-      risk_level: riskLevel,
-      execution_time: Math.floor(Math.random() * 1000) + 500,
-      parameters,
-      created_at: new Date().toISOString()
-    }
+    return result
   },
 
   // 获取策略列表
