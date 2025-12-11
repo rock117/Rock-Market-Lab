@@ -4,7 +4,7 @@ import React from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { stockApi } from '@/services/api'
-import { MarketSummary as MarketSummaryType, IndexData, PieChartData } from '@/types'
+import { MarketSummary as MarketSummaryType, IndexData, PieChartData, VolumeDistribution } from '@/types'
 import { formatNumber, formatLargeNumber, formatPercent, getTrendColorClass, getStockTrend, getTrendColor } from '@/lib/utils'
 import { TrendingUp, TrendingDown, Activity, BarChart3, PieChart, Users } from 'lucide-react'
 import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
@@ -32,6 +32,13 @@ export default function MarketSummary({ className }: MarketSummaryProps) {
   const { data: distributionData, isLoading: distributionLoading } = useQuery({
     queryKey: ['price-distribution'],
     queryFn: () => stockApi.getPriceDistribution(),
+    staleTime: 2 * 60 * 1000,
+  })
+
+  // 获取成交量分布数据
+  const { data: volumeDistData, isLoading: volumeDistLoading } = useQuery({
+    queryKey: ['volume-distribution'],
+    queryFn: () => stockApi.getVolumeDistribution(),
     staleTime: 2 * 60 * 1000,
   })
 
@@ -121,7 +128,7 @@ export default function MarketSummary({ className }: MarketSummaryProps) {
     { name: '平盘', value: currentMarketData.flat_count, color: '#6b7280' }
   ]
 
-  const isLoading = marketLoading || indexLoading || distributionLoading
+  const isLoading = marketLoading || indexLoading || distributionLoading || volumeDistLoading
 
   if (isLoading) {
     return (
@@ -266,6 +273,153 @@ export default function MarketSummary({ className }: MarketSummaryProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* 成交量分布统计 */}
+      {volumeDistData && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Activity className="h-5 w-5" />
+              成交量分布统计
+            </CardTitle>
+            <CardDescription>
+              TOP股票成交量占比及市场集中度分析
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* TOP排名占比 */}
+              <div>
+                <h4 className="text-sm font-medium mb-4 text-muted-foreground">TOP股票成交量占比</h4>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-blue-600"></div>
+                      <span className="text-sm font-medium">TOP 10</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-blue-600">{formatPercent(volumeDistData.top10_percentage)}</p>
+                      <p className="text-xs text-muted-foreground">{formatLargeNumber(volumeDistData.top10_volume)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-green-600"></div>
+                      <span className="text-sm font-medium">TOP 30</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-green-600">{formatPercent(volumeDistData.top30_percentage)}</p>
+                      <p className="text-xs text-muted-foreground">{formatLargeNumber(volumeDistData.top30_volume)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-orange-600"></div>
+                      <span className="text-sm font-medium">TOP 50</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-orange-600">{formatPercent(volumeDistData.top50_percentage)}</p>
+                      <p className="text-xs text-muted-foreground">{formatLargeNumber(volumeDistData.top50_volume)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between p-3 bg-purple-50 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2 h-2 rounded-full bg-purple-600"></div>
+                      <span className="text-sm font-medium">TOP 100</span>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-purple-600">{formatPercent(volumeDistData.top100_percentage)}</p>
+                      <p className="text-xs text-muted-foreground">{formatLargeNumber(volumeDistData.top100_volume)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* 集中度指标 */}
+              <div>
+                <h4 className="text-sm font-medium mb-4 text-muted-foreground">市场集中度指标</h4>
+                <div className="space-y-4">
+                  {/* 集中度指数 */}
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">集中度指数 (CR)</span>
+                      <span className="text-lg font-bold">{formatNumber(volumeDistData.concentration_index * 100, 1)}%</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full transition-all"
+                        style={{ width: `${volumeDistData.concentration_index * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {volumeDistData.concentration_index > 0.7 ? '高度集中' : 
+                       volumeDistData.concentration_index > 0.4 ? '中度集中' : '较为分散'}
+                    </p>
+                  </div>
+
+                  {/* 赫芬达尔指数 */}
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">赫芬达尔指数 (HHI)</span>
+                      <span className="text-lg font-bold">{formatNumber(volumeDistData.herfindahl_index, 3)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-green-600 h-2 rounded-full transition-all"
+                        style={{ width: `${volumeDistData.herfindahl_index * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {volumeDistData.herfindahl_index > 0.25 ? '高度集中' : 
+                       volumeDistData.herfindahl_index > 0.15 ? '中度集中' : '竞争充分'}
+                    </p>
+                  </div>
+
+                  {/* 基尼系数 */}
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">基尼系数 (Gini)</span>
+                      <span className="text-lg font-bold">{formatNumber(volumeDistData.gini_coefficient, 3)}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-orange-600 h-2 rounded-full transition-all"
+                        style={{ width: `${volumeDistData.gini_coefficient * 100}%` }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {volumeDistData.gini_coefficient > 0.6 ? '分布极不均衡' : 
+                       volumeDistData.gini_coefficient > 0.4 ? '分布不均衡' : '分布相对均衡'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* 指标说明 */}
+            <div className="mt-6 p-4 bg-muted/50 rounded-lg">
+              <h5 className="text-sm font-medium mb-2">指标说明</h5>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-muted-foreground">
+                <div>
+                  <p className="font-medium text-foreground mb-1">集中度指数 (CR)</p>
+                  <p>衡量前N家企业的市场份额，数值越大表示市场越集中于少数股票</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">赫芬达尔指数 (HHI)</p>
+                  <p>所有股票市场份额平方和，0表示完全竞争，1表示完全垄断</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground mb-1">基尼系数 (Gini)</p>
+                  <p>衡量成交量分布不均衡程度，0表示完全均衡，1表示完全不均衡</p>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* 涨跌分布和图表 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

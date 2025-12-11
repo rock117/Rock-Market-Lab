@@ -108,7 +108,8 @@ const StockTable = React.memo(({
               <TableHead className="w-[80px] text-right">PE</TableHead>
               <TableHead className="w-[80px] text-right">ROE</TableHead>
               <TableHead className="w-[100px]">上市时间</TableHead>
-              <TableHead className="w-[100px] text-right">员工数</TableHead>
+              <TableHead className="w-[80px]">官网</TableHead>
+              <TableHead className="min-w-[200px]">主营业务</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -149,8 +150,25 @@ const StockTable = React.memo(({
                 <TableCell>
                   {stock.list_date ? formatDate(stock.list_date) : 'N/A'}
                 </TableCell>
-                <TableCell className="text-right">
-                  {stock.employee_count ? formatNumber(stock.employee_count, 0) : 'N/A'}
+                <TableCell>
+                  {stock.webAddress ? (
+                    <a 
+                      href={stock.webAddress} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:text-blue-800 hover:underline text-sm inline-flex items-center gap-1"
+                    >
+                      查看
+                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                      </svg>
+                    </a>
+                  ) : 'N/A'}
+                </TableCell>
+                <TableCell>
+                  <div className="text-sm text-muted-foreground max-w-[300px] truncate" title={stock.businessDescription || 'N/A'}>
+                    {stock.businessDescription || 'N/A'}
+                  </div>
                 </TableCell>
               </TableRow>
             ))}

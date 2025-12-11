@@ -86,6 +86,24 @@ export interface PieChartData {
   color?: string;
 }
 
+// 成交量分布统计
+export interface VolumeDistribution {
+  trade_date: string;
+  total_volume: number;
+  total_stocks: number;
+  top10_volume: number;
+  top10_percentage: number;
+  top30_volume: number;
+  top30_percentage: number;
+  top50_volume: number;
+  top50_percentage: number;
+  top100_volume: number;
+  top100_percentage: number;
+  concentration_index: number; // 集中度指数 (0-1，越接近1越集中)
+  herfindahl_index: number; // 赫芬达尔指数 (0-1，越接近1越集中)
+  gini_coefficient: number; // 基尼系数 (0-1，越接近1越不均衡)
+}
+
 // 股票详情相关类型定义
 export interface StockDetail {
   ts_code: string;

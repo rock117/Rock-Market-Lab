@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, MarketSummary, IndexData, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData } from '@/types'
+import { PagedResponse, UsStock, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -404,6 +404,24 @@ export const usStockApi = {
   }
 }
 
+// 成交量分布模拟数据
+const mockVolumeDistribution: VolumeDistribution = {
+  trade_date: '2024-12-08',
+  total_volume: 1234567890,
+  total_stocks: 5234,
+  top10_volume: 456789012,
+  top10_percentage: 37.0,
+  top30_volume: 678901234,
+  top30_percentage: 55.0,
+  top50_volume: 802345678,
+  top50_percentage: 65.0,
+  top100_volume: 925678901,
+  top100_percentage: 75.0,
+  concentration_index: 0.65, // CR指数，表示前N家企业的市场份额
+  herfindahl_index: 0.08, // HHI指数，0.08表示市场较为分散
+  gini_coefficient: 0.72 // 基尼系数，0.72表示成交量分布不均衡
+}
+
 // A股相关API（使用假数据）
 export const stockApi = {
   getMarketSummary: async (): Promise<MarketSummary> => {
@@ -419,6 +437,11 @@ export const stockApi = {
   getPriceDistribution: async () => {
     await delay(300)
     return mockDistributionData
+  },
+
+  getVolumeDistribution: async (): Promise<VolumeDistribution> => {
+    await delay(300)
+    return mockVolumeDistribution
   }
 }
 
