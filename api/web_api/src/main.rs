@@ -109,6 +109,13 @@ async fn rocket() -> _ {
             us_stock_controller::get_us_stocks,
             us_company_meta_controller::get_us_company_meta,
             volume_distribution_controller::get_volume_distribution_analysis,
+            
+            portfolio_controller::create_portfolio_handler,
+            portfolio_controller::list_portfolios_handler,
+            portfolio_controller::get_portfolio_handler,
+            portfolio_controller::delete_portfolio_handler,
+            portfolio_controller::add_holding_handler,
+            portfolio_controller::remove_holding_handler,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

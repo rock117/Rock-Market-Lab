@@ -15,3 +15,4 @@ pub mod stock_diagnosis_controller;
 pub mod us_stock_controller;
 pub mod volume_distribution_controller;
 pub mod us_company_meta_controller;
+pub mod portfolio_controller;
