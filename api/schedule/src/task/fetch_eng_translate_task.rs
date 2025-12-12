@@ -36,7 +36,7 @@ impl Task for FetchEngTranslateTask {
 
         let companies: Vec<us_company_info::Model> = companies
             .into_iter()
-            .filter(|c| c.business_description.is_some())
+            .filter(|c| c.sector_name.is_some() && c.sector_name_cn.is_none())
             .collect();
         let total = companies.len();
         let completed = Arc::new(AtomicUsize::new(0));
