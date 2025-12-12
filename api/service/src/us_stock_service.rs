@@ -47,6 +47,10 @@ pub struct UsStockQueryParams {
     pub page_size: Option<u64>,
     /// 搜索关键词（股票代码或名称）
     pub keyword: Option<String>,
+    /// 行业（中文）过滤，对应 us_company_info.industry_name_cn
+    pub industry: Option<String>,
+    /// 板块（中文）过滤，对应 us_company_info.sector_name_cn
+    pub sector: Option<String>,
 }
 
 /// 分页响应结构
@@ -73,8 +77,32 @@ pub async fn get_us_stock_list(
     let page_size = params.page_size.unwrap_or(20);
     let offset = (page - 1) * page_size;
 
+    let keyword_is_empty = params
+        .keyword
+        .as_ref()
+        .map(|k| k.trim().is_empty())
+        .unwrap_or(true);
+
     // 构建基础查询
     let mut base_query = us_stock::Entity::find();
+
+    // 行业/板块（中文）过滤：仅当 keyword 为空时生效；需要 join us_company_info
+    if keyword_is_empty && (params.industry.as_ref().is_some() || params.sector.as_ref().is_some()) {
+        base_query = base_query.join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def());
+
+        if let Some(industry) = &params.industry {
+            let industry = industry.trim();
+            if !industry.is_empty() {
+                base_query = base_query.filter(ColumnTrait::eq(&us_company_info::Column::IndustryNameCn, industry));
+            }
+        }
+        if let Some(sector) = &params.sector {
+            let sector = sector.trim();
+            if !sector.is_empty() {
+                base_query = base_query.filter(ColumnTrait::eq(&us_company_info::Column::SectorNameCn, sector));
+            }
+        }
+    }
     
     // 添加关键词搜索条件
     if let Some(keyword) = &params.keyword {
@@ -92,7 +120,6 @@ pub async fn get_us_stock_list(
 
     // 构建完整的 JOIN 查询
     let query = base_query
-        .join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def())
         .select_only()
         .column_as(us_stock::Column::Symbol, "symbol")
         .column_as(us_stock::Column::ExchangeId, "exchange_id")

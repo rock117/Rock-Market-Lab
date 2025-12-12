@@ -18,6 +18,10 @@ pub struct UsStockParams {
     pub page_size: Option<u64>,
     /// 搜索关键词（股票代码或名称）
     pub keyword: Option<String>,
+    /// 行业（中文）过滤，对应 us_company_info.industry_name_cn
+    pub industry: Option<String>,
+    /// 板块（中文）过滤，对应 us_company_info.sector_name_cn
+    pub sector: Option<String>,
 }
 
 /// 获取美股列表接口
@@ -40,7 +44,6 @@ pub async fn get_us_stocks(
     conn: &State<DatabaseConnection>
 ) -> Result<WebResponse<UsStockListResponse>> {
     info!("获取美股列表请求 - 参数: {:?}", params);
-    
     let conn = conn as &DatabaseConnection;
     
     // 转换参数格式
@@ -48,6 +51,8 @@ pub async fn get_us_stocks(
         page: params.page,
         page_size: params.page_size,
         keyword: params.keyword,
+        industry: params.industry,
+        sector: params.sector,
     };
     
     // 调用服务层

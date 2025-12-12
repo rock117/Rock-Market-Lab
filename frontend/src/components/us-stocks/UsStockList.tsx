@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip } from '@/components/ui/tooltip'
+import { Select, SelectItem, SelectContent } from '@/components/ui/select'
 import { usStockApi } from '@/services/api'
 import { UsStock } from '@/types'
 import { formatNumber, formatMarketCap, formatPercent, formatDate, getTrendColorClass, getStockTrend } from '@/lib/utils'
@@ -14,69 +15,131 @@ interface UsStockListProps {
   className?: string
 }
 
-// 搜索框组件 - 完全独立的状态管理，避免父组件渲染影响
-const SearchBox = React.memo(({ 
-  onSearch
-}: { 
-  onSearch: (keyword: string) => void
+// 搜索和筛选组件 - 统一的搜索栏
+const SearchAndFilterBar = React.memo(({ 
+  onSearch,
+  metaData 
+}: {
+  onSearch: (params: { keyword: string; sector: string; industry: string }) => void
+  metaData?: { sectors: string[]; industries: string[] }
 }) => {
-  console.log('🎨 SearchBox 渲染')
+  console.log('🔍 SearchAndFilterBar 渲染')
   
-  // 搜索框内部管理自己的状态
-  const [inputValue, setInputValue] = useState('')
-  
+  const [keyword, setKeyword] = useState('')
+  const [selectedSector, setSelectedSector] = useState('')
+  const [selectedIndustry, setSelectedIndustry] = useState('')
+
+  const handleSearch = () => {
+    console.log('🔍 执行搜索:', { keyword, selectedSector, selectedIndustry })
+    onSearch({
+      keyword: keyword.trim(),
+      sector: selectedSector,
+      industry: selectedIndustry
+    })
+  }
+
+  const handleClear = () => {
+    setKeyword('')
+    setSelectedSector('')
+    setSelectedIndustry('')
+    onSearch({
+      keyword: '',
+      sector: '',
+      industry: ''
+    })
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    console.log('📝 SearchBox handleSubmit 调用')
-    onSearch(inputValue)
-  }
-  
-  const handleClear = () => {
-    setInputValue('')
-    onSearch('')
+    handleSearch()
   }
 
   return (
     <div className="mb-6">
-      <form onSubmit={handleSubmit} className="flex items-center gap-3 max-w-2xl">
-        <div className="flex-1 flex items-center gap-2 px-3 py-2 border rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+      <form onSubmit={handleSubmit} className="flex items-center gap-3 flex-wrap">
+        {/* 搜索框 - 缩小宽度 */}
+        <div className="flex items-center gap-2 px-3 py-2 border rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-64">
           <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
           <input
             type="text"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="输入股票代码或名称，按Enter或点击搜索按钮..."
-            className="flex-1 text-sm focus:outline-none bg-transparent"
+            placeholder="股票代码或名称..."
+            className="flex-1 text-sm focus:outline-none bg-transparent min-w-0"
+            value={keyword}
+            onChange={(e) => setKeyword(e.target.value)}
             autoComplete="off"
           />
         </div>
-        {inputValue && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+
+        {/* 板块筛选 */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">板块:</span>
+          <Select 
+            value={selectedSector} 
+            onValueChange={setSelectedSector}
+            placeholder="选择板块"
+            className="w-32"
           >
-            清空
-          </button>
-        )}
+            <SelectContent>
+              <SelectItem value="">全部板块</SelectItem>
+              {metaData?.sectors.map((sector) => (
+                <SelectItem key={sector} value={sector}>
+                  {sector}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 行业筛选 */}
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-muted-foreground whitespace-nowrap">行业:</span>
+          <Select 
+            value={selectedIndustry} 
+            onValueChange={setSelectedIndustry}
+            placeholder="选择行业"
+            className="w-40"
+          >
+            <SelectContent>
+              <SelectItem value="">全部行业</SelectItem>
+              {metaData?.industries.map((industry) => (
+                <SelectItem key={industry} value={industry}>
+                  {industry}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        {/* 搜索按钮 */}
         <button
           type="submit"
-          className="px-6 py-2 bg-primary text-primary-foreground rounded-md text-sm font-medium hover:bg-primary/90 transition-colors flex items-center gap-2"
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm whitespace-nowrap flex items-center gap-2"
         >
           <Search className="h-4 w-4" />
           搜索
         </button>
+
+        {/* 清空按钮 */}
+        {(keyword || selectedSector || selectedIndustry) && (
+          <button
+            type="button"
+            onClick={handleClear}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
+          >
+            清空
+          </button>
+        )}
       </form>
     </div>
   )
 }, (prevProps, nextProps) => {
-  // 自定义比较函数：只要onSearch引用相同就不重新渲染
-  const shouldNotRerender = prevProps.onSearch === nextProps.onSearch
-  console.log('🔍 SearchBox props比较:', shouldNotRerender ? '相同，不渲染' : '不同，需要渲染')
+  const shouldNotRerender = prevProps.onSearch === nextProps.onSearch && 
+                           prevProps.metaData === nextProps.metaData
+  console.log('🔍 SearchAndFilterBar props比较:', shouldNotRerender ? '相同，不渲染' : '不同，需要渲染')
   return shouldNotRerender
 })
 
-SearchBox.displayName = 'SearchBox'
+SearchAndFilterBar.displayName = 'SearchAndFilterBar'
 
 // 独立的表格组件，只在数据变化时重新渲染
 const StockTable = React.memo(({ 
@@ -284,14 +347,18 @@ function UsStockList({ className }: UsStockListProps) {
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [selectedSector, setSelectedSector] = useState('')
+  const [selectedIndustry, setSelectedIndustry] = useState('')
   const [isPending, startTransition] = useTransition()
 
   // 搜索回调函数 - 使用 useTransition 降低优先级，减少渲染次数
-  const handleSearch = useCallback((keyword: string) => {
-    console.log('🔍 执行搜索:', keyword)
+  const handleSearch = useCallback((params: { keyword: string; sector: string; industry: string }) => {
+    console.log('🔍 执行搜索:', params)
     startTransition(() => {
       // 批量更新状态，减少渲染次数
-      setSearchKeyword(keyword)
+      setSearchKeyword(params.keyword)
+      setSelectedSector(params.sector)
+      setSelectedIndustry(params.industry)
       setPage(1)
     })
   }, [])
@@ -305,12 +372,23 @@ function UsStockList({ className }: UsStockListProps) {
     setPageSize(newSize)
   }, [])
 
+  // 获取板块和行业元数据
+  const { data: metaData } = useQuery({
+    queryKey: ['us-stock-meta'],
+    queryFn: () => usStockApi.getUsStockMeta(),
+    staleTime: 30 * 60 * 1000, // 30分钟缓存
+    refetchOnWindowFocus: false,
+  })
+
+
   const { data, isLoading, error, refetch } = useQuery({
-    queryKey: ['us-stocks', page, pageSize, searchKeyword],
+    queryKey: ['us-stocks', page, pageSize, searchKeyword, selectedSector, selectedIndustry],
     queryFn: () => usStockApi.getUsStocks({
       page,
       page_size: pageSize,
       keyword: searchKeyword || undefined,
+      sector: selectedSector || undefined,
+      industry: selectedIndustry || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
     keepPreviousData: true, // 保持之前的数据，避免闪烁
@@ -394,8 +472,8 @@ function UsStockList({ className }: UsStockListProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* 搜索框 - 完全独立，只在点击搜索时通知父组件 */}
-        <SearchBox onSearch={handleSearch} />
+        {/* 搜索和筛选栏 - 统一在一行 */}
+        <SearchAndFilterBar onSearch={handleSearch} metaData={metaData} />
 
         {/* 搜索加载状态指示器 */}
         {isPending && (

@@ -350,12 +350,51 @@ function transformUsStock(apiStock: any): UsStock {
   }
 }
 
+// 美股元数据类型定义
+interface UsStockMeta {
+  industries: string[]
+  sectors: string[]
+}
+
 // 美股相关API（使用真实数据）
 export const usStockApi = {
+  // 获取美股元数据（板块和行业）
+  getUsStockMeta: async (): Promise<UsStockMeta> => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/us-company/meta`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const apiResponse: { data: UsStockMeta; success: boolean } = await response.json()
+      
+      if (!apiResponse.success) {
+        throw new Error('API returned unsuccessful response')
+      }
+      
+      return apiResponse.data
+    } catch (error) {
+      console.error('Error fetching US stock meta:', error)
+      // 如果API调用失败，返回空数据
+      return {
+        industries: [],
+        sectors: []
+      }
+    }
+  },
+
   getUsStocks: async (params?: {
     page?: number
     page_size?: number
     keyword?: string
+    sector?: string
+    industry?: string
   }): Promise<PagedResponse<UsStock>> => {
     try {
       // 构建查询参数
@@ -363,6 +402,8 @@ export const usStockApi = {
       if (params?.page) queryParams.append('page', params.page.toString())
       if (params?.page_size) queryParams.append('page_size', params.page_size.toString())
       if (params?.keyword) queryParams.append('keyword', params.keyword)
+      if (params?.sector) queryParams.append('sector', params.sector)
+      if (params?.industry) queryParams.append('industry', params.industry)
       
       const url = `${API_BASE_URL}/api/us-stocks?${queryParams.toString()}`
       
