@@ -104,6 +104,7 @@ const StockTable = React.memo(({
               <TableHead className="w-[100px]">代码</TableHead>
               <TableHead className="w-[200px]">公司名称</TableHead>
               <TableHead className="w-[80px]">交易所</TableHead>
+                <TableHead className="w-[120px]">板块</TableHead>
               <TableHead className="w-[120px]">行业</TableHead>
               <TableHead className="w-[120px] text-right">市值</TableHead>
               <TableHead className="w-[80px] text-right">PE</TableHead>
@@ -114,7 +115,16 @@ const StockTable = React.memo(({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stockData.items.map((stock) => (
+            {stockData.items.map((stock) => {
+              // 调试：打印第一条数据的结构
+              if (stock === stockData.items[0]) {
+                console.log('Stock data structure:', stock)
+                console.log('sectorNameCn:', stock.sectorNameCn)
+                console.log('industryNameCn:', stock.industryNameCn)
+                console.log('businessDescription:', stock.businessDescription)
+                console.log('businessDescriptionCn:', stock.businessDescriptionCn)
+              }
+              return (
               <TableRow key={stock.tsCode || stock.symbol} className="hover:bg-muted/50">
                 <TableCell className="font-mono font-medium">
                   {stock.tsCode || stock.symbol}
@@ -133,7 +143,10 @@ const StockTable = React.memo(({
                   </span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">{stock.industryName || stock.industry}</span>
+                  <span className="text-sm">{stock.sectorNameCn || stock.sectorName || stock.sector || 'N/A'}</span>
+                </TableCell>
+                <TableCell>
+                  <span className="text-sm">{stock.industryNameCn || stock.industryName || stock.industry || 'N/A'}</span>
                 </TableCell>
                 <TableCell className="text-right font-medium">
                   {stock.market_cap ? formatMarketCap(stock.market_cap) : 'N/A'}
@@ -168,7 +181,22 @@ const StockTable = React.memo(({
                 </TableCell>
                 <TableCell>
                   {stock.businessDescription ? (
-                    <Tooltip content={stock.businessDescription}>
+                    <Tooltip content={
+                      <div className="space-y-2">
+                        {stock.businessDescription && (
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground mb-1">English:</div>
+                            <div className="text-sm">{stock.businessDescription}</div>
+                          </div>
+                        )}
+                        {stock.businessDescriptionCn && (
+                          <div>
+                            <div className="text-xs font-medium text-muted-foreground mb-1">中文:</div>
+                            <div className="text-sm">{stock.businessDescriptionCn}</div>
+                          </div>
+                        )}
+                      </div>
+                    }>
                       <div className="text-sm text-muted-foreground max-w-[300px] truncate cursor-help">
                         {stock.businessDescription}
                       </div>
@@ -178,7 +206,8 @@ const StockTable = React.memo(({
                   )}
                 </TableCell>
               </TableRow>
-            ))}
+              )
+            })}
           </TableBody>
         </Table>
       </div>

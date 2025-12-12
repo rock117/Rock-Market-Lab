@@ -26,6 +26,13 @@ pub struct UsStockResponse {
     /// 具体行业名称
     #[serde(rename = "industryName")]
     pub industry_name: String,
+
+    #[serde(rename = "businessDescriptionCn")]
+    pub business_description_cn: String,
+    #[serde(rename = "sectorNameCn")]
+    pub sector_name_cn: String,
+    #[serde(rename = "industryNameCn")]
+    pub industry_name_cn: String,
     /// 公司网址
     #[serde(rename = "webAddress")]
     pub web_address: String,
@@ -94,6 +101,9 @@ pub async fn get_us_stock_list(
         .column_as(us_company_info::Column::BusinessCountry, "business_country")
         .column_as(us_company_info::Column::SectorName, "sector_name")
         .column_as(us_company_info::Column::IndustryName, "industry_name")
+        .column_as(us_company_info::Column::BusinessDescriptionCn, "business_description_cn")
+        .column_as(us_company_info::Column::SectorNameCn, "sector_name_cn")
+        .column_as(us_company_info::Column::IndustryNameCn, "industry_name_cn")
         .column_as(us_company_info::Column::WebAddress, "web_address");
 
     let mut query_results = query
@@ -132,6 +142,9 @@ pub async fn get_us_stock_list(
             business_country: result.business_country.unwrap_or_default(),
             sector_name: result.sector_name.unwrap_or_default(),
             industry_name: result.industry_name.unwrap_or_default(),
+            business_description_cn: result.business_description_cn.unwrap_or_default(),
+            sector_name_cn: result.sector_name_cn.unwrap_or_default(),
+            industry_name_cn: result.industry_name_cn.unwrap_or_default(),
             web_address: result.web_address.unwrap_or_default(),
         })
         .collect();
@@ -158,6 +171,9 @@ struct UsStockQueryResult {
     pub sector_name: Option<String>,
     pub industry_name: Option<String>,
     pub web_address: Option<String>,
+    pub business_description_cn: Option<String>,
+    pub sector_name_cn: Option<String>,
+    pub industry_name_cn: Option<String>,
 }
 
 impl sea_orm::FromQueryResult for UsStockQueryResult {
@@ -170,6 +186,9 @@ impl sea_orm::FromQueryResult for UsStockQueryResult {
             business_country: res.try_get("", "business_country").ok(),
             sector_name: res.try_get("", "sector_name").ok(),
             industry_name: res.try_get("", "industry_name").ok(),
+            business_description_cn: res.try_get("", "business_description_cn").ok(),
+            sector_name_cn: res.try_get("", "sector_name_cn").ok(),
+            industry_name_cn: res.try_get("", "industry_name_cn").ok(),
             web_address: res.try_get("", "web_address").ok(),
         })
     }

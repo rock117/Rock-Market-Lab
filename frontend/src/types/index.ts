@@ -22,10 +22,13 @@ export interface UsStock {
   tsCode: string; // 股票代码
   name: string; // 公司名称
   exchangeId: string; // 交易所ID
-  businessDescription?: string; // 业务描述
+  businessDescription?: string; // 业务描述（英文）
+  businessDescriptionCn?: string; // 业务描述（中文）
   businessCountry?: string; // 业务国家
-  sectorName?: string; // 行业名称
-  industryName?: string; // 细分行业名称
+  sectorName?: string; // 行业名称（英文）
+  sectorNameCn?: string; // 行业名称（中文）
+  industryName?: string; // 细分行业名称（英文）
+  industryNameCn?: string; // 细分行业名称（中文）
   webAddress?: string; // 官网地址
   // 保留旧字段以兼容现有代码
   symbol?: string;

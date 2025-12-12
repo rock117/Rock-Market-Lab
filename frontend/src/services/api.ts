@@ -333,9 +333,12 @@ function transformUsStock(apiStock: any): UsStock {
     name: apiStock.name,
     exchangeId: apiStock.exchangeId,
     businessDescription: apiStock.businessDescription,
+    businessDescriptionCn: apiStock.businessDescriptionCn,
     businessCountry: apiStock.businessCountry,
     sectorName: apiStock.sectorName,
+    sectorNameCn: apiStock.sectorNameCn,
     industryName: apiStock.industryName,
+    industryNameCn: apiStock.industryNameCn,
     webAddress: apiStock.webAddress,
     // 兼容字段映射
     symbol: apiStock.tsCode,

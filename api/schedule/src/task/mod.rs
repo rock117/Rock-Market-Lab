@@ -38,6 +38,7 @@ pub mod fetch_dc_member_task;
 pub mod us;
 pub mod fetch_block_trade_task;
 pub mod fetch_basic_org_info_task;
+pub mod fetch_eng_translate_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {
