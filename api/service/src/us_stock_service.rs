@@ -84,12 +84,11 @@ pub async fn get_us_stock_list(
         .unwrap_or(true);
 
     // 构建基础查询
-    let mut base_query = us_stock::Entity::find();
+    let mut base_query = us_stock::Entity::find()
+        .join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def());
 
-    // 行业/板块（中文）过滤：仅当 keyword 为空时生效；需要 join us_company_info
+    // 行业/板块（中文）过滤：仅当 keyword 为空时生效
     if keyword_is_empty && (params.industry.as_ref().is_some() || params.sector.as_ref().is_some()) {
-        base_query = base_query.join(JoinType::LeftJoin, us_stock::Relation::UsCompanyInfo.def());
-
         if let Some(industry) = &params.industry {
             let industry = industry.trim();
             if !industry.is_empty() {
