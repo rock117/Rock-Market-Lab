@@ -1,3 +1,22 @@
+// 投资组合相关类型定义
+export interface PortfolioStock {
+  id: string; // 唯一标识
+  ts_code: string; // 股票代码
+  name: string; // 股票名称
+  industry?: string; // 行业
+  note?: string; // 备注
+  added_date: string; // 添加日期
+}
+
+export interface Portfolio {
+  id: string; // 组合ID
+  name: string; // 组合名称
+  description?: string; // 组合描述
+  created_date: string; // 创建日期
+  updated_date: string; // 更新日期
+  stocks: PortfolioStock[]; // 成分股列表
+}
+
 // 美股相关类型定义
 export interface UsStock {
   tsCode: string; // 股票代码

@@ -8,6 +8,7 @@ import UsStockList from '@/components/us-stocks/UsStockList'
 import StockDetail from '@/components/stock/StockDetail'
 import KLineComparison from '@/components/kline/KLineComparison'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
+import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import { 
   TrendingUp, 
   Globe, 
@@ -105,12 +106,12 @@ const modules = [
   },
   {
     id: 'portfolio-manager',
-    name: '组合管理',
-    description: '持仓管理、收益统计',
+    name: '投资组合',
+    description: '创建组合、管理持仓',
     icon: Briefcase,
     color: 'text-emerald-500',
     category: 'portfolio',
-    status: 'coming'
+    status: 'active'
   },
   {
     id: 'risk-analysis',
@@ -136,7 +137,7 @@ const categories = [
 export default function HomePage() {
   const [activeModule, setActiveModule] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [expandedCategories, setExpandedCategories] = useState<string[]>(['main', 'market', 'analysis'])
+  const [expandedCategories, setExpandedCategories] = useState<string[]>(['main', 'market', 'analysis', 'portfolio'])
 
   // 切换分类展开状态
   const toggleCategory = (categoryId: string) => {
@@ -162,6 +163,8 @@ export default function HomePage() {
         return <KLineComparison />
       case 'stock-selection-strategy':
         return <StockSelectionStrategy />
+      case 'portfolio-manager':
+        return <PortfolioManager />
       default:
         return <ComingSoonModule moduleName={modules.find(m => m.id === activeModule)?.name || ''} />
     }
