@@ -156,14 +156,15 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
 
     let us: Vec<Arc<dyn crate::task::Task >> = vec![
       //  Arc::new(FetchUsStockTask::new(conn.clone())),
-        Arc::new(FetchUsCompanyInfoTask::new(conn.clone())),
+      Arc::new(FetchUsDailyTask::new(conn.clone())),
+      //  Arc::new(FetchUsCompanyInfoTask::new(conn.clone())),
     ];
     
     // jobs.extend(dailys);
-    jobs.extend(others);
+    // jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);
-    // jobs.extend(us);
+    jobs.extend(us);
     // jobs.extend(security_list);
 
     info!("Total tasks: {}", jobs.len());

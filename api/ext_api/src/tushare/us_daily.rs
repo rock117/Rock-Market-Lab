@@ -8,10 +8,9 @@ use crate::tushare::call_api_as;
 
 
 /// 获取基础信息数据，包括股票代码、名称、上市日期、退市日期等
-pub async fn us_daily(trade_date: &NaiveDate) -> anyhow::Result<Vec<UsDaily>> {
-    let trade_date = trade_date.format(DATE_YMD).to_string();
-    let res = call_api_as::<UsDaily, 500>(request!(Api::UsDaily,
-         {"trade_date" => trade_date.as_str()},
+pub async fn us_daily(ts_code: &str, start_date: &str, end_date: &str) -> anyhow::Result<Vec<UsDaily>> {
+    let res = call_api_as::<UsDaily, 1>(request!(Api::UsDaily,
+         {"start_date" => start_date, "end_date" => end_date, "ts_code" => ts_code},
         [
                                          "ts_code",
                                           "trade_date",
