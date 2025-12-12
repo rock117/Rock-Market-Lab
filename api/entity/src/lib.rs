@@ -47,4 +47,8 @@ pub mod block_trade;
 pub mod cn_security_info;
 pub mod limit_list_d;
 
+pub mod portfolio;
+
+pub mod holding;
+
 pub use sea_orm;
