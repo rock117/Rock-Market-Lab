@@ -82,6 +82,9 @@ impl FetchUsCompanyInfoTask {
             industry_template_name: info.industry_template_name.clone(),
             country: info.country.clone(),
             business_description: desc.business_description_entity.long_description.clone(),
+            business_description_cn: None,
+            sector_name_cn: None,
+            industry_name_cn: None,
         };
         let tx = db_conn.begin().await?;
         let pks = [
