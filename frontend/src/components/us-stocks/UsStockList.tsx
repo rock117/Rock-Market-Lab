@@ -5,7 +5,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tooltip } from '@/components/ui/tooltip'
-import { Select, SelectItem, SelectContent } from '@/components/ui/select'
+import { Select, SelectItem } from '@/components/ui/select'
 import { usStockApi } from '@/services/api'
 import { UsStock } from '@/types'
 import { formatNumber, formatMarketCap, formatPercent, formatDate, getTrendColorClass, getStockTrend } from '@/lib/utils'
@@ -23,7 +23,7 @@ const SearchAndFilterBar = React.memo(({
   onSearch: (params: { keyword: string; sector: string; industry: string }) => void
   metaData?: { sectors: string[]; industries: string[] }
 }) => {
-  console.log('🔍 SearchAndFilterBar 渲染')
+  console.log('🔍 SearchAndFilterBar 渲染', { metaData })
   
   const [keyword, setKeyword] = useState('')
   const [selectedSector, setSelectedSector] = useState('')
@@ -75,18 +75,19 @@ const SearchAndFilterBar = React.memo(({
           <span className="text-sm text-muted-foreground whitespace-nowrap">板块:</span>
           <Select 
             value={selectedSector} 
-            onValueChange={setSelectedSector}
+            onValueChange={(value) => {
+              console.log('🔽 Sector changed:', value)
+              setSelectedSector(value)
+            }}
             placeholder="选择板块"
             className="w-32"
           >
-            <SelectContent>
-              <SelectItem value="">全部板块</SelectItem>
-              {metaData?.sectors.map((sector) => (
-                <SelectItem key={sector} value={sector}>
-                  {sector}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            <SelectItem value="">全部板块</SelectItem>
+            {metaData?.sectors.map((sector) => (
+              <SelectItem key={sector} value={sector}>
+                {sector}
+              </SelectItem>
+            ))}
           </Select>
         </div>
 
@@ -95,18 +96,19 @@ const SearchAndFilterBar = React.memo(({
           <span className="text-sm text-muted-foreground whitespace-nowrap">行业:</span>
           <Select 
             value={selectedIndustry} 
-            onValueChange={setSelectedIndustry}
+            onValueChange={(value) => {
+              console.log('🔽 Industry changed:', value)
+              setSelectedIndustry(value)
+            }}
             placeholder="选择行业"
             className="w-40"
           >
-            <SelectContent>
-              <SelectItem value="">全部行业</SelectItem>
-              {metaData?.industries.map((industry) => (
-                <SelectItem key={industry} value={industry}>
-                  {industry}
-                </SelectItem>
-              ))}
-            </SelectContent>
+            <SelectItem value="">全部行业</SelectItem>
+            {metaData?.industries.map((industry) => (
+              <SelectItem key={industry} value={industry}>
+                {industry}
+              </SelectItem>
+            ))}
           </Select>
         </div>
 

@@ -46,6 +46,12 @@ export interface UsStock {
   address?: string;
 }
 
+// 美股元数据
+export interface UsStockMeta {
+  sectors: string[];
+  industries: string[];
+}
+
 // A股相关类型定义
 export interface MarketSummary {
   trade_date: string;

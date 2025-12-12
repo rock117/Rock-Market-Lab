@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock } from '@/types'
+import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))

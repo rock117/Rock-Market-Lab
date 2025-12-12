@@ -39,6 +39,7 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
     }, [])
 
     const handleSelect = (itemValue: string) => {
+      console.log('🔽 Select handleSelect:', itemValue)
       setSelectedValue(itemValue)
       setIsOpen(false)
       onValueChange?.(itemValue)
@@ -66,7 +67,10 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         <div
           ref={ref}
           className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 cursor-pointer"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={() => {
+            console.log('🔽 Select trigger clicked, isOpen:', isOpen)
+            setIsOpen(!isOpen)
+          }}
         >
           <span className={selectedValue ? '' : 'text-muted-foreground'}>
             {getDisplayValue()}
