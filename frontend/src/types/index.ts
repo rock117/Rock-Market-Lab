@@ -50,6 +50,7 @@ export interface Portfolio {
   created_date: string; // 创建日期
   updated_date: string; // 更新日期
   stocks: PortfolioStock[]; // 成分股列表
+  holdings_num?: number; // 持仓数量（从列表接口获取）
 }
 
 // 美股相关类型定义

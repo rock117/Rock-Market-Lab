@@ -116,6 +116,7 @@ async fn rocket() -> _ {
             portfolio_controller::delete_portfolio_handler,
             portfolio_controller::add_holding_handler,
             portfolio_controller::get_holdings_handler,
+            portfolio_controller::update_holding_desc_handler,
             portfolio_controller::remove_holding_handler,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])

@@ -29,10 +29,13 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [newStock, setNewStock] = useState({
     symbol: '',
-    name: '',
     exchange_id: '',
     desc: ''
   })
+  
+  // 编辑股票描述相关状态
+  const [editingStockId, setEditingStockId] = useState<string | null>(null)
+  const [editingDesc, setEditingDesc] = useState('')
 
   const queryClient = useQueryClient()
   const { showToast } = useToast()
@@ -106,7 +109,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
       setIsAddingStock(false)
-      setNewStock({ symbol: '', name: '', exchange_id: '', desc: '' })
+      setNewStock({ symbol: '', exchange_id: '', desc: '' })
       setSearchKeyword('')
       showToast('股票已添加到组合', 'success')
     },
@@ -123,6 +126,22 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
       showToast('股票已从组合中移除', 'success')
+    },
+    onError: (error: Error) => {
+      showToast(error.message, 'error')
+    }
+  })
+
+  // 更新股票描述
+  const updateStockMutation = useMutation({
+    mutationFn: (data: { portfolioId: string; stockId: string; desc: string }) =>
+      portfolioApi.updateStock(data.portfolioId, data.stockId, data.desc),
+    onSuccess: (updatedPortfolio) => {
+      queryClient.invalidateQueries({ queryKey: ['portfolios'] })
+      setSelectedPortfolio(updatedPortfolio)
+      setEditingStockId(null)
+      setEditingDesc('')
+      showToast('描述已更新', 'success')
     },
     onError: (error: Error) => {
       showToast(error.message, 'error')
@@ -160,15 +179,14 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
 
   const handleAddStock = () => {
     if (!selectedPortfolio) return
-    if (!newStock.symbol.trim() || !newStock.name.trim()) {
-      showToast('请输入股票代码和名称', 'warning')
+    if (!newStock.symbol.trim()) {
+      showToast('请输入股票代码', 'warning')
       return
     }
     addStockMutation.mutate({
       portfolioId: selectedPortfolio.id,
       stock: {
         symbol: newStock.symbol,
-        name: newStock.name,
         exchange_id: newStock.exchange_id || undefined,
         desc: newStock.desc || undefined
       }
@@ -182,6 +200,44 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
         portfolioId: selectedPortfolio.id,
         stockId
       })
+    }
+  }
+
+  // 开始编辑股票描述
+  const startEditingStock = (stock: PortfolioStock) => {
+    setEditingStockId(stock.id)
+    setEditingDesc(stock.desc || '')
+  }
+
+  // 取消编辑
+  const cancelEditingStock = () => {
+    setEditingStockId(null)
+    setEditingDesc('')
+  }
+
+  // 保存股票描述
+  const handleUpdateStockDesc = () => {
+    if (!selectedPortfolio || !editingStockId) return
+    updateStockMutation.mutate({
+      portfolioId: selectedPortfolio.id,
+      stockId: editingStockId,
+      desc: editingDesc
+    })
+  }
+
+  // 加载完整的投资组合数据（包含持仓列表）
+  const handleSelectPortfolio = async (portfolio: Portfolio) => {
+    console.log('🔍 点击投资组合:', portfolio.id)
+    try {
+      const fullPortfolio = await portfolioApi.getPortfolio(portfolio.id)
+      if (fullPortfolio) {
+        setSelectedPortfolio(fullPortfolio)
+      } else {
+        showToast('获取投资组合详情失败', 'error')
+      }
+    } catch (error) {
+      console.error('❌ 加载投资组合失败:', error)
+      showToast('获取投资组合详情失败', 'error')
     }
   }
 
@@ -291,13 +347,13 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                   className={`p-3 border rounded-lg cursor-pointer transition-colors hover:bg-muted/50 ${
                     selectedPortfolio?.id === portfolio.id ? 'bg-muted border-primary' : ''
                   }`}
-                  onClick={() => setSelectedPortfolio(portfolio)}
+                  onClick={() => handleSelectPortfolio(portfolio)}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="font-medium">{portfolio.name}</div>
                       <div className="text-xs text-muted-foreground mt-1">
-                        {portfolio.stocks.length} 只股票
+                        {portfolio.holdings_num ?? portfolio.stocks.length} 只股票
                       </div>
                       {portfolio.description && (
                         <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
@@ -414,23 +470,16 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
               {isAddingStock && (
                 <div className="mb-4 p-4 border rounded-lg bg-muted/50">
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-medium">股票代码</label>
-                        <Input
-                          placeholder="例如：000001.SZ"
-                          value={newStock.symbol}
-                          onChange={(e) => setNewStock({ ...newStock, symbol: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">股票名称</label>
-                        <Input
-                          placeholder="例如：平安银行"
-                          value={newStock.name}
-                          onChange={(e) => setNewStock({ ...newStock, name: e.target.value })}
-                        />
-                      </div>
+                    <div>
+                      <label className="text-sm font-medium">股票代码</label>
+                      <Input
+                        placeholder="例如：AAPL 或 000001.SZ"
+                        value={newStock.symbol}
+                        onChange={(e) => setNewStock({ ...newStock, symbol: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        股票名称将自动从后端获取
+                      </p>
                     </div>
                     <div>
                       <label className="text-sm font-medium">交易所ID（可选）</label>
@@ -485,8 +534,8 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">股票代码</TableHead>
-                        <TableHead className="w-[150px]">股票名称</TableHead>
-                        <TableHead className="w-[100px]">交易所ID</TableHead>
+                        <TableHead className="w-[300px]">股票名称</TableHead>
+                        <TableHead className="w-[100px]">交易所</TableHead>
                         <TableHead className="w-[120px]">添加日期</TableHead>
                         <TableHead>描述</TableHead>
                         <TableHead className="w-[100px] text-right">操作</TableHead>
@@ -510,9 +559,39 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             </span>
                           </TableCell>
                           <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {stock.desc || 'N/A'}
-                            </span>
+                            {editingStockId === stock.id ? (
+                              <div className="flex items-center gap-2">
+                                <Input
+                                  value={editingDesc}
+                                  onChange={(e) => setEditingDesc(e.target.value)}
+                                  className="h-8 text-sm"
+                                  placeholder="输入描述..."
+                                  autoFocus
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={handleUpdateStockDesc}
+                                  disabled={updateStockMutation.isPending}
+                                >
+                                  <Save className="h-4 w-4 text-green-600" />
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={cancelEditingStock}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ) : (
+                              <div 
+                                className="text-sm text-muted-foreground cursor-pointer hover:text-foreground transition-colors"
+                                onClick={() => startEditingStock(stock)}
+                              >
+                                {stock.desc || '点击添加描述...'}
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <Button

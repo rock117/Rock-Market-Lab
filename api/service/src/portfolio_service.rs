@@ -37,6 +37,11 @@ pub struct AddHoldingRequest {
     pub desc: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdateHoldingDescRequest {
+    pub desc: Option<String>,
+}
+
 pub async fn create_portfolio(
     conn: &DatabaseConnection,
     req: CreatePortfolioRequest,
@@ -225,6 +230,42 @@ pub async fn get_holdings(
     }).collect();
     
     Ok(results)
+}
+
+pub async fn update_holding_desc(
+    conn: &DatabaseConnection,
+    portfolio_id: i32,
+    holding_id: i32,
+    req: UpdateHoldingDescRequest,
+) -> Result<HoldingResponse> {
+    info!("Updating holding {} desc in portfolio {}", holding_id, portfolio_id);
+    
+    let holding = holding::Entity::find_by_id(holding_id)
+        .one(conn)
+        .await
+        .context("Failed to fetch holding")?
+        .ok_or_else(|| anyhow::anyhow!("Holding not found: {}", holding_id))?;
+    
+    if holding.portfolio_id != portfolio_id {
+        bail!("Holding {} does not belong to portfolio {}", holding_id, portfolio_id);
+    }
+    
+    let mut holding_active: holding::ActiveModel = holding.into();
+    holding_active.desc = Set(req.desc.clone());
+    
+    let updated = holding_active.update(conn).await
+        .context("Failed to update holding")?;
+    
+    info!("Holding {} desc updated successfully", holding_id);
+    
+    Ok(HoldingResponse {
+        id: updated.id,
+        exchange_id: updated.exchange_id,
+        symbol: updated.symbol,
+        name: updated.name,
+        portfolio_id: updated.portfolio_id,
+        desc: updated.desc,
+    })
 }
 
 pub async fn remove_holding(

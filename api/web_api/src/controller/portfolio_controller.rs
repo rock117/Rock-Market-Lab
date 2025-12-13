@@ -1,12 +1,12 @@
-use rocket::{get, post, delete, State};
+use rocket::{get, post, delete, put, State};
 use rocket::serde::json::Json;
 use tracing::info;
 
 use entity::sea_orm::DatabaseConnection;
 use service::portfolio_service::{
     create_portfolio, list_portfolios, get_portfolio, delete_portfolio,
-    add_holding, remove_holding, get_holdings,
-    CreatePortfolioRequest, PortfolioResponse, AddHoldingRequest, HoldingResponse,
+    add_holding, remove_holding, get_holdings, update_holding_desc,
+    CreatePortfolioRequest, PortfolioResponse, AddHoldingRequest, HoldingResponse, UpdateHoldingDescRequest,
 };
 
 use crate::response::WebResponse;
@@ -86,6 +86,21 @@ pub async fn get_holdings_handler(
     
     let conn = conn as &DatabaseConnection;
     let result = get_holdings(conn, portfolio_id).await?;
+    
+    WebResponse::new(result).into_result()
+}
+
+#[put("/api/portfolios/<portfolio_id>/holdings/<holding_id>", data = "<request>")]
+pub async fn update_holding_desc_handler(
+    portfolio_id: i32,
+    holding_id: i32,
+    request: Json<UpdateHoldingDescRequest>,
+    conn: &State<DatabaseConnection>,
+) -> Result<WebResponse<HoldingResponse>> {
+    info!("更新投资组合 {} 的持仓 {} 描述", portfolio_id, holding_id);
+    
+    let conn = conn as &DatabaseConnection;
+    let result = update_holding_desc(conn, portfolio_id, holding_id, request.into_inner()).await?;
     
     WebResponse::new(result).into_result()
 }
