@@ -32,6 +32,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [newStock, setNewStock] = useState({
     ts_code: '',
     name: '',
+    exchange: '',
     industry: '',
     note: ''
   })
@@ -98,7 +99,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
       setIsAddingStock(false)
-      setNewStock({ ts_code: '', name: '', industry: '', note: '' })
+      setNewStock({ ts_code: '', name: '', exchange: '', industry: '', note: '' })
       setSearchKeyword('')
       toast({ title: '添加成功', description: '股票已添加到组合' })
     },
@@ -177,6 +178,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       stock: {
         ts_code: newStock.ts_code,
         name: newStock.name,
+        exchange: newStock.exchange || undefined,
         industry: newStock.industry || undefined,
         note: newStock.note || undefined
       }
@@ -459,13 +461,23 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         />
                       </div>
                     </div>
-                    <div>
-                      <label className="text-sm font-medium">行业（可选）</label>
-                      <Input
-                        placeholder="例如：银行"
-                        value={newStock.industry}
-                        onChange={(e) => setNewStock({ ...newStock, industry: e.target.value })}
-                      />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm font-medium">交易所（可选）</label>
+                        <Input
+                          placeholder="例如：SZ"
+                          value={newStock.exchange}
+                          onChange={(e) => setNewStock({ ...newStock, exchange: e.target.value })}
+                        />
+                      </div>
+                      <div>
+                        <label className="text-sm font-medium">行业（可选）</label>
+                        <Input
+                          placeholder="例如：银行"
+                          value={newStock.industry}
+                          onChange={(e) => setNewStock({ ...newStock, industry: e.target.value })}
+                        />
+                      </div>
                     </div>
                     <div>
                       <label className="text-sm font-medium">备注（可选）</label>
@@ -490,7 +502,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         variant="outline"
                         onClick={() => {
                           setIsAddingStock(false)
-                          setNewStock({ ts_code: '', name: '', industry: '', note: '' })
+                          setNewStock({ ts_code: '', name: '', exchange: '', industry: '', note: '' })
                         }}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -513,6 +525,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       <TableRow>
                         <TableHead className="w-[120px]">股票代码</TableHead>
                         <TableHead className="w-[150px]">股票名称</TableHead>
+                        <TableHead className="w-[100px]">交易所</TableHead>
                         <TableHead className="w-[120px]">行业</TableHead>
                         <TableHead className="w-[120px]">添加日期</TableHead>
                         <TableHead>备注</TableHead>
@@ -526,6 +539,11 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             {stock.ts_code}
                           </TableCell>
                           <TableCell>{stock.name}</TableCell>
+                          <TableCell>
+                            <span className="text-sm text-muted-foreground">
+                              {stock.exchange || 'N/A'}
+                            </span>
+                          </TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
                               {stock.industry || 'N/A'}

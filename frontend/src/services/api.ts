@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock } from '@/types'
+import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiHolding } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -1078,130 +1078,194 @@ export const strategyApi = {
   }
 }
 
-// 投资组合API（使用localStorage存储）
-const PORTFOLIO_STORAGE_KEY = 'rock_market_portfolios'
-
-// 从localStorage获取所有组合
-const getPortfoliosFromStorage = (): Portfolio[] => {
-  if (typeof window === 'undefined') return []
-  const data = localStorage.getItem(PORTFOLIO_STORAGE_KEY)
-  return data ? JSON.parse(data) : []
+// 数据转换函数：将后端API格式转换为前端格式
+function transformApiHolding(apiHolding: ApiHolding): PortfolioStock {
+  return {
+    id: apiHolding.id.toString(),
+    ts_code: apiHolding.ts_code,
+    name: apiHolding.name,
+    exchange: apiHolding.exchange,
+    industry: apiHolding.industry,
+    note: apiHolding.note,
+    added_date: apiHolding.added_date || new Date().toISOString()
+  }
 }
 
-// 保存组合到localStorage
-const savePortfoliosToStorage = (portfolios: Portfolio[]) => {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(PORTFOLIO_STORAGE_KEY, JSON.stringify(portfolios))
+function transformApiPortfolio(apiPortfolio: ApiPortfolio): Portfolio {
+  return {
+    id: apiPortfolio.id.toString(),
+    name: apiPortfolio.name,
+    description: apiPortfolio.description,
+    created_date: apiPortfolio.created_date || new Date().toISOString(),
+    updated_date: apiPortfolio.updated_date || new Date().toISOString(),
+    stocks: apiPortfolio.holdings.map(transformApiHolding)
+  }
 }
 
+// 投资组合API（使用真实API）
 export const portfolioApi = {
   // 获取所有投资组合
   getPortfolios: async (): Promise<Portfolio[]> => {
-    await delay(200)
-    return getPortfoliosFromStorage()
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/portfolios`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const apiResponse: { data: ApiPortfolio[]; success: boolean } = await response.json()
+      
+      if (!apiResponse.success) {
+        throw new Error('API returned unsuccessful response')
+      }
+      
+      // 转换为前端格式
+      return apiResponse.data.map(transformApiPortfolio)
+    } catch (error) {
+      console.error('Error fetching portfolios:', error)
+      return []
+    }
   },
 
   // 获取单个投资组合
   getPortfolio: async (id: string): Promise<Portfolio | null> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    return portfolios.find(p => p.id === id) || null
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      
+      if (!response.ok) {
+        if (response.status === 404) return null
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      
+      const apiResponse: { data: ApiPortfolio; success: boolean } = await response.json()
+      
+      if (!apiResponse.success) {
+        throw new Error('API returned unsuccessful response')
+      }
+      
+      // 转换为前端格式
+      return transformApiPortfolio(apiResponse.data)
+    } catch (error) {
+      console.error('Error fetching portfolio:', error)
+      return null
+    }
   },
 
   // 创建投资组合
   createPortfolio: async (name: string, description?: string): Promise<Portfolio> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const now = new Date().toISOString()
-    const newPortfolio: Portfolio = {
-      id: `portfolio_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      name,
-      description,
-      created_date: now,
-      updated_date: now,
-      stocks: []
-    }
-    portfolios.push(newPortfolio)
-    savePortfoliosToStorage(portfolios)
-    return newPortfolio
-  },
-
-  // 更新投资组合
-  updatePortfolio: async (id: string, updates: Partial<Pick<Portfolio, 'name' | 'description'>>): Promise<Portfolio> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const index = portfolios.findIndex(p => p.id === id)
-    if (index === -1) throw new Error('投资组合不存在')
+    const response = await fetch(`${API_BASE_URL}/api/portfolios`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ name, description }),
+    })
     
-    portfolios[index] = {
-      ...portfolios[index],
-      ...updates,
-      updated_date: new Date().toISOString()
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
     }
-    savePortfoliosToStorage(portfolios)
-    return portfolios[index]
+    
+    const apiResponse: { data: ApiPortfolio; success: boolean } = await response.json()
+    
+    if (!apiResponse.success) {
+      throw new Error('API returned unsuccessful response')
+    }
+    
+    // 转换为前端格式
+    return transformApiPortfolio(apiResponse.data)
   },
 
   // 删除投资组合
   deletePortfolio: async (id: string): Promise<void> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const filtered = portfolios.filter(p => p.id !== id)
-    savePortfoliosToStorage(filtered)
+    const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const apiResponse: { data: string; success: boolean } = await response.json()
+    
+    if (!apiResponse.success) {
+      throw new Error('API returned unsuccessful response')
+    }
   },
 
   // 添加股票到组合
   addStock: async (portfolioId: string, stock: Omit<PortfolioStock, 'id' | 'added_date'>): Promise<Portfolio> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const index = portfolios.findIndex(p => p.id === portfolioId)
-    if (index === -1) throw new Error('投资组合不存在')
-
-    // 检查是否已存在
-    const exists = portfolios[index].stocks.some(s => s.ts_code === stock.ts_code)
-    if (exists) throw new Error('该股票已在组合中')
-
-    const newStock: PortfolioStock = {
-      ...stock,
-      id: `stock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      added_date: new Date().toISOString()
+    const response = await fetch(`${API_BASE_URL}/api/portfolios/${portfolioId}/holdings`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        ts_code: stock.ts_code,
+        name: stock.name,
+        exchange: stock.exchange,
+        industry: stock.industry,
+        note: stock.note,
+      }),
+    })
+    
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}))
+      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
     }
-
-    portfolios[index].stocks.push(newStock)
-    portfolios[index].updated_date = new Date().toISOString()
-    savePortfoliosToStorage(portfolios)
-    return portfolios[index]
-  },
-
-  // 更新组合中的股票
-  updateStock: async (portfolioId: string, stockId: string, updates: Partial<Pick<PortfolioStock, 'note'>>): Promise<Portfolio> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const portfolioIndex = portfolios.findIndex(p => p.id === portfolioId)
-    if (portfolioIndex === -1) throw new Error('投资组合不存在')
-
-    const stockIndex = portfolios[portfolioIndex].stocks.findIndex(s => s.id === stockId)
-    if (stockIndex === -1) throw new Error('股票不存在')
-
-    portfolios[portfolioIndex].stocks[stockIndex] = {
-      ...portfolios[portfolioIndex].stocks[stockIndex],
-      ...updates
+    
+    const apiResponse: { data: ApiHolding; success: boolean } = await response.json()
+    
+    if (!apiResponse.success) {
+      throw new Error('API returned unsuccessful response')
     }
-    portfolios[portfolioIndex].updated_date = new Date().toISOString()
-    savePortfoliosToStorage(portfolios)
-    return portfolios[portfolioIndex]
+    
+    // 添加成功后，重新获取完整的投资组合数据
+    const portfolio = await portfolioApi.getPortfolio(portfolioId)
+    if (!portfolio) {
+      throw new Error('投资组合不存在')
+    }
+    
+    return portfolio
   },
 
   // 从组合中删除股票
   removeStock: async (portfolioId: string, stockId: string): Promise<Portfolio> => {
-    await delay(200)
-    const portfolios = getPortfoliosFromStorage()
-    const index = portfolios.findIndex(p => p.id === portfolioId)
-    if (index === -1) throw new Error('投资组合不存在')
-
-    portfolios[index].stocks = portfolios[index].stocks.filter(s => s.id !== stockId)
-    portfolios[index].updated_date = new Date().toISOString()
-    savePortfoliosToStorage(portfolios)
-    return portfolios[index]
+    const response = await fetch(`${API_BASE_URL}/api/portfolios/${portfolioId}/holdings/${stockId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+    
+    const apiResponse: { data: string; success: boolean } = await response.json()
+    
+    if (!apiResponse.success) {
+      throw new Error('API returned unsuccessful response')
+    }
+    
+    // 删除成功后，重新获取完整的投资组合数据
+    const portfolio = await portfolioApi.getPortfolio(portfolioId)
+    if (!portfolio) {
+      throw new Error('投资组合不存在')
+    }
+    
+    return portfolio
   }
 }

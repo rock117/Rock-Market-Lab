@@ -1,13 +1,38 @@
 // 投资组合相关类型定义
+
+// 后端API返回的持仓数据格式
+export interface ApiHolding {
+  id: number; // 持仓ID
+  ts_code: string; // 股票代码
+  name: string; // 股票名称
+  exchange?: string; // 交易所
+  industry?: string; // 行业
+  note?: string; // 备注
+  added_date?: string; // 添加日期
+}
+
+// 后端API返回的投资组合格式
+export interface ApiPortfolio {
+  id: number; // 组合ID
+  name: string; // 组合名称
+  description?: string; // 组合描述
+  created_date?: string; // 创建日期
+  updated_date?: string; // 更新日期
+  holdings: ApiHolding[]; // 持仓列表
+}
+
+// 前端使用的持仓数据格式（保持向后兼容）
 export interface PortfolioStock {
   id: string; // 唯一标识
   ts_code: string; // 股票代码
   name: string; // 股票名称
+  exchange?: string; // 交易所
   industry?: string; // 行业
   note?: string; // 备注
   added_date: string; // 添加日期
 }
 
+// 前端使用的投资组合格式（保持向后兼容）
 export interface Portfolio {
   id: string; // 组合ID
   name: string; // 组合名称
