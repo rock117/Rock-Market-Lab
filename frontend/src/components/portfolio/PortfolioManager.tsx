@@ -10,7 +10,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { portfolioApi } from '@/services/api'
 import { Portfolio, PortfolioStock } from '@/types'
 import { formatDate } from '@/lib/utils'
-import { Plus, Trash2, Edit2, FolderOpen, Save, X, Search } from 'lucide-react'
+import { Plus, Trash2, Edit2, FolderOpen, X, Search, Save } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
 interface PortfolioManagerProps {
@@ -23,27 +23,32 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [newPortfolioName, setNewPortfolioName] = useState('')
   const [newPortfolioDesc, setNewPortfolioDesc] = useState('')
-  const [editingStock, setEditingStock] = useState<string | null>(null)
-  const [editingNote, setEditingNote] = useState('')
   
   // 添加股票相关状态
   const [isAddingStock, setIsAddingStock] = useState(false)
   const [searchKeyword, setSearchKeyword] = useState('')
   const [newStock, setNewStock] = useState({
-    ts_code: '',
+    symbol: '',
     name: '',
-    exchange: '',
-    industry: '',
-    note: ''
+    exchange_id: '',
+    desc: ''
   })
 
   const queryClient = useQueryClient()
-  const { toast } = useToast()
+  const { showToast } = useToast()
 
   // 获取所有投资组合
-  const { data: portfolios = [], isLoading } = useQuery({
+  const { data: portfolios = [], isLoading, error } = useQuery({
     queryKey: ['portfolios'],
     queryFn: () => portfolioApi.getPortfolios(),
+  })
+
+  // 调试日志
+  console.log('📋 投资组合状态:', { 
+    portfolios, 
+    isLoading, 
+    error,
+    count: portfolios.length 
   })
 
   // 创建投资组合
@@ -51,15 +56,17 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     mutationFn: (data: { name: string; description?: string }) =>
       portfolioApi.createPortfolio(data.name, data.description),
     onSuccess: (newPortfolio) => {
+      console.log('✅ 创建投资组合成功:', newPortfolio)
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setIsCreating(false)
       setNewPortfolioName('')
       setNewPortfolioDesc('')
       setSelectedPortfolio(newPortfolio)
-      toast({ title: '创建成功', description: '投资组合已创建' })
+      showToast('投资组合已创建', 'success')
     },
     onError: (error: Error) => {
-      toast({ title: '创建失败', description: error.message, variant: 'destructive' })
+      console.error('❌ 创建投资组合失败:', error)
+      showToast(error.message, 'error')
     }
   })
 
@@ -71,10 +78,10 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setIsEditing(false)
       setSelectedPortfolio(updatedPortfolio)
-      toast({ title: '更新成功', description: '投资组合已更新' })
+      showToast('投资组合已更新', 'success')
     },
     onError: (error: Error) => {
-      toast({ title: '更新失败', description: error.message, variant: 'destructive' })
+      showToast(error.message, 'error')
     }
   })
 
@@ -84,10 +91,10 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(null)
-      toast({ title: '删除成功', description: '投资组合已删除' })
+      showToast('投资组合已删除', 'success')
     },
     onError: (error: Error) => {
-      toast({ title: '删除失败', description: error.message, variant: 'destructive' })
+      showToast(error.message, 'error')
     }
   })
 
@@ -99,28 +106,12 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
       setIsAddingStock(false)
-      setNewStock({ ts_code: '', name: '', exchange: '', industry: '', note: '' })
+      setNewStock({ symbol: '', name: '', exchange_id: '', desc: '' })
       setSearchKeyword('')
-      toast({ title: '添加成功', description: '股票已添加到组合' })
+      showToast('股票已添加到组合', 'success')
     },
     onError: (error: Error) => {
-      toast({ title: '添加失败', description: error.message, variant: 'destructive' })
-    }
-  })
-
-  // 更新股票备注
-  const updateStockMutation = useMutation({
-    mutationFn: (data: { portfolioId: string; stockId: string; note: string }) =>
-      portfolioApi.updateStock(data.portfolioId, data.stockId, { note: data.note }),
-    onSuccess: (updatedPortfolio) => {
-      queryClient.invalidateQueries({ queryKey: ['portfolios'] })
-      setSelectedPortfolio(updatedPortfolio)
-      setEditingStock(null)
-      setEditingNote('')
-      toast({ title: '更新成功', description: '备注已更新' })
-    },
-    onError: (error: Error) => {
-      toast({ title: '更新失败', description: error.message, variant: 'destructive' })
+      showToast(error.message, 'error')
     }
   })
 
@@ -131,16 +122,16 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     onSuccess: (updatedPortfolio) => {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
-      toast({ title: '删除成功', description: '股票已从组合中移除' })
+      showToast('股票已从组合中移除', 'success')
     },
     onError: (error: Error) => {
-      toast({ title: '删除失败', description: error.message, variant: 'destructive' })
+      showToast(error.message, 'error')
     }
   })
 
   const handleCreatePortfolio = () => {
     if (!newPortfolioName.trim()) {
-      toast({ title: '提示', description: '请输入组合名称', variant: 'destructive' })
+      showToast('请输入组合名称', 'warning')
       return
     }
     createMutation.mutate({
@@ -151,7 +142,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
 
   const handleUpdatePortfolio = () => {
     if (!selectedPortfolio || !newPortfolioName.trim()) {
-      toast({ title: '提示', description: '请输入组合名称', variant: 'destructive' })
+      showToast('请输入组合名称', 'warning')
       return
     }
     updateMutation.mutate({
@@ -169,28 +160,18 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
 
   const handleAddStock = () => {
     if (!selectedPortfolio) return
-    if (!newStock.ts_code.trim() || !newStock.name.trim()) {
-      toast({ title: '提示', description: '请输入股票代码和名称', variant: 'destructive' })
+    if (!newStock.symbol.trim() || !newStock.name.trim()) {
+      showToast('请输入股票代码和名称', 'warning')
       return
     }
     addStockMutation.mutate({
       portfolioId: selectedPortfolio.id,
       stock: {
-        ts_code: newStock.ts_code,
+        symbol: newStock.symbol,
         name: newStock.name,
-        exchange: newStock.exchange || undefined,
-        industry: newStock.industry || undefined,
-        note: newStock.note || undefined
+        exchange_id: newStock.exchange_id || undefined,
+        desc: newStock.desc || undefined
       }
-    })
-  }
-
-  const handleUpdateStockNote = (stockId: string) => {
-    if (!selectedPortfolio) return
-    updateStockMutation.mutate({
-      portfolioId: selectedPortfolio.id,
-      stockId,
-      note: editingNote
     })
   }
 
@@ -202,16 +183,6 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
         stockId
       })
     }
-  }
-
-  const startEditingStock = (stock: PortfolioStock) => {
-    setEditingStock(stock.id)
-    setEditingNote(stock.note || '')
-  }
-
-  const cancelEditingStock = () => {
-    setEditingStock(null)
-    setEditingNote('')
   }
 
   const startEditingPortfolio = () => {
@@ -448,8 +419,8 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         <label className="text-sm font-medium">股票代码</label>
                         <Input
                           placeholder="例如：000001.SZ"
-                          value={newStock.ts_code}
-                          onChange={(e) => setNewStock({ ...newStock, ts_code: e.target.value })}
+                          value={newStock.symbol}
+                          onChange={(e) => setNewStock({ ...newStock, symbol: e.target.value })}
                         />
                       </div>
                       <div>
@@ -461,30 +432,20 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         />
                       </div>
                     </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-sm font-medium">交易所（可选）</label>
-                        <Input
-                          placeholder="例如：SZ"
-                          value={newStock.exchange}
-                          onChange={(e) => setNewStock({ ...newStock, exchange: e.target.value })}
-                        />
-                      </div>
-                      <div>
-                        <label className="text-sm font-medium">行业（可选）</label>
-                        <Input
-                          placeholder="例如：银行"
-                          value={newStock.industry}
-                          onChange={(e) => setNewStock({ ...newStock, industry: e.target.value })}
-                        />
-                      </div>
+                    <div>
+                      <label className="text-sm font-medium">交易所ID（可选）</label>
+                      <Input
+                        placeholder="例如：SZ"
+                        value={newStock.exchange_id}
+                        onChange={(e) => setNewStock({ ...newStock, exchange_id: e.target.value })}
+                      />
                     </div>
                     <div>
-                      <label className="text-sm font-medium">备注（可选）</label>
+                      <label className="text-sm font-medium">描述（可选）</label>
                       <Textarea
-                        placeholder="添加备注信息..."
-                        value={newStock.note}
-                        onChange={(e) => setNewStock({ ...newStock, note: e.target.value })}
+                        placeholder="添加描述信息..."
+                        value={newStock.desc}
+                        onChange={(e) => setNewStock({ ...newStock, desc: e.target.value })}
                         rows={2}
                       />
                     </div>
@@ -502,7 +463,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         variant="outline"
                         onClick={() => {
                           setIsAddingStock(false)
-                          setNewStock({ ts_code: '', name: '', exchange: '', industry: '', note: '' })
+                          setNewStock({ symbol: '', name: '', exchange_id: '', desc: '' })
                         }}
                       >
                         <X className="h-4 w-4 mr-1" />
@@ -525,10 +486,9 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       <TableRow>
                         <TableHead className="w-[120px]">股票代码</TableHead>
                         <TableHead className="w-[150px]">股票名称</TableHead>
-                        <TableHead className="w-[100px]">交易所</TableHead>
-                        <TableHead className="w-[120px]">行业</TableHead>
+                        <TableHead className="w-[100px]">交易所ID</TableHead>
                         <TableHead className="w-[120px]">添加日期</TableHead>
-                        <TableHead>备注</TableHead>
+                        <TableHead>描述</TableHead>
                         <TableHead className="w-[100px] text-right">操作</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -536,17 +496,12 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       {selectedPortfolio.stocks.map((stock) => (
                         <TableRow key={stock.id}>
                           <TableCell className="font-mono font-medium">
-                            {stock.ts_code}
+                            {stock.symbol}
                           </TableCell>
                           <TableCell>{stock.name}</TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
-                              {stock.exchange || 'N/A'}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {stock.industry || 'N/A'}
+                              {stock.exchange_id || 'N/A'}
                             </span>
                           </TableCell>
                           <TableCell>
@@ -555,36 +510,9 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             </span>
                           </TableCell>
                           <TableCell>
-                            {editingStock === stock.id ? (
-                              <div className="flex gap-2">
-                                <Input
-                                  value={editingNote}
-                                  onChange={(e) => setEditingNote(e.target.value)}
-                                  className="h-8"
-                                />
-                                <Button
-                                  size="sm"
-                                  onClick={() => handleUpdateStockNote(stock.id)}
-                                  disabled={updateStockMutation.isPending}
-                                >
-                                  <Save className="h-3 w-3" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={cancelEditingStock}
-                                >
-                                  <X className="h-3 w-3" />
-                                </Button>
-                              </div>
-                            ) : (
-                              <div
-                                className="text-sm text-muted-foreground cursor-pointer hover:text-foreground"
-                                onClick={() => startEditingStock(stock)}
-                              >
-                                {stock.note || '点击添加备注'}
-                              </div>
-                            )}
+                            <span className="text-sm text-muted-foreground">
+                              {stock.desc || 'N/A'}
+                            </span>
                           </TableCell>
                           <TableCell className="text-right">
                             <Button

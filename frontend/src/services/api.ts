@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiHolding } from '@/types'
+import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiPortfolioDetail, ApiHolding } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -1082,15 +1082,16 @@ export const strategyApi = {
 function transformApiHolding(apiHolding: ApiHolding): PortfolioStock {
   return {
     id: apiHolding.id.toString(),
-    ts_code: apiHolding.ts_code,
+    symbol: apiHolding.symbol,
     name: apiHolding.name,
-    exchange: apiHolding.exchange,
-    industry: apiHolding.industry,
-    note: apiHolding.note,
+    exchange_id: apiHolding.exchange_id,
+    portfolio_id: apiHolding.portfolio_id.toString(),
+    desc: apiHolding.desc,
     added_date: apiHolding.added_date || new Date().toISOString()
   }
 }
 
+// 转换列表接口返回的投资组合（不包含holdings）
 function transformApiPortfolio(apiPortfolio: ApiPortfolio): Portfolio {
   return {
     id: apiPortfolio.id.toString(),
@@ -1098,7 +1099,19 @@ function transformApiPortfolio(apiPortfolio: ApiPortfolio): Portfolio {
     description: apiPortfolio.description,
     created_date: apiPortfolio.created_date || new Date().toISOString(),
     updated_date: apiPortfolio.updated_date || new Date().toISOString(),
-    stocks: apiPortfolio.holdings.map(transformApiHolding)
+    stocks: [] // 列表接口不返回holdings，初始化为空数组
+  }
+}
+
+// 转换详情接口返回的投资组合（包含holdings）
+function transformApiPortfolioDetail(apiPortfolio: ApiPortfolioDetail): Portfolio {
+  return {
+    id: apiPortfolio.id.toString(),
+    name: apiPortfolio.name,
+    description: apiPortfolio.description,
+    created_date: apiPortfolio.created_date || new Date().toISOString(),
+    updated_date: apiPortfolio.updated_date || new Date().toISOString(),
+    stocks: apiPortfolio.holdings ? apiPortfolio.holdings.map(transformApiHolding) : []
   }
 }
 
@@ -1107,6 +1120,7 @@ export const portfolioApi = {
   // 获取所有投资组合
   getPortfolios: async (): Promise<Portfolio[]> => {
     try {
+      console.log('📊 正在获取投资组合列表...')
       const response = await fetch(`${API_BASE_URL}/api/portfolios`, {
         method: 'GET',
         headers: {
@@ -1114,20 +1128,25 @@ export const portfolioApi = {
         },
       })
       
+      console.log('📊 API响应状态:', response.status)
+      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const apiResponse: { data: ApiPortfolio[]; success: boolean } = await response.json()
+      console.log('📊 API返回数据:', apiResponse)
       
       if (!apiResponse.success) {
         throw new Error('API returned unsuccessful response')
       }
       
       // 转换为前端格式
-      return apiResponse.data.map(transformApiPortfolio)
+      const portfolios = apiResponse.data.map(transformApiPortfolio)
+      console.log('📊 转换后的投资组合:', portfolios)
+      return portfolios
     } catch (error) {
-      console.error('Error fetching portfolios:', error)
+      console.error('❌ 获取投资组合失败:', error)
       return []
     }
   },
@@ -1135,6 +1154,7 @@ export const portfolioApi = {
   // 获取单个投资组合
   getPortfolio: async (id: string): Promise<Portfolio | null> => {
     try {
+      console.log('📊 正在获取投资组合详情:', id)
       const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {
         method: 'GET',
         headers: {
@@ -1147,16 +1167,19 @@ export const portfolioApi = {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
-      const apiResponse: { data: ApiPortfolio; success: boolean } = await response.json()
+      const apiResponse: { data: ApiPortfolioDetail; success: boolean } = await response.json()
+      console.log('📊 投资组合详情数据:', apiResponse)
       
       if (!apiResponse.success) {
         throw new Error('API returned unsuccessful response')
       }
       
-      // 转换为前端格式
-      return transformApiPortfolio(apiResponse.data)
+      // 转换为前端格式（使用详情转换函数）
+      const portfolio = transformApiPortfolioDetail(apiResponse.data)
+      console.log('📊 转换后的投资组合详情:', portfolio)
+      return portfolio
     } catch (error) {
-      console.error('Error fetching portfolio:', error)
+      console.error('❌ 获取投资组合详情失败:', error)
       return null
     }
   },
@@ -1172,17 +1195,21 @@ export const portfolioApi = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
     }
     
-    const apiResponse: { data: ApiPortfolio; success: boolean } = await response.json()
+    const apiResponse: { data: any; success: boolean } = await response.json()
     
     if (!apiResponse.success) {
-      throw new Error('API returned unsuccessful response')
+      // 如果success为false，抛出错误信息
+      const errorMessage = typeof apiResponse.data === 'string' 
+        ? apiResponse.data 
+        : '创建投资组合失败'
+      throw new Error(errorMessage)
     }
     
-    // 转换为前端格式
-    return transformApiPortfolio(apiResponse.data)
+    // 创建成功后返回的是列表格式（包含holdings_num），使用列表转换函数
+    return transformApiPortfolio(apiResponse.data as ApiPortfolio)
   },
 
   // 删除投资组合
@@ -1195,41 +1222,45 @@ export const portfolioApi = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
     }
     
-    const apiResponse: { data: string; success: boolean } = await response.json()
+    const apiResponse: { data: any; success: boolean } = await response.json()
     
     if (!apiResponse.success) {
-      throw new Error('API returned unsuccessful response')
+      const errorMessage = typeof apiResponse.data === 'string' 
+        ? apiResponse.data 
+        : '删除投资组合失败'
+      throw new Error(errorMessage)
     }
   },
 
   // 添加股票到组合
-  addStock: async (portfolioId: string, stock: Omit<PortfolioStock, 'id' | 'added_date'>): Promise<Portfolio> => {
+  addStock: async (portfolioId: string, stock: Omit<PortfolioStock, 'id' | 'added_date' | 'portfolio_id'>): Promise<Portfolio> => {
     const response = await fetch(`${API_BASE_URL}/api/portfolios/${portfolioId}/holdings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        ts_code: stock.ts_code,
+        symbol: stock.symbol,
         name: stock.name,
-        exchange: stock.exchange,
-        industry: stock.industry,
-        note: stock.note,
+        exchange_id: stock.exchange_id,
+        desc: stock.desc,
       }),
     })
     
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}))
-      throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
     }
     
-    const apiResponse: { data: ApiHolding; success: boolean } = await response.json()
+    const apiResponse: { data: any; success: boolean } = await response.json()
     
     if (!apiResponse.success) {
-      throw new Error('API returned unsuccessful response')
+      const errorMessage = typeof apiResponse.data === 'string' 
+        ? apiResponse.data 
+        : '添加股票失败'
+      throw new Error(errorMessage)
     }
     
     // 添加成功后，重新获取完整的投资组合数据
@@ -1251,13 +1282,16 @@ export const portfolioApi = {
     })
     
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
     }
     
-    const apiResponse: { data: string; success: boolean } = await response.json()
+    const apiResponse: { data: any; success: boolean } = await response.json()
     
     if (!apiResponse.success) {
-      throw new Error('API returned unsuccessful response')
+      const errorMessage = typeof apiResponse.data === 'string' 
+        ? apiResponse.data 
+        : '删除股票失败'
+      throw new Error(errorMessage)
     }
     
     // 删除成功后，重新获取完整的投资组合数据
