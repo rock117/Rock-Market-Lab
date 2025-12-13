@@ -18,6 +18,8 @@ pub struct Model {
     pub exchange_id: Option<String>,
     pub symbol: Option<String>,
     pub portfolio_id: i32,
+    pub name: Option<String>,
+    pub desc: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -26,6 +28,8 @@ pub enum Column {
     ExchangeId,
     Symbol,
     PortfolioId,
+    Name,
+    Desc,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -51,6 +55,8 @@ impl ColumnTrait for Column {
             Self::ExchangeId => ColumnType::String(StringLen::N(20u32)).def().null(),
             Self::Symbol => ColumnType::String(StringLen::N(20u32)).def().null(),
             Self::PortfolioId => ColumnType::Integer.def(),
+            Self::Name => ColumnType::String(StringLen::N(50u32)).def().null(),
+            Self::Desc => ColumnType::String(StringLen::N(200u32)).def().null(),
         }
     }
 }
