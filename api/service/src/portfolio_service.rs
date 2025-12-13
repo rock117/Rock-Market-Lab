@@ -197,6 +197,36 @@ pub async fn add_holding(
     })
 }
 
+pub async fn get_holdings(
+    conn: &DatabaseConnection,
+    portfolio_id: i32,
+) -> Result<Vec<HoldingResponse>> {
+    info!("Getting holdings for portfolio: {}", portfolio_id);
+    
+    let portfolio = portfolio::Entity::find_by_id(portfolio_id)
+        .one(conn)
+        .await
+        .context("Failed to fetch portfolio")?
+        .ok_or_else(|| anyhow::anyhow!("Portfolio not found: {}", portfolio_id))?;
+    
+    let holdings = holding::Entity::find()
+        .filter(holding::Column::PortfolioId.eq(portfolio_id))
+        .all(conn)
+        .await
+        .context("Failed to fetch holdings")?;
+    
+    let results = holdings.into_iter().map(|h| HoldingResponse {
+        id: h.id,
+        exchange_id: h.exchange_id,
+        symbol: h.symbol,
+        name: h.name,
+        portfolio_id: h.portfolio_id,
+        desc: h.desc,
+    }).collect();
+    
+    Ok(results)
+}
+
 pub async fn remove_holding(
     conn: &DatabaseConnection,
     portfolio_id: i32,

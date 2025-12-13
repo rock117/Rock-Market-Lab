@@ -5,7 +5,7 @@ use tracing::info;
 use entity::sea_orm::DatabaseConnection;
 use service::portfolio_service::{
     create_portfolio, list_portfolios, get_portfolio, delete_portfolio,
-    add_holding, remove_holding,
+    add_holding, remove_holding, get_holdings,
     CreatePortfolioRequest, PortfolioResponse, AddHoldingRequest, HoldingResponse,
 };
 
@@ -73,6 +73,19 @@ pub async fn add_holding_handler(
     
     let conn = conn as &DatabaseConnection;
     let result = add_holding(conn, portfolio_id, request.into_inner()).await?;
+    
+    WebResponse::new(result).into_result()
+}
+
+#[get("/api/portfolios/<portfolio_id>/holdings")]
+pub async fn get_holdings_handler(
+    portfolio_id: i32,
+    conn: &State<DatabaseConnection>,
+) -> Result<WebResponse<Vec<HoldingResponse>>> {
+    info!("获取投资组合 {} 的持仓列表", portfolio_id);
+    
+    let conn = conn as &DatabaseConnection;
+    let result = get_holdings(conn, portfolio_id).await?;
     
     WebResponse::new(result).into_result()
 }
