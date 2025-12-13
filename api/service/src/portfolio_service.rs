@@ -3,9 +3,10 @@ use entity::sea_orm::{
     DatabaseConnection, EntityTrait, ActiveModelTrait, Set, 
     TransactionTrait, QueryFilter, ColumnTrait
 };
-use entity::{portfolio, holding};
+use entity::{portfolio, holding, us_stock};
 use serde::{Deserialize, Serialize};
 use tracing::{info, error};
+use entity::sea_orm::sea_query::ExprTrait;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePortfolioRequest {
@@ -16,21 +17,24 @@ pub struct CreatePortfolioRequest {
 pub struct PortfolioResponse {
     pub id: i32,
     pub name: String,
-    pub holdings: Vec<HoldingResponse>,
+    pub holdings_num: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HoldingResponse {
     pub id: i32,
-    pub exchange_id: Option<String>,
-    pub symbol: Option<String>,
+    pub exchange_id: String,
+    pub symbol: String,
+    pub name: Option<String>,
     pub portfolio_id: i32,
+    pub desc: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AddHoldingRequest {
-    pub exchange_id: Option<String>,
-    pub symbol: Option<String>,
+    pub exchange_id: String,
+    pub symbol: String,
+    pub desc: Option<String>,
 }
 
 pub async fn create_portfolio(
@@ -50,7 +54,7 @@ pub async fn create_portfolio(
     Ok(PortfolioResponse {
         id: result.id,
         name: result.name,
-        holdings: vec![],
+        holdings_num: 0,
     })
 }
 
@@ -74,12 +78,7 @@ pub async fn list_portfolios(conn: &DatabaseConnection) -> Result<Vec<PortfolioR
         results.push(PortfolioResponse {
             id: p.id,
             name: p.name,
-            holdings: holdings.into_iter().map(|h| HoldingResponse {
-                id: h.id,
-                exchange_id: h.exchange_id,
-                symbol: h.symbol,
-                portfolio_id: h.portfolio_id,
-            }).collect(),
+            holdings_num: holdings.len(),
         });
     }
     
@@ -107,12 +106,7 @@ pub async fn get_portfolio(
     Ok(PortfolioResponse {
         id: portfolio.id,
         name: portfolio.name,
-        holdings: holdings.into_iter().map(|h| HoldingResponse {
-            id: h.id,
-            exchange_id: h.exchange_id,
-            symbol: h.symbol,
-            portfolio_id: h.portfolio_id,
-        }).collect(),
+        holdings_num: holdings.len(),
     })
 }
 
@@ -168,7 +162,28 @@ pub async fn add_holding(
         portfolio_id: Set(portfolio.id),
         ..Default::default()
     };
-    
+
+    // find by exchange_id and symbol
+    let stocks = us_stock::Entity::find()
+        .filter(
+            ColumnTrait::eq(&us_stock::Column::ExchangeId, &req.exchange_id)
+                .and(ColumnTrait::eq(&us_stock::Column::Symbol, &req.symbol)
+                )
+        )
+        .all(conn)
+        .await
+        .context("Failed to fetch stock")?;
+
+    let stock = stocks.into_iter().next().ok_or_else(|| anyhow::anyhow!("Stock not found: {}/{}", req.exchange_id, req.symbol))?;
+
+    let holding_model = holding::ActiveModel {
+        exchange_id: Set(req.exchange_id.clone()),
+        symbol: Set(req.symbol.clone()),
+        portfolio_id: Set(portfolio.id),
+        name: Set(stock.name.clone()),
+        ..Default::default()
+    };
+
     let result = holding_model.insert(conn).await
         .context("Failed to insert holding")?;
     
@@ -176,7 +191,9 @@ pub async fn add_holding(
         id: result.id,
         exchange_id: result.exchange_id,
         symbol: result.symbol,
+        name: stock.name,
         portfolio_id: result.portfolio_id,
+        desc: result.desc,
     })
 }
 
