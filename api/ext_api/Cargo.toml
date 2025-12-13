@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 common = { path = "../common" }
 entity = { path = "../entity" }
-tushare-api = { version = "1.1.0", features = ["tracing", "all_types"] }
+tushare-api = { version = "1.1.3", features = ["tracing", "all_types"] }
 
 map-macro = "0.2.6"
 derive_more = "0.99.17"

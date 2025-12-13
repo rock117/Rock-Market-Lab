@@ -35,15 +35,18 @@ impl Task for FetchUsDailyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let us_stocks = us_stock::Entity::find()
-            .select_only()
-            .column(us_stock::Column::Symbol)
+            // .select_only()
+            // .column(us_stock::Column::Symbol)
             .all(&self.0)
             .await?;
+        info!("us stock size: {}", us_stocks.len());
+
         let end_date = Local::now().naive_local();
         let start_date = end_date.checked_sub_months(Months::new(3)).unwrap().format("%Y%m%d").to_string();
         let end_date = end_date.format("%Y%m%d").to_string();
-        let curr = 0;
+        let mut curr = 0;
         for stock in &us_stocks {
+            curr += 1;
             let datas = match tushare::us_daily(&stock.symbol, &start_date, &end_date).await {
                 Ok(data) => data,
                 Err(e) => {

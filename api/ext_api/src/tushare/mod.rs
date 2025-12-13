@@ -10,7 +10,7 @@ use serde::de::DeserializeOwned;
 use tokio::sync::Semaphore;
 use tokio::time::sleep;
 use tracing::info;
-use tushare_api::{FromTushareData, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
+use tushare_api::{FromTushareData, LogConfig, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
 
 pub use balancesheet::*;
 pub use cashflow::*;
@@ -99,9 +99,12 @@ static semaphore: Lazy<Arc<Semaphore>> =
     Lazy::new(|| Arc::new(Semaphore::new(max_requests_per_minute)));
 
 static TUSHARE_CLIENT: Lazy<TushareClient> = Lazy::new(|| {
+    let mut log = LogConfig::default();
+    log.log_responses_err = true;
     TushareClient::builder()
         .with_token(TUSHARE_TOKEN.as_str())
         .with_log_level(LogLevel::Info)
+        .with_log_config(log)
         .log_requests(true)
         .log_responses(false)
         .log_sensitive_data(false) // 生产环境建议设为 false
