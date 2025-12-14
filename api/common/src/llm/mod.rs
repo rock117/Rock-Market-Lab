@@ -75,6 +75,21 @@ pub struct ChatResponse {
     pub system_fingerprint: Option<String>,
 }
 
+#[derive(Debug, Clone)]
+pub struct CNStock {
+    pub concepts: String,
+    pub main_business: String,
+    pub business_scope: String,
+    pub broad_name: String,
+}
+
+#[derive(Debug, Clone)]
+pub struct USStock {
+    pub main_business: String,
+    pub industry: String,
+    pub sector: String,
+}
+
 pub async fn chat(request: &ChatRequest) -> anyhow::Result<ChatResponse>{
     let request = serde_json::to_string(&request)?;
     let key = "sk-47b29c3eac324b2a8a137b4a7838a93b";
@@ -96,9 +111,83 @@ pub async fn translate_finance_eng(eng: &str) -> anyhow::Result<String> {
         "stream": false
       }
         "#.replace("{eng}", eng);
-    let req = serde_json::from_str::<ChatRequest>(&req)?;
-    let res = chat(&req).await?;
+    chat_str_result(&req).await
+}
 
+
+
+pub async fn calculate_stock_similarity(cn_stock: &CNStock, us_stock: &USStock) -> anyhow::Result<String> {
+    let cn_symbol = "";
+    let cn_main_business = &cn_stock.main_business;
+    let cn_business_scope = &cn_stock.business_scope;
+    let cn_concepts = &cn_stock.concepts;
+    let cn_broad_name = &cn_stock.broad_name;
+
+    let us_symbol = "";
+    let us_main_business = &us_stock.main_business;
+    let us_industry = &us_stock.industry;
+    let us_sector = &us_stock.sector;
+    let promote = format!(
+r#"
+【输入数据】
+A股：
+- 股票代码：{cn_symbol}
+- 主营业务：{cn_main_business} {cn_business_scope}
+- 行业板块：{cn_broad_name}
+- 概念板块：{cn_concepts}
+
+美股：
+- 股票代码：{us_symbol}
+- 主营业务：{us_main_business}
+- 行业板块：{us_sector}
+- 概念板块：{us_industry}
+
+【任务要求】
+1. 严格基于输入数据分析，不依赖外部信息。
+2. 对三个维度分别给出：
+    - 关联说明（为什么相似或不相似）
+    - 相似度评分（0～100）
+3. 最后给出一个综合关联度评分（0～100）。
+4. 输出必须结构化、规则化，方便程序解析。
+
+【输出格式】
+### 一、维度分析
+#### 1. 主营业务关联性
+- 分析说明：……
+- 主营业务相似度：X / 100
+
+#### 2. 行业板块关联性
+- 分析说明：……
+- 行业板块相似度：X / 100
+
+#### 3. 概念板块关联性
+- 分析说明：……
+- 概念板块相似度：X / 100
+
+### 二、综合结果
+- 综合关联度：X / 100
+- 关联等级：强 / 中等 / 弱（根据分数自动判断）
+- 关键原因总结（简短）：……
+
+请严格按照以上格式输出。
+     "#);
+
+    let req = r#"
+        {
+        "model": "deepseek-chat",
+        "messages": [
+          {"role": "system", "content": "你是一个擅长结构化分析的金融研究助手。现在给你两只股票的结构化信息, 一个是A股(中国股票)，一个是美股，请你从「主营业务」「行业板块」「概念板块」三个维度分析它们的相似度和关联性，并输出一个综合关联评分。"},
+          {"role": "user", "content": "{promote}"}
+        ],
+        "stream": false
+      }
+        "#.replace("{promote}", &promote);
+    chat_str_result(&req).await
+}
+
+async fn chat_str_result(promote: &str) -> anyhow::Result<String> {
+    let req = serde_json::from_str::<ChatRequest>(&promote)?;
+    let res = chat(&req).await?;
     res.choices
         .and_then(|c| c.first().cloned())
         .and_then(|choice| choice.message)
