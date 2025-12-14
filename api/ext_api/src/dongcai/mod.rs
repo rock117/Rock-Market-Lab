@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 /// 东财基本信息响应结构体
 #[derive(Debug, Deserialize, Serialize)]
 pub struct BasicOrgInfoResponse {
-    pub version: String,
-    pub result: BasicOrgInfoResult,
+    pub version: Option<String>,
+    pub result: Option<BasicOrgInfoResult>,
     pub success: bool,
-    pub message: String,
-    pub code: i32,
+    pub message: Option<String>,
+    pub code: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -139,11 +139,11 @@ pub struct BasicOrgInfo {
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ConceptsResponse {
-    pub version: String,
+    pub version: Option<String>,
     pub result: Option<ConceptsResult>,
     pub success: bool,
-    pub message: String,
-    pub code: i32,
+    pub message: Option<String>,
+    pub code: Option<i32>,
 }
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -172,31 +172,4 @@ pub async fn rpt_f10_coretheme_boardtype(tscode: &str) -> anyhow::Result<Concept
     let resp = http::get(&url, None).await?;
     let response = resp.json().await?;
     Ok(response)
-}
-
-
-
-mod tests {
-    use crate::dongcai::rpt_f10_basic_orginfo;
-
-    #[tokio::test]
-    pub async fn test() {
-        let result = rpt_f10_basic_orginfo("300620.SZ").await;
-        match result {
-            Ok(response) => {
-                println!("Success: {}", response.success);
-                println!("Message: {}", response.message);
-                if let Some(first_data) = response.result.data.first() {
-                    println!("Company: {} ({})", 
-                        first_data.org_name.as_deref().unwrap_or("N/A"), 
-                        first_data.security_name_abbr.as_deref().unwrap_or("N/A"));
-                    println!("Code: {}", first_data.secucode.as_deref().unwrap_or("N/A"));
-                    println!("Industry: {}", first_data.em2016.as_deref().unwrap_or("N/A"));
-                }
-            }
-            Err(e) => {
-                println!("Error: {}", e);
-            }
-        }
-    }
 }

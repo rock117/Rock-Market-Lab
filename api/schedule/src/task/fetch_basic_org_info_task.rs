@@ -81,14 +81,16 @@ impl FetchBasicOrgInfoTask {
     ) -> anyhow::Result<()> {
         // 检查响应是否成功
         if !org_resp.success {
-            return Err(anyhow!("API response not successful: {}", org_resp.message));
+            return Err(anyhow!("API response not successful: {:?}", org_resp.message));
         }
-
+        let Some(result) = &org_resp.result else {
+            return Err(anyhow!("No data found in response"));
+        };
         // 获取第一个数据元素
-        let basic_info = org_resp.result.data.first()
+        let basic_info =  result.data.first()
             .ok_or_else(|| anyhow!("No data found in response"))?;
         if basic_info.secucode.is_none() {
-            return Err(anyhow!("API response not successful, secucode is empty: {}", org_resp.message));
+            return Err(anyhow!("API response not successful, secucode is empty: {:?}", org_resp.message));
         }
         let concepts = Self::get_concepts(concept_resp)?.join(",");
         // 转换为 cn_security_info::Model
