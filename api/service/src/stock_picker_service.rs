@@ -39,7 +39,7 @@ pub struct StockPickResult {
     pub ts_code: String,
     /// 股票名称
     pub stock_name: Option<String>,
-    pub concetps: Option<String>,
+    pub concepts: Option<String>,
     /// 策略分析结果
     pub strategy_result: StrategyResult,
 }
@@ -201,7 +201,7 @@ impl StockPickerService {
         for result in &mut results {
             let tscode = &result.ts_code;
             let concepts = cn_security_info::Entity::find_by_id(tscode).one(&self.db).await?.and_then(|entity| entity.concepts);
-            result.concetps = concepts;
+            result.concepts = concepts;
         }
         Ok(results)
     }
@@ -320,7 +320,7 @@ impl StockPickerService {
                             ts_code: stock_model.ts_code.clone(),
                             stock_name: stock_model.name.clone(),
                             strategy_result: result,
-                            concetps: None,
+                            concepts: None,
                         };
 
                         info!(
