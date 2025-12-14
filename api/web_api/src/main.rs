@@ -113,6 +113,7 @@ async fn rocket() -> _ {
             portfolio_controller::create_portfolio_handler,
             portfolio_controller::list_portfolios_handler,
             portfolio_controller::get_portfolio_handler,
+            portfolio_controller::update_portfolio_handler,
             portfolio_controller::delete_portfolio_handler,
             portfolio_controller::add_holding_handler,
             portfolio_controller::get_holdings_handler,

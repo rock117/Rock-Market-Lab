@@ -1228,6 +1228,33 @@ export const portfolioApi = {
     return transformApiPortfolio(apiResponse.data as ApiPortfolio)
   },
 
+  // 更新投资组合
+  updatePortfolio: async (id: string, updates: { name?: string; description?: string }): Promise<Portfolio> => {
+    const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(updates),
+    })
+    
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+    
+    const apiResponse: { data: any; success: boolean } = await response.json()
+    
+    if (!apiResponse.success) {
+      const errorMessage = typeof apiResponse.data === 'string' 
+        ? apiResponse.data 
+        : '更新投资组合失败'
+      throw new Error(errorMessage)
+    }
+    
+    // 更新成功后返回的是列表格式
+    return transformApiPortfolio(apiResponse.data as ApiPortfolio)
+  },
+
   // 删除投资组合
   deletePortfolio: async (id: string): Promise<void> => {
     const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {

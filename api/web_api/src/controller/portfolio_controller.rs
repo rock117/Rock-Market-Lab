@@ -4,9 +4,10 @@ use tracing::info;
 
 use entity::sea_orm::DatabaseConnection;
 use service::portfolio_service::{
-    create_portfolio, list_portfolios, get_portfolio, delete_portfolio,
+    create_portfolio, list_portfolios, get_portfolio, delete_portfolio, update_portfolio,
     add_holding, remove_holding, get_holdings, update_holding_desc,
-    CreatePortfolioRequest, PortfolioResponse, AddHoldingRequest, HoldingResponse, UpdateHoldingDescRequest,
+    CreatePortfolioRequest, PortfolioResponse, AddHoldingRequest, HoldingResponse, 
+    UpdateHoldingDescRequest, UpdatePortfolioRequest,
 };
 
 use crate::response::WebResponse;
@@ -46,6 +47,20 @@ pub async fn get_portfolio_handler(
     
     let conn = conn as &DatabaseConnection;
     let result = get_portfolio(conn, portfolio_id).await?;
+    
+    WebResponse::new(result).into_result()
+}
+
+#[put("/api/portfolios/<portfolio_id>", data = "<request>")]
+pub async fn update_portfolio_handler(
+    portfolio_id: i32,
+    request: Json<UpdatePortfolioRequest>,
+    conn: &State<DatabaseConnection>,
+) -> Result<WebResponse<PortfolioResponse>> {
+    info!("更新投资组合: {}", portfolio_id);
+    
+    let conn = conn as &DatabaseConnection;
+    let result = update_portfolio(conn, portfolio_id, request.into_inner()).await?;
     
     WebResponse::new(result).into_result()
 }

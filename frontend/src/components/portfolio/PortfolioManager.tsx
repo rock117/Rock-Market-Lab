@@ -171,10 +171,13 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     })
   }
 
-  const handleDeletePortfolio = (id: string) => {
-    if (confirm('确定要删除这个投资组合吗？')) {
-      deleteMutation.mutate(id)
-    }
+  const handleDeletePortfolio = (id: string, name: string) => {
+    showConfirm(
+      `确定要删除投资组合 "${name}" 吗？此操作不可恢复！`,
+      () => {
+        deleteMutation.mutate(id)
+      }
+    )
   }
 
   const handleAddStock = () => {
@@ -393,7 +396,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                   <Button
                     size="sm"
                     variant="destructive"
-                    onClick={() => handleDeletePortfolio(selectedPortfolio.id)}
+                    onClick={() => handleDeletePortfolio(selectedPortfolio.id, selectedPortfolio.name)}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     删除

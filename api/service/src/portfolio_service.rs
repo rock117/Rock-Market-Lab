@@ -17,6 +17,7 @@ pub struct CreatePortfolioRequest {
 pub struct PortfolioResponse {
     pub id: i32,
     pub name: String,
+    pub desc: Option<String>,
     pub holdings_num: usize,
 }
 
@@ -42,6 +43,12 @@ pub struct UpdateHoldingDescRequest {
     pub desc: Option<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct UpdatePortfolioRequest {
+    pub name: Option<String>,
+    pub desc: Option<String>,
+}
+
 pub async fn create_portfolio(
     conn: &DatabaseConnection,
     req: CreatePortfolioRequest,
@@ -59,6 +66,7 @@ pub async fn create_portfolio(
     Ok(PortfolioResponse {
         id: result.id,
         name: result.name,
+        desc: result.desc,
         holdings_num: 0,
     })
 }
@@ -83,6 +91,7 @@ pub async fn list_portfolios(conn: &DatabaseConnection) -> Result<Vec<PortfolioR
         results.push(PortfolioResponse {
             id: p.id,
             name: p.name,
+            desc: p.desc,
             holdings_num: holdings.len(),
         });
     }
@@ -111,6 +120,49 @@ pub async fn get_portfolio(
     Ok(PortfolioResponse {
         id: portfolio.id,
         name: portfolio.name,
+        desc: portfolio.desc,
+        holdings_num: holdings.len(),
+    })
+}
+
+pub async fn update_portfolio(
+    conn: &DatabaseConnection,
+    portfolio_id: i32,
+    req: UpdatePortfolioRequest,
+) -> Result<PortfolioResponse> {
+    info!("Updating portfolio: {}", portfolio_id);
+    
+    let portfolio = portfolio::Entity::find_by_id(portfolio_id)
+        .one(conn)
+        .await
+        .context("Failed to fetch portfolio")?
+        .ok_or_else(|| anyhow::anyhow!("Portfolio not found: {}", portfolio_id))?;
+    
+    let mut portfolio_active: portfolio::ActiveModel = portfolio.into();
+    
+    if let Some(name) = req.name {
+        portfolio_active.name = Set(name);
+    }
+    
+    if req.desc.is_some() || req.desc == Some(String::new()) {
+        portfolio_active.desc = Set(req.desc.clone());
+    }
+    
+    let updated = portfolio_active.update(conn).await
+        .context("Failed to update portfolio")?;
+    
+    let holdings = holding::Entity::find()
+        .filter(holding::Column::PortfolioId.eq(portfolio_id))
+        .all(conn)
+        .await
+        .context("Failed to fetch holdings")?;
+    
+    info!("Portfolio {} updated successfully", portfolio_id);
+    
+    Ok(PortfolioResponse {
+        id: updated.id,
+        name: updated.name,
+        desc: updated.desc,
         holdings_num: holdings.len(),
     })
 }
