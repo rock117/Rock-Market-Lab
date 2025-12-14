@@ -186,6 +186,7 @@ pub async fn add_holding(
         symbol: Set(req.symbol.clone()),
         portfolio_id: Set(portfolio.id),
         name: Set(stock.name.clone()),
+        desc: Set(req.desc.clone()),
         ..Default::default()
     };
 

@@ -9,10 +9,15 @@ interface Toast {
   id: string
   message: string
   type: ToastType
+  onConfirm?: () => void
+  onCancel?: () => void
+  confirmText?: string
+  cancelText?: string
 }
 
 interface ToastContextType {
   showToast: (message: string, type?: ToastType) => void
+  showConfirm: (message: string, onConfirm: () => void, onCancel?: () => void) => void
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined)
@@ -28,6 +33,19 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => {
       setToasts((prev) => prev.filter((toast) => toast.id !== id))
     }, 5000)
+  }, [])
+
+  const showConfirm = useCallback((message: string, onConfirm: () => void, onCancel?: () => void) => {
+    const id = Math.random().toString(36).substr(2, 9)
+    setToasts((prev) => [...prev, { 
+      id, 
+      message, 
+      type: 'warning',
+      onConfirm,
+      onCancel,
+      confirmText: '确定',
+      cancelText: '取消'
+    }])
   }, [])
 
   const removeToast = useCallback((id: string) => {
@@ -61,7 +79,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ToastContext.Provider value={{ showToast }}>
+    <ToastContext.Provider value={{ showToast, showConfirm }}>
       {children}
       
       {/* Toast容器 */}
@@ -74,15 +92,41 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             <div className="flex-shrink-0 mt-0.5">
               {getIcon(toast.type)}
             </div>
-            <div className="flex-1 text-sm text-gray-800">
-              {toast.message}
+            <div className="flex-1">
+              <div className="text-sm text-gray-800 mb-3">
+                {toast.message}
+              </div>
+              {toast.onConfirm && (
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      toast.onConfirm?.()
+                      removeToast(toast.id)
+                    }}
+                    className="px-3 py-1.5 text-sm bg-red-600 text-white rounded hover:bg-red-700 transition-colors"
+                  >
+                    {toast.confirmText || '确定'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      toast.onCancel?.()
+                      removeToast(toast.id)
+                    }}
+                    className="px-3 py-1.5 text-sm bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+                  >
+                    {toast.cancelText || '取消'}
+                  </button>
+                </div>
+              )}
             </div>
-            <button
-              onClick={() => removeToast(toast.id)}
-              className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            {!toast.onConfirm && (
+              <button
+                onClick={() => removeToast(toast.id)}
+                className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
           </div>
         ))}
       </div>

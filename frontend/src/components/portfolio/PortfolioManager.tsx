@@ -36,9 +36,9 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   // 编辑股票描述相关状态
   const [editingStockId, setEditingStockId] = useState<string | null>(null)
   const [editingDesc, setEditingDesc] = useState('')
-
+  
   const queryClient = useQueryClient()
-  const { showToast } = useToast()
+  const { showToast, showConfirm } = useToast()
 
   // 获取所有投资组合
   const { data: portfolios = [], isLoading, error } = useQuery({
@@ -193,14 +193,18 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     })
   }
 
-  const handleRemoveStock = (stockId: string) => {
+  const handleRemoveStock = (stockId: string, stockName: string) => {
     if (!selectedPortfolio) return
-    if (confirm('确定要从组合中移除这只股票吗？')) {
-      removeStockMutation.mutate({
-        portfolioId: selectedPortfolio.id,
-        stockId
-      })
-    }
+    
+    showConfirm(
+      `确定要从组合中移除 "${stockName}" 吗？`,
+      () => {
+        removeStockMutation.mutate({
+          portfolioId: selectedPortfolio.id,
+          stockId
+        })
+      }
+    )
   }
 
   // 开始编辑股票描述
@@ -597,7 +601,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             <Button
                               size="sm"
                               variant="ghost"
-                              onClick={() => handleRemoveStock(stock.id)}
+                              onClick={() => handleRemoveStock(stock.id, stock.name)}
                             >
                               <Trash2 className="h-4 w-4 text-destructive" />
                             </Button>
