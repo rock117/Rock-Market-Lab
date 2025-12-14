@@ -32,32 +32,52 @@ impl FetchBasicOrgInfoTask {
         completed_count: Arc<std::sync::atomic::AtomicUsize>,
         db_conn: Arc<DatabaseConnection>,
         total_count: usize,
-    ) -> impl Fn(stock::Model, (stock::Model, anyhow::Result<dongcai::BasicOrgInfoResponse>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
-        move |_original_stock, (stock, res)| {
+    ) -> impl Fn(stock::Model, (stock::Model, anyhow::Result<dongcai::BasicOrgInfoResponse>, anyhow::Result<dongcai::ConceptsResponse>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
+        move |_original_stock, (stock, res, res2)| {
             let completed_count = completed_count.clone();
             let db_conn = db_conn.clone();
             Box::pin(async move {
-                match res {
-                    Ok(info) => {
-                        if let Err(e) = Self::save_company_info(&*db_conn, &stock, &info).await {
+                match (res, res2) {
+                    (Ok(info), Ok(concept)) => {
+                        if let Err(e) = Self::save_company_info(&*db_conn, &stock, &info, &concept).await {
                             error!("cn security info failed, stock: {:?}, err: {:?}", stock, e);
                         } else {
                             let current = completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
                             info!("fetch cn security info rate: {}/{}", current, total_count);
                         }
                     }
-                    Err(e) => {
+                    (Err(e), _) => {
                         error!("get cn security info failed,  symbol: {}, err: {:?}", stock.ts_code, e);
+                    }
+                    (_, Err(e)) => {
+                        error!("get cn security concepts failed,  symbol: {}, err: {:?}", stock.ts_code, e);
                     }
                 }
             })
         }
     }
 
+
+    fn get_concepts(resp: &dongcai::ConceptsResponse) -> anyhow::Result<Vec<String>>{
+        if !resp.success {
+           return  Ok(vec![])
+        }
+        let Some(result) = &resp.result else {
+            return  Ok(vec![])
+        };
+        let mut concepts = Vec::new();
+        for item in  result.data.iter() {
+            concepts.push(item.board_name.clone());
+        }
+        Ok(concepts)
+    }
+
+
     async fn save_company_info(
         db_conn: &DatabaseConnection,
         stock: &stock::Model,
         org_resp: &dongcai::BasicOrgInfoResponse,
+        concept_resp: &dongcai::ConceptsResponse,
     ) -> anyhow::Result<()> {
         // 检查响应是否成功
         if !org_resp.success {
@@ -70,6 +90,7 @@ impl FetchBasicOrgInfoTask {
         if basic_info.secucode.is_none() {
             return Err(anyhow!("API response not successful, secucode is empty: {}", org_resp.message));
         }
+        let concepts = Self::get_concepts(concept_resp)?.join(",");
         // 转换为 cn_security_info::Model
         let model = cn_security_info::Model {
             secucode: basic_info.secucode.clone().unwrap_or_default(),
@@ -130,6 +151,7 @@ impl FetchBasicOrgInfoTask {
             trade_market_type: basic_info.trade_market_type.clone(),
             created_at: Some(chrono::Utc::now()),
             updated_at: Some(chrono::Utc::now()),
+            concepts: Some(concepts),
         };
         let tx = db_conn.begin().await?;
         let pks = [
@@ -188,8 +210,9 @@ impl Task for FetchBasicOrgInfoTask {
             3,
             stocks,
             |stock| async move {
-                let res = dongcai::rpt_f10_basic_orginfo(stock.ts_code.as_str()).await;
-                (stock, res)
+                let profile = dongcai::rpt_f10_basic_orginfo(stock.ts_code.as_str()).await;
+                let concept = dongcai::rpt_f10_coretheme_boardtype(stock.ts_code.as_str()).await;
+                (stock, profile, concept)
             },
             handler,
         ).await;

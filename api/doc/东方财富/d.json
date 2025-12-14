@@ -1,0 +1,84 @@
+{
+  "version": "c5e38aaf34ae897e8578a4d50eb3ac33",
+  "result": {
+    "pages": 1,
+    "data": [
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0963",
+        "BOARD_NAME": "商业航天",
+        "SELECTED_BOARD_REASON": "2025年11月7日回复称，公司宇航产品机加业务主要为股东相关单位的液体火箭发动机部分型号，提供蜗壳类、过渡管类等零部件加工配套服务。目前该业务在公司整体业绩中占比尚低，因相关业务市场化程度有限，当前仍以配套服务为主。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 10,
+        "BOARD_YIELD": 2.86,
+        "DERIVE_BOARD_CODE": "BI0963"
+      },
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0808",
+        "BOARD_NAME": "军民融合",
+        "SELECTED_BOARD_REASON": "公司身处航天体系,可以充分利用军民共享的技术,资源优势,把握军民深度融合发展的历史机遇,加强军民融合发展。2015年,公司车用离心泵,建筑消防泵,自吸式离心泵通过陕西省名牌产品复评,钣金冲焊型液力变矩器通过西安市名牌产品复评,部分民参军项目取得新进展。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 11,
+        "BOARD_YIELD": 1.34,
+        "DERIVE_BOARD_CODE": "BI0808"
+      },
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0683",
+        "BOARD_NAME": "央国企改革",
+        "SELECTED_BOARD_REASON": "最终控股股东为国务院国有资产监督管理委员会。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 12,
+        "BOARD_YIELD": 0.2,
+        "DERIVE_BOARD_CODE": "BI0683"
+      },
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0597",
+        "BOARD_NAME": "水利建设",
+        "SELECTED_BOARD_REASON": "2020年7月3日回复称航天动力子公司江苏航天水力设备有限公司生产的中大型轴流泵、混流泵、贯流泵系列产品主要应用于国家重点水利工程如南水北调、引江济淮、引汉济渭、引嫩入白等,广泛服务于城市防洪排涝、调水循环抗旱。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 13,
+        "BOARD_YIELD": 0.81,
+        "DERIVE_BOARD_CODE": "BI0597"
+      },
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0590",
+        "BOARD_NAME": "西部大开发",
+        "SELECTED_BOARD_REASON": "注册地址是西安市高新区锦业路78号。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 14,
+        "BOARD_YIELD": 0.69,
+        "DERIVE_BOARD_CODE": "BI0590"
+      },
+      {
+        "SECUCODE": "600343.SH",
+        "SECURITY_CODE": "600343",
+        "SECURITY_NAME_ABBR": "航天动力",
+        "NEW_BOARD_CODE": "BK0490",
+        "BOARD_NAME": "军工",
+        "SELECTED_BOARD_REASON": "2023年5月5日回复称，目前公司涉军业务包括军用特种车辆液力传动系统、军用车载加油泵、洗消用泵等。",
+        "IS_PRECISE": "1",
+        "BOARD_RANK": 15,
+        "BOARD_YIELD": 1.79,
+        "DERIVE_BOARD_CODE": "BI0490"
+      }
+    ],
+    "count": 6
+  },
+  "success": true,
+  "message": "ok",
+  "code": 0
+}

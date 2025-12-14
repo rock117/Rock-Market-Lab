@@ -135,13 +135,46 @@ pub struct BasicOrgInfo {
     #[serde(rename = "BOARD_NAME_LEVEL")]
     pub board_name_level: Option<String>,
 }
-/// 获取股票基本数据
+
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConceptsResponse {
+    pub version: String,
+    pub result: Option<ConceptsResult>,
+    pub success: bool,
+    pub message: String,
+    pub code: i32,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConceptsResult {
+    pub pages: i32,
+    pub data: Vec<ConceptsInfo>,
+    pub count: i32,
+}
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ConceptsInfo {
+    #[serde(rename = "BOARD_NAME")]
+    pub board_name: String,
+}
+
+/// 获取股票主营业务和基本数据
 pub async fn rpt_f10_basic_orginfo(tscode: &str) -> anyhow::Result<BasicOrgInfoResponse> {
     let url = format!(r#"https://datacenter.eastmoney.com/securities/api/data/v1/get?reportName=RPT_F10_BASIC_ORGINFO&columns=ALL&quoteColumns&filter=(SECUCODE="{}")&pageNumber=1"#, tscode);
     let resp = http::get(&url, None).await?;
     let response = resp.json().await?;
     Ok(response)
 }
+
+//获取概念数据
+pub async fn rpt_f10_coretheme_boardtype(tscode: &str) -> anyhow::Result<ConceptsResponse> {
+    let url = format!(r#"https://datacenter.eastmoney.com/securities/api/data/v1/get?reportName=RPT_F10_CORETHEME_BOARDTYPE&columns=SECUCODE,SECURITY_CODE,SECURITY_NAME_ABBR,NEW_BOARD_CODE,BOARD_NAME,SELECTED_BOARD_REASON,IS_PRECISE,BOARD_RANK,BOARD_YIELD,DERIVE_BOARD_CODE&quoteColumns=f3~05~NEW_BOARD_CODE~BOARD_YIELD&filter=(SECUCODE="{}")(IS_PRECISE="1")"#, tscode);
+    let resp = http::get(&url, None).await?;
+    let response = resp.json().await?;
+    Ok(response)
+}
+
+
 
 mod tests {
     use crate::dongcai::rpt_f10_basic_orginfo;

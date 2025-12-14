@@ -72,6 +72,7 @@ pub struct Model {
     pub trade_market_type: Option<String>,
     pub created_at: Option<DateTimeUtc>,
     pub updated_at: Option<DateTimeUtc>,
+    pub concepts: Option<String>
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
@@ -134,6 +135,7 @@ pub enum Column {
     TradeMarketType,
     CreatedAt,
     UpdatedAt,
+    Concepts,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -213,6 +215,7 @@ impl ColumnTrait for Column {
             Self::TradeMarketType => ColumnType::String(StringLen::N(50u32)).def().null(),
             Self::CreatedAt => ColumnType::Timestamp.def().null(),
             Self::UpdatedAt => ColumnType::Timestamp.def().null(),
+            Column::Concepts => ColumnType::Text.def().null(),
         }
     }
 }

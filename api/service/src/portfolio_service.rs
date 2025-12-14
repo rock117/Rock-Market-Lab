@@ -1,4 +1,5 @@
 use anyhow::{Result, Context, bail};
+use futures::future::err;
 use entity::sea_orm::{
     DatabaseConnection, EntityTrait, ActiveModelTrait, Set, 
     TransactionTrait, QueryFilter, ColumnTrait
@@ -17,7 +18,6 @@ pub struct CreatePortfolioRequest {
 pub struct PortfolioResponse {
     pub id: i32,
     pub name: String,
-    pub desc: Option<String>,
     pub holdings_num: usize,
 }
 
@@ -66,7 +66,6 @@ pub async fn create_portfolio(
     Ok(PortfolioResponse {
         id: result.id,
         name: result.name,
-        desc: result.desc,
         holdings_num: 0,
     })
 }
@@ -91,7 +90,6 @@ pub async fn list_portfolios(conn: &DatabaseConnection) -> Result<Vec<PortfolioR
         results.push(PortfolioResponse {
             id: p.id,
             name: p.name,
-            desc: p.desc,
             holdings_num: holdings.len(),
         });
     }
@@ -120,7 +118,6 @@ pub async fn get_portfolio(
     Ok(PortfolioResponse {
         id: portfolio.id,
         name: portfolio.name,
-        desc: portfolio.desc,
         holdings_num: holdings.len(),
     })
 }
@@ -134,20 +131,12 @@ pub async fn update_portfolio(
     
     let portfolio = portfolio::Entity::find_by_id(portfolio_id)
         .one(conn)
-        .await
-        .context("Failed to fetch portfolio")?
-        .ok_or_else(|| anyhow::anyhow!("Portfolio not found: {}", portfolio_id))?;
-    
+        .await?.ok_or_else(|| anyhow::anyhow!("Portfolio not found: {}", portfolio_id))?;
     let mut portfolio_active: portfolio::ActiveModel = portfolio.into();
-    
     if let Some(name) = req.name {
         portfolio_active.name = Set(name);
     }
-    
-    if req.desc.is_some() || req.desc == Some(String::new()) {
-        portfolio_active.desc = Set(req.desc.clone());
-    }
-    
+
     let updated = portfolio_active.update(conn).await
         .context("Failed to update portfolio")?;
     
@@ -162,7 +151,6 @@ pub async fn update_portfolio(
     Ok(PortfolioResponse {
         id: updated.id,
         name: updated.name,
-        desc: updated.desc,
         holdings_num: holdings.len(),
     })
 }
