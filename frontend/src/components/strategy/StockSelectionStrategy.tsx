@@ -84,6 +84,12 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   // 从API响应中提取数据
   const allResults = Array.isArray(apiResponse?.data) ? apiResponse.data : []
   
+  // 调试：打印第一条数据查看结构
+  if (allResults.length > 0) {
+    console.log('📊 策略结果第一条数据:', allResults[0])
+    console.log('📊 concepts字段:', allResults[0].concepts)
+  }
+  
   // 计算分页数据
   const totalItems = allResults.length
   const totalPages = Math.ceil(totalItems / pageSize)
@@ -263,6 +269,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                     <TableHead>股票名称</TableHead>
                     <TableHead>当前价格</TableHead>
                     <TableHead>涨跌幅</TableHead>
+                    <TableHead>核心概念</TableHead>
                     <TableHead>信号强度</TableHead>
                     <TableHead className="min-w-[300px]">分析结果</TableHead>
                   </TableRow>
@@ -284,6 +291,9 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                           {(item.strategy_result?.pct_chg || 0) > 0 ? '+' : ''}
                           {formatNumber(item.strategy_result?.pct_chg || 0, 2)}%
                         </span>
+                      </TableCell>
+                      <TableCell className="text-sm">
+                        {item.concepts || 'N/A'}
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center gap-2">
