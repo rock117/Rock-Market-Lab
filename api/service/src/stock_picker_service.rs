@@ -97,7 +97,7 @@ impl StockPickerService {
         strategy_type: &str,
         settings: Option<JsonValue>,
     ) -> Result<Vec<StockPickResult>> {
-        // 宏：简化策略创建和执行
+        // 宏：简化策略创建
         // 支持三种配置方式：
         // 1. settings 为 None：使用 default()
         // 2. settings 中有 "preset" 字段：调用对应的预设函数（如 standard(), aggressive() 等）
@@ -117,22 +117,29 @@ impl StockPickerService {
                     },
                     None => <$config>::default(),
                 };
-                let mut strategy = <$strategy>::new(config);
+                <$strategy>::new(config)
+            }};
+        }
+
+        // 使用宏创建策略并调用 pick_stocks_internal
+        macro_rules! execute_strategy {
+            ($config:ty, $strategy:ty, $preset_handler:expr) => {{
+                let mut strategy = create_strategy!($config, $strategy, $preset_handler);
                 self.pick_stocks_internal(&mut strategy, strategy_type, start_date, end_date, None).await
             }};
         }
 
         let mut results = match strategy_type {
-            "price_volume_candlestick" => create_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy, Self::handle_preset),
-            "bottom_volume_surge" => create_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy, Self::handle_preset),
-            "long_term_bottom_reversal" => create_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy, Self::handle_preset),
-            "yearly_high" => create_strategy!(YearlyHighConfig, YearlyHighStrategy, Self::handle_preset),
-            "price_strength" => create_strategy!(PriceStrengthConfig, PriceStrengthStrategy, Self::handle_preset),
-            "distressed_reversal" => create_strategy!(DistressedReversalConfig, DistressedReversalStrategy, Self::handle_preset),
-            "single_limit_up" => create_strategy!(SingleLimitUpConfig, SingleLimitUpStrategy, Self::handle_preset),
-            "fundamental" => create_strategy!(FundamentalConfig, FundamentalStrategy, Self::handle_preset),
-            "consecutive_strong" => create_strategy!(ConsecutiveStrongConfig, ConsecutiveStrongStrategy, Self::handle_preset),
-            "turtle" => create_strategy!(TurtleConfig, TurtleStrategy, |preset: &str| {
+            "price_volume_candlestick" => execute_strategy!(PriceVolumeStrategyConfig, PriceVolumeCandlestickStrategy, Self::handle_preset),
+            "bottom_volume_surge" => execute_strategy!(BottomVolumeSurgeConfig, BottomVolumeSurgeStrategy, Self::handle_preset),
+            "long_term_bottom_reversal" => execute_strategy!(LongTermBottomReversalConfig, LongTermBottomReversalStrategy, Self::handle_preset),
+            "yearly_high" => execute_strategy!(YearlyHighConfig, YearlyHighStrategy, Self::handle_preset),
+            "price_strength" => execute_strategy!(PriceStrengthConfig, PriceStrengthStrategy, Self::handle_preset),
+            "distressed_reversal" => execute_strategy!(DistressedReversalConfig, DistressedReversalStrategy, Self::handle_preset),
+            "single_limit_up" => execute_strategy!(SingleLimitUpConfig, SingleLimitUpStrategy, Self::handle_preset),
+            "fundamental" => execute_strategy!(FundamentalConfig, FundamentalStrategy, Self::handle_preset),
+            "consecutive_strong" => execute_strategy!(ConsecutiveStrongConfig, ConsecutiveStrongStrategy, Self::handle_preset),
+            "turtle" => execute_strategy!(TurtleConfig, TurtleStrategy, |preset: &str| {
                 Ok(match preset {
                     "system1" => TurtleStrategy::system1(),
                     "system2" => TurtleStrategy::system2(),
@@ -141,7 +148,7 @@ impl StockPickerService {
                     _ => bail!("海龟策略不支持预设 '{}', 可用预设: system1, system2, conservative, aggressive", preset),
                 })
             }),
-            "limit_up_pullback" => create_strategy!(LimitUpPullbackConfig, LimitUpPullbackStrategy, |preset: &str| {
+            "limit_up_pullback" => execute_strategy!(LimitUpPullbackConfig, LimitUpPullbackStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => LimitUpPullbackStrategy::standard(),
                     "aggressive" => LimitUpPullbackStrategy::aggressive(),
@@ -150,7 +157,7 @@ impl StockPickerService {
                     _ => bail!("涨停回调策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, strong_stock", preset),
                 })
             }),
-            "strong_close" => create_strategy!(StrongCloseConfig, StrongCloseStrategy, |preset: &str| {
+            "strong_close" => execute_strategy!(StrongCloseConfig, StrongCloseStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => StrongCloseStrategy::standard(),
                     "aggressive" => StrongCloseStrategy::aggressive(),
@@ -159,7 +166,7 @@ impl StockPickerService {
                     _ => bail!("强势收盘策略不支持预设 '{}', 可用预设: standard, aggressive, conservative, super_strong", preset),
                 })
             }),
-            "quality_value" => create_strategy!(QualityValueConfig, QualityValueStrategy, |preset: &str| {
+            "quality_value" => execute_strategy!(QualityValueConfig, QualityValueStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => QualityValueStrategy::standard(),
                     "strict" => QualityValueStrategy::strict(),
@@ -168,7 +175,7 @@ impl StockPickerService {
                     _ => bail!("优质价值策略不支持预设 '{}', 可用预设: standard, strict, small_cap_growth, large_cap_blue_chip", preset),
                 })
             }),
-            "turnover_ma_bullish" => create_strategy!(TurnoverMaBullishConfig, TurnoverMaBullishStrategy, |preset: &str| {
+            "turnover_ma_bullish" => execute_strategy!(TurnoverMaBullishConfig, TurnoverMaBullishStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => TurnoverMaBullishStrategy::standard(),
                     "active" => TurnoverMaBullishStrategy::active(),
@@ -177,7 +184,7 @@ impl StockPickerService {
                     _ => bail!("换手率均线多头策略不支持预设 '{}', 可用预设: standard, active, conservative, short_term", preset),
                 })
             }),
-            "low_shadow" => create_strategy!(LowShadowConfig, LowShadowStrategy, |preset: &str| {
+            "low_shadow" => execute_strategy!(LowShadowConfig, LowShadowStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => LowShadowConfig::default(),
                     "conservative" => LowShadowConfig {
@@ -197,7 +204,7 @@ impl StockPickerService {
                     _ => bail!("低位下影线策略不支持预设 '{}', 可用预设: standard, conservative, aggressive", preset),
                 })
             }),
-            "similarity" => create_strategy!(SimilarityStrategyConfig, SimilarityStrategy, Self::handle_preset),
+            "similarity" => execute_strategy!(SimilarityStrategyConfig, SimilarityStrategy, Self::handle_preset),
             _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, similarity", strategy_type)
         }?;
         for result in &mut results {
