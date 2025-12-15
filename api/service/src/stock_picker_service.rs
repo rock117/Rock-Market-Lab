@@ -28,6 +28,7 @@ use crate::strategy::{
     QualityValueStrategy, QualityValueConfig,
     TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
     LowShadowStrategy, LowShadowConfig,
+    SimilarityStrategy, SimilarityStrategyConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -196,7 +197,8 @@ impl StockPickerService {
                     _ => bail!("低位下影线策略不支持预设 '{}', 可用预设: standard, conservative, aggressive", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow", strategy_type)
+            "similarity" => create_strategy!(SimilarityStrategyConfig, SimilarityStrategy, Self::handle_preset),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, similarity", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;

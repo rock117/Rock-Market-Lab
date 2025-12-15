@@ -36,7 +36,8 @@ const STRATEGY_TYPES = [
   { value: 'strong_close', label: '强势收盘策略', description: '基于收盘强势的选股策略' },
   { value: 'quality_value', label: '优质价值策略', description: '寻找优质且被低估的股票' },
   { value: 'turnover_ma_bullish', label: '换手率均线多头策略', description: '基于换手率和均线的多头策略' },
-  { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' }
+  { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
+  { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' }
 ]
 
 // 默认参数示例
