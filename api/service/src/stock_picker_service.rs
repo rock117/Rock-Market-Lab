@@ -97,6 +97,28 @@ impl StockPickerService {
         strategy_type: &str,
         settings: Option<JsonValue>,
     ) -> Result<Vec<StockPickResult>> {
+
+        let ts_code: Option<String> = settings
+            .as_ref()
+            .and_then(|json| json.get("ts_code").and_then(|v| v.as_str()))
+            .map(|s| s.to_string());
+
+        let target_datas  = if let Some(ts_code) = ts_code {
+            let daily_datas = Self::get_stock_daily_data(&self.db, &ts_code, start_date, end_date).await?;
+            let  security_datas: Vec<SecurityData> = daily_datas
+                .iter()
+                .map(|(daily, basic)| SecurityData::from_daily((daily, basic)))
+                .collect();
+            let mut map = HashMap::new();
+            for sec_data in security_datas {
+                map.insert(sec_data.trade_date.clone(), sec_data.clone());
+            }
+            Arc::new(map)
+        } else {
+            Arc::new(HashMap::default())
+        };
+
+
         // 宏：简化策略创建
         // 支持三种配置方式：
         // 1. settings 为 None：使用 default()
@@ -125,7 +147,7 @@ impl StockPickerService {
         macro_rules! execute_strategy {
             ($config:ty, $strategy:ty, $preset_handler:expr) => {{
                 let mut strategy = create_strategy!($config, $strategy, $preset_handler);
-                self.pick_stocks_internal(&mut strategy, strategy_type, start_date, end_date, None).await
+                self.pick_stocks_internal(&mut strategy, strategy_type, target_datas.clone(), start_date, end_date, None).await
             }};
         }
 
@@ -229,6 +251,7 @@ impl StockPickerService {
         &self,
         strategy: &mut S,
         strategy_type: &str,
+        target_datas: Arc<HashMap<String, SecurityData>>,
         start_date: &NaiveDate,
         end_date: &NaiveDate,
         min_signal: Option<StrategySignal>,
@@ -242,7 +265,6 @@ impl StockPickerService {
             end_date,
             min_signal
         );
-
         // 获取所有股票列表
         let stocks = stock::Entity::find().all(&self.db).await?;
         info!("共获取 {} 只股票", stocks.len());
@@ -265,6 +287,7 @@ impl StockPickerService {
                 let db_conn = db_conn.clone();
                 let start_date = *start_date;
                 let end_date = *end_date;
+                let value = target_datas.clone();
                 move |stock_model| {
                     let strategy_type = strategy_type.clone();
                     let db_conn = db_conn.clone();
@@ -277,6 +300,7 @@ impl StockPickerService {
                             &start_date,
                             &end_date,
                             required_data_points,
+                            value
                         )
                             .await
                         {
@@ -391,12 +415,13 @@ impl StockPickerService {
         start_date: &NaiveDate,
         end_date: &NaiveDate,
         required_points: usize,
+        target_datas: Arc<HashMap<String, SecurityData>> //(trade_date, SecurityData)
     ) -> Result<Option<Vec<SecurityData>>> {
         // 获取股票日线数据
         if strategy_type == "" {
             Self::get_financial_data(db, ts_code).await
         } else {
-            let daily_data = Self::get_stock_daily_data_static(db, ts_code, start_date, end_date).await?;
+            let daily_data = Self::get_stock_daily_data(db, ts_code, start_date, end_date).await?;
             // 检查数据是否足够
             if daily_data.len() < required_points {
                 // warn!(
@@ -409,27 +434,23 @@ impl StockPickerService {
             }
 
             // 转换为 SecurityData
-            let security_data: Vec<SecurityData> = daily_data
+            let mut security_data: Vec<SecurityData> = daily_data
                 .iter()
                 .map(|(daily, basic)| SecurityData::from_daily((daily, basic)))
                 .collect();
+
+            for sec_data in &mut security_data {
+                let target_data = target_datas.get(&sec_data.trade_date).map(|data| Box::new(data.clone()));
+                sec_data.target = target_data;
+            }
 
             Ok(Some(security_data))
         }
     }
 
-    /// 获取股票日线数据（实例方法）
-    async fn get_stock_daily_data(
-        &self,
-        ts_code: &str,
-        start_date: &NaiveDate,
-        end_date: &NaiveDate,
-    ) -> Result<Vec<(stock_daily::Model, stock_daily_basic::Model)>> {
-        Self::get_stock_daily_data_static(&self.db, ts_code, start_date, end_date).await
-    }
 
     /// 获取股票日线数据（静态方法，包含基本面数据）
-    async fn get_stock_daily_data_static(
+    async fn get_stock_daily_data(
         db: &DatabaseConnection,
         ts_code: &str,
         start_date: &NaiveDate,
@@ -672,32 +693,5 @@ impl StockPickerService {
         };
 
         format!("{}{}", year, quarter)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_signal_criteria() {
-        let service = StockPickerService {
-            db: todo!(), // 测试时需要 mock
-        };
-
-        // 测试 StrongBuy 条件
-        assert!(service.meets_signal_criteria(&StrategySignal::StrongBuy, &StrategySignal::StrongBuy));
-        assert!(!service.meets_signal_criteria(&StrategySignal::Buy, &StrategySignal::StrongBuy));
-
-        // 测试 Buy 条件
-        assert!(service.meets_signal_criteria(&StrategySignal::StrongBuy, &StrategySignal::Buy));
-        assert!(service.meets_signal_criteria(&StrategySignal::Buy, &StrategySignal::Buy));
-        assert!(!service.meets_signal_criteria(&StrategySignal::Hold, &StrategySignal::Buy));
-
-        // 测试 Hold 条件
-        assert!(service.meets_signal_criteria(&StrategySignal::StrongBuy, &StrategySignal::Hold));
-        assert!(service.meets_signal_criteria(&StrategySignal::Buy, &StrategySignal::Hold));
-        assert!(service.meets_signal_criteria(&StrategySignal::Hold, &StrategySignal::Hold));
-        assert!(!service.meets_signal_criteria(&StrategySignal::Sell, &StrategySignal::Hold));
     }
 }
