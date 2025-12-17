@@ -32,35 +32,30 @@ pub struct MarginBalanceResp {
     pub margin_balance: f64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub enum MarginBalanceKind {
-    Exchange,
-    Stock,
+    Exchange(String),
+    Stock(String),
 }
 
-impl<'v> rocket::form::FromFormField<'v> for MarginBalanceKind {
-    fn from_value(field: rocket::form::ValueField<'v>) -> rocket::form::Result<'v, Self> {
-        match field.value.to_ascii_lowercase().as_str() {
-            "exchange" => Ok(Self::Exchange),
-            "stock" => Ok(Self::Stock),
-            _ => Err(rocket::form::Error::validation("type must be 'exchange' or 'stock'").into()),
-        }
-    }
+#[derive(Debug, Clone)]
+pub struct MarginBalanceParams {
+    pub kind: MarginBalanceKind,
+    pub start_date: String,
+    pub end_date: String,
 }
 
 #[derive(FromForm, Debug)]
-pub struct MarginBalanceParams {
-    #[field(name = "type")]
-    pub kind: Option<MarginBalanceKind>,
+pub struct RawMarginBalanceParams {
     pub exchange: Option<String>,
-    pub ts_code: Option<String>,
+    pub stock: Option<String>,
     pub start_date: String,
     pub end_date: String,
 }
 
 #[get("/api/margin/balance?<params..>")]
 pub async fn get_margin_balance(
-    params: MarginBalanceParams,
+    params: RawMarginBalanceParams,
     conn: &State<DatabaseConnection>,
 ) -> Result<WebResponse<Vec<MarginBalanceResp>>> {
     let conn = conn as &DatabaseConnection;
@@ -69,17 +64,25 @@ pub async fn get_margin_balance(
     let end_date = NaiveDate::parse_from_str(&params.end_date, common::date::FORMAT_DASH)
         .map_err(|e| anyhow!("end_date format error: {}", e))?;
 
-    let is_stock = params.kind == Some(MarginBalanceKind::Stock) || params.ts_code.is_some();
+    let params = MarginBalanceParams {
+        kind: if let Some(exchange) = params.exchange {
+            MarginBalanceKind::Exchange(exchange)
+        } else if let Some(stock) = params.stock {
+            MarginBalanceKind::Stock(stock)
+        } else {
+            MarginBalanceKind::Exchange("ALL".to_string())
+        },
+        start_date: params.start_date,
+        end_date: params.end_date,
+    };
 
-    let points = if is_stock {
-        let ts_code = params
-            .ts_code
-            .as_deref()
-            .ok_or_else(|| anyhow!("ts_code is required when type=stock"))?;
-        margin_service::get_stock_margin_balance(conn, ts_code, &start_date, &end_date).await?
-    } else {
-        let exchange = params.exchange.as_deref().unwrap_or("ALL");
-        margin_service::get_margin_balance(conn, exchange, &start_date, &end_date).await?
+    let points = match &params.kind {
+        MarginBalanceKind::Exchange(exchange) => {
+            margin_service::get_margin_balance(conn, exchange, &start_date, &end_date).await?
+        }
+        MarginBalanceKind::Stock(ts_code) => {
+            margin_service::get_stock_margin_balance(conn, ts_code, &start_date, &end_date).await?
+        }
     };
 
     let resp = points
