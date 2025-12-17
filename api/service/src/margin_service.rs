@@ -64,7 +64,7 @@ pub async fn get_stock_margin_balance(
         .into_iter()
         .map(|row| MarginBalancePoint {
             date: row.trade_date,
-            margin_balance: row.rqye.and_then(|d| d.to_f64()).unwrap_or(0.0),
+            margin_balance: row.rzye.and_then(|d| d.to_f64()).unwrap_or(0.0),
         })
         .collect())
 }
