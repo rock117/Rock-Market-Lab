@@ -893,44 +893,82 @@ export const klineApi = {
 
 export const marginTradingApi = {
   getMarginTradingKLine: async (request: MarginTradingKLineRequest): Promise<MarginTradingKLineResponse> => {
-    await delay(500)
+    const normalizeDate = (input: string): string => {
+      const raw = String(input).trim()
+      if (!raw) return raw
 
-    const startDate = new Date(request.startDate)
-    const endDate = new Date(request.endDate)
+      if (/^\d{8}$/.test(raw)) {
+        const y = raw.slice(0, 4)
+        const m = raw.slice(4, 6)
+        const d = raw.slice(6, 8)
+        return `${y}-${m}-${d}`
+      }
 
-    const exchangeBase: Record<ExchangeCode, number> = {
-      SSE: 1200,
-      SZSE: 900,
-      BSE: 180,
-      ALL: 2200,
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+      const t = Date.parse(raw)
+      if (Number.isFinite(t)) {
+        const dt = new Date(t)
+        const y = dt.getFullYear()
+        const m = String(dt.getMonth() + 1).padStart(2, '0')
+        const d = String(dt.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+
+      return raw
     }
 
-    const base = exchangeBase[request.exchange] ?? 2200
-    const kline = generateKLineDataWithDateRange(base, startDate, endDate, 'daily')
+    const query = new URLSearchParams()
+    query.set('exchange', request.exchange)
+    query.set('start_date', request.startDate)
+    query.set('end_date', request.endDate)
 
-    const data: StockHistoryData[] = kline.map((d, idx) => {
-      const open = d.open
-      const close = d.close
-      const high = d.high
-      const low = d.low
-      const prevClose = idx === 0 ? open : kline[idx - 1].close
+    const response = await fetch(`${API_BASE_URL}/api/margin/balance?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
 
-      const change = close - prevClose
-      const pctChg = prevClose === 0 ? 0 : change / prevClose
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
 
-      const volume = Math.floor(d.volume * 80 + Math.random() * 200000)
-      const amount = Math.floor(volume * ((open + close) / 2))
+    const raw = await response.json()
+    const rows: Array<{ date: string; marginBalance: string | number }> = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : []
+
+    const sorted = rows
+      .filter(r => r?.date)
+      .map(r => ({
+        date: normalizeDate(r.date),
+        marginBalance: typeof r.marginBalance === 'number' ? r.marginBalance : Number(r.marginBalance),
+      }))
+      .filter(r => Number.isFinite(r.marginBalance))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const data: StockHistoryData[] = sorted.map((r, idx) => {
+      const close = r.marginBalance
+      const open = idx === 0 ? close : sorted[idx - 1].marginBalance
+      const high = Math.max(open, close)
+      const low = Math.min(open, close)
+
+      const change = close - open
+      const pctChg = open === 0 ? 0 : (change / open) * 100
 
       return {
-        trade_date: d.date,
-        open,
-        high,
-        low,
-        close,
-        volume,
-        amount,
-        turnover_rate: Number((Math.random() * 3 + 0.5).toFixed(2)),
-        pct_chg: Number((pctChg * 100).toFixed(2)),
+        trade_date: r.date,
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(close.toFixed(2)),
+        volume: 0,
+        amount: 0,
+        turnover_rate: 0,
+        pct_chg: Number(pctChg.toFixed(2)),
         change: Number(change.toFixed(2)),
       }
     })

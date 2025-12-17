@@ -4,7 +4,7 @@ import React, { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Select, SelectItem } from '@/components/ui/select'
-import KLineChart from '@/components/charts/KLineChart'
+import MarginBalanceKLineChart from '@/components/charts/MarginBalanceKLineChart'
 import { marginTradingApi } from '@/services/api'
 import { ExchangeCode } from '@/types'
 import { Calendar, Filter, Scale } from 'lucide-react'
@@ -131,7 +131,7 @@ export default function MarginTrading({ className }: { className?: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <KLineChart data={data?.data || []} stockName={title} />
+          <MarginBalanceKLineChart data={data?.data || []} title={title} />
         </CardContent>
       </Card>
     </div>
