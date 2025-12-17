@@ -243,6 +243,19 @@ export interface MarginTradingKLineResponse {
   data: StockHistoryData[];
 }
 
+export interface StockMarginTradingKLineRequest {
+  startDate: string;
+  endDate: string;
+  stock: string;
+}
+
+export interface StockMarginTradingKLineResponse {
+  stock: string;
+  startDate: string;
+  endDate: string;
+  data: StockHistoryData[];
+}
+
 // 股东人数数据
 export interface ShareholderData {
   holder_count: number; // 股东人数

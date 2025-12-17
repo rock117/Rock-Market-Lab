@@ -1,4 +1,4 @@
-import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiPortfolioDetail, ApiHolding, ExchangeCode, MarginTradingKLineRequest, MarginTradingKLineResponse } from '@/types'
+import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiPortfolioDetail, ApiHolding, ExchangeCode, MarginTradingKLineRequest, MarginTradingKLineResponse, StockMarginTradingKLineRequest, StockMarginTradingKLineResponse } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
@@ -594,18 +594,36 @@ const mockStockList = [
 export const stockDetailApi = {
   // 搜索股票
   searchStocks: async (keyword: string) => {
-    await delay(300)
-    
     if (!keyword || keyword.length < 1) {
-      return { stocks: [] }
+      return { stocks: [] as Array<{ ts_code: string; name: string }> }
     }
-    
-    const filteredStocks = mockStockList.filter(stock => 
-      stock.name.toLowerCase().includes(keyword.toLowerCase()) ||
-      stock.ts_code.toLowerCase().includes(keyword.toLowerCase())
-    )
-    
-    return { stocks: filteredStocks }
+
+    const query = new URLSearchParams()
+    query.set('keyword', keyword)
+
+    const response = await fetch(`${API_BASE_URL}/api/stocks/search?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const raw = await response.json()
+    const rows: Array<{ ts_code: string; name: string }> = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : raw?.ts_code && raw?.name
+          ? [raw]
+          : []
+
+    return {
+      stocks: rows.filter(r => r?.ts_code && r?.name),
+    }
   },
 
   // 获取股票详情
@@ -981,6 +999,101 @@ export const marginTradingApi = {
 
     return {
       exchange: request.exchange,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      data,
+    }
+  },
+
+  getStockMarginTradingKLine: async (request: StockMarginTradingKLineRequest): Promise<StockMarginTradingKLineResponse> => {
+    const normalizeDate = (input: string): string => {
+      const raw = String(input).trim()
+      if (!raw) return raw
+
+      if (/^\d{8}$/.test(raw)) {
+        const y = raw.slice(0, 4)
+        const m = raw.slice(4, 6)
+        const d = raw.slice(6, 8)
+        return `${y}-${m}-${d}`
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+      const t = Date.parse(raw)
+      if (Number.isFinite(t)) {
+        const dt = new Date(t)
+        const y = dt.getFullYear()
+        const m = String(dt.getMonth() + 1).padStart(2, '0')
+        const d = String(dt.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+
+      return raw
+    }
+
+    const query = new URLSearchParams()
+    query.set('stock', request.stock)
+    query.set('start_date', request.startDate)
+    query.set('end_date', request.endDate)
+
+    const response = await fetch(`${API_BASE_URL}/api/margin/balance?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const raw = await response.json()
+    const rows: Array<{ date: string; marginBalance: string | number }> = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : []
+
+    const toWanYuan = (v: number): number => Number((v / 10000).toFixed(2))
+
+    const sorted = rows
+      .filter(r => r?.date)
+      .map(r => ({
+        date: normalizeDate(r.date),
+        marginBalance: typeof r.marginBalance === 'number' ? r.marginBalance : Number(r.marginBalance),
+      }))
+      .filter(r => Number.isFinite(r.marginBalance))
+      .map(r => ({
+        ...r,
+        marginBalance: toWanYuan(r.marginBalance),
+      }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    const data: StockHistoryData[] = sorted.map((r, idx) => {
+      const close = r.marginBalance
+      const open = idx === 0 ? close : sorted[idx - 1].marginBalance
+      const high = Math.max(open, close)
+      const low = Math.min(open, close)
+
+      const change = close - open
+      const pctChg = open === 0 ? 0 : (change / open) * 100
+
+      return {
+        trade_date: r.date,
+        open: Number(open.toFixed(2)),
+        high: Number(high.toFixed(2)),
+        low: Number(low.toFixed(2)),
+        close: Number(close.toFixed(2)),
+        volume: 0,
+        amount: 0,
+        turnover_rate: 0,
+        pct_chg: Number(pctChg.toFixed(2)),
+        change: Number(change.toFixed(2)),
+      }
+    })
+
+    return {
+      stock: request.stock,
       startDate: request.startDate,
       endDate: request.endDate,
       data,

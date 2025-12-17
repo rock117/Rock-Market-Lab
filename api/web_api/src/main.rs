@@ -96,6 +96,7 @@ async fn rocket() -> _ {
             macd_stastic_controller::macd_stastic,
             stock_bias_ratio_controller::get_bias_ratio,
             security_search_controller::search_securities,
+            stock_search_controller::search_stocks,
             stock_price_controller::stock_price,
             security::security_price_controller::get_security_price,
             security::security_history_compare_controller::security_history_compare,

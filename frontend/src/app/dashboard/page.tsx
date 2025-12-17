@@ -52,6 +52,7 @@ const moduleCategories = [
       { id: 'stock-detail', name: '个股详情', description: 'PE/PB、基本面分析', status: 'active', path: '/stock-detail' },
       { id: 'kline-comparison', name: 'K线对比', description: '多证券走势对比', status: 'active', path: '/kline-comparison' },
       { id: 'margin-trading', name: '融资融券', description: '融资融券信息K线展示', status: 'active', path: '/margin-trading' },
+      { id: 'stock-margin-trading', name: '个股融资融券', description: '按股票维度查看融资余额趋势', status: 'active', path: '/stock-margin-trading' },
       { id: 'technical-analysis', name: '技术分析', description: 'MACD、RSI、布林带', status: 'coming', path: '/technical' },
       { id: 'fundamental-analysis', name: '基本面分析', description: 'ROE、ROA、财务比率', status: 'coming', path: '/fundamental' },
       { id: 'sector-analysis', name: '行业分析', description: '行业对比、轮动分析', status: 'coming', path: '/sector' },

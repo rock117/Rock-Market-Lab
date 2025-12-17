@@ -17,9 +17,10 @@ interface MarginBalanceKLineChartProps {
   data: StockHistoryData[]
   title: string
   className?: string
+  unitLabel?: string
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip = ({ active, payload, label, unitLabel }: any) => {
   if (!active || !payload?.length) return null
   const d = payload[0].payload
   const dateValue = d?.date ?? label
@@ -27,7 +28,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white p-3 border rounded-lg shadow-lg">
       <p className="font-medium">日期：{dateValue ? formatDate(dateValue) : '-'}</p>
-      <p className="text-sm">融资余额：{formatNumber(d.balance, 2)} 亿元</p>
+      <p className="text-sm">融资余额：{formatNumber(d.balance, 2)} {unitLabel}</p>
       <p className={`text-sm ${d.pct_chg >= 0 ? 'text-red-500' : 'text-green-500'}`}>
         涨跌幅：{formatPercent(d.pct_chg)}
       </p>
@@ -35,7 +36,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   )
 }
 
-export default function MarginBalanceKLineChart({ data, title, className }: MarginBalanceKLineChartProps) {
+export default function MarginBalanceKLineChart({ data, title, className, unitLabel = '亿元' }: MarginBalanceKLineChartProps) {
   const chartData = useMemo(() => {
     return data
       .map((item) => ({
@@ -86,9 +87,9 @@ export default function MarginBalanceKLineChart({ data, title, className }: Marg
               domain={['dataMin - 5', 'dataMax + 5']}
               tick={{ fontSize: 12 }}
               stroke="#666"
-              label={{ value: '亿元', angle: -90, position: 'insideLeft' }}
+              label={{ value: unitLabel, angle: -90, position: 'insideLeft' }}
             />
-            <Tooltip content={<CustomTooltip />} />
+            <Tooltip content={<CustomTooltip unitLabel={unitLabel} />} />
 
             <Line type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={2} dot={false} name="融资余额" />
           </ComposedChart>

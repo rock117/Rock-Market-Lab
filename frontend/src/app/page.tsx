@@ -8,6 +8,7 @@ import UsStockList from '@/components/us-stocks/UsStockList'
 import StockDetail from '@/components/stock/StockDetail'
 import KLineComparison from '@/components/kline/KLineComparison'
 import MarginTrading from '@/components/margin-trading/MarginTrading'
+import StockMarginTrading from '@/components/margin-trading/StockMarginTrading'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import { 
@@ -81,6 +82,15 @@ const modules = [
     id: 'margin-trading',
     name: '融资融券',
     description: '融资融券信息K线展示',
+    icon: Calculator,
+    color: 'text-orange-500',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'stock-margin-trading',
+    name: '个股融资融券',
+    description: '按股票维度查看融资余额趋势',
     icon: Calculator,
     color: 'text-orange-500',
     category: 'analysis',
@@ -173,6 +183,8 @@ export default function HomePage() {
         return <KLineComparison />
       case 'margin-trading':
         return <MarginTrading />
+      case 'stock-margin-trading':
+        return <StockMarginTrading />
       case 'stock-selection-strategy':
         return <StockSelectionStrategy />
       case 'portfolio-manager':
