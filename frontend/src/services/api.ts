@@ -941,6 +941,8 @@ export const marginTradingApi = {
         ? raw.data
         : []
 
+    const toYiYuan = (v: number): number => Number((v / 100000000).toFixed(2))
+
     const sorted = rows
       .filter(r => r?.date)
       .map(r => ({
@@ -948,6 +950,10 @@ export const marginTradingApi = {
         marginBalance: typeof r.marginBalance === 'number' ? r.marginBalance : Number(r.marginBalance),
       }))
       .filter(r => Number.isFinite(r.marginBalance))
+      .map(r => ({
+        ...r,
+        marginBalance: toYiYuan(r.marginBalance),
+      }))
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
 
     const data: StockHistoryData[] = sorted.map((r, idx) => {

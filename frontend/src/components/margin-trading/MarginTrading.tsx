@@ -7,6 +7,7 @@ import { Select, SelectItem } from '@/components/ui/select'
 import MarginBalanceKLineChart from '@/components/charts/MarginBalanceKLineChart'
 import { marginTradingApi } from '@/services/api'
 import { ExchangeCode } from '@/types'
+import { formatDate, formatNumber } from '@/lib/utils'
 import { Calendar, Filter, Scale } from 'lucide-react'
 
 function toISODate(date: Date): string {
@@ -41,6 +42,28 @@ export default function MarginTrading({ className }: { className?: string }) {
 
     return `融资融券 - ${exchangeText[exchange]}`
   }, [exchange])
+
+  const summary = useMemo(() => {
+    const rows = (data?.data || [])
+      .filter(r => r?.trade_date && Number.isFinite(r.close))
+      .map(r => ({ date: r.trade_date, balance: r.close }))
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+
+    if (!rows.length) return null
+
+    const maxBalance = Math.max(...rows.map(r => r.balance))
+    const minBalance = Math.min(...rows.map(r => r.balance))
+    const avgBalance = rows.reduce((sum, r) => sum + r.balance, 0) / rows.length
+    const latest = rows[rows.length - 1]
+
+    return {
+      maxBalance,
+      minBalance,
+      avgBalance,
+      latestDate: latest.date,
+      latestBalance: latest.balance,
+    }
+  }, [data?.data])
 
   return (
     <div className={className}>
@@ -131,6 +154,27 @@ export default function MarginTrading({ className }: { className?: string }) {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {summary && (
+            <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">最大融资余额</div>
+                <div className="mt-1 text-lg font-semibold">{formatNumber(summary.maxBalance, 2)} 亿元</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">最小融资余额</div>
+                <div className="mt-1 text-lg font-semibold">{formatNumber(summary.minBalance, 2)} 亿元</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">平均融资余额</div>
+                <div className="mt-1 text-lg font-semibold">{formatNumber(summary.avgBalance, 2)} 亿元</div>
+              </div>
+              <div className="rounded-lg border p-3">
+                <div className="text-xs text-muted-foreground">当前融资余额</div>
+                <div className="mt-1 text-lg font-semibold">{formatNumber(summary.latestBalance, 2)} 亿元</div>
+                <div className="mt-1 text-xs text-muted-foreground">{formatDate(summary.latestDate)}</div>
+              </div>
+            </div>
+          )}
           <MarginBalanceKLineChart data={data?.data || []} title={title} />
         </CardContent>
       </Card>

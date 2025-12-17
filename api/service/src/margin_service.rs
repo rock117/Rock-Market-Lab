@@ -32,7 +32,7 @@ pub async fn get_margin_balance(
 
     let mut by_date: BTreeMap<String, f64> = BTreeMap::new();
     for row in rows {
-        let v = row.rqye.and_then(|d| d.to_f64()).unwrap_or(0.0);
+        let v = row.rzye.and_then(|d| d.to_f64()).unwrap_or(0.0);
         *by_date.entry(row.trade_date).or_insert(0.0) += v;
     }
 

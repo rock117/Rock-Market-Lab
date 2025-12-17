@@ -291,6 +291,7 @@ impl StockPickerService {
                 move |stock_model| {
                     let strategy_type = strategy_type.clone();
                     let db_conn = db_conn.clone();
+                    let value = value.clone();
                     async move {
                         // 使用静态方法准备股票分析数据
                         match StockPickerService::prepare_stock_data(

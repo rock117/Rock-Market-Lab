@@ -46,7 +46,7 @@ impl Task for FetchMarginTask {
                     .on_conflict(on_conflict)
                     .exec(&tx)
                     .await {
-                    error!("insert margin failed, exchangeId: {}, trade date: {}, error: {:?}", margin.exchange_id, margin.trade_date, e);
+                   error!("insert margin failed, exchangeId: {}, trade date: {}, error: {:?}", margin.exchange_id, margin.trade_date, e);
                 }
                 info!("Insert margin data for exchange_id: {}, trade_date: {}", exchange_id, margin.trade_date);
             }
