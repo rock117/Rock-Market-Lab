@@ -51,14 +51,16 @@ export default function MarginTrading({ className }: { className?: string }) {
 
     if (!rows.length) return null
 
-    const maxBalance = Math.max(...rows.map(r => r.balance))
-    const minBalance = Math.min(...rows.map(r => r.balance))
+    const maxRow = rows.reduce((best, cur) => (cur.balance > best.balance ? cur : best), rows[0])
+    const minRow = rows.reduce((best, cur) => (cur.balance < best.balance ? cur : best), rows[0])
     const avgBalance = rows.reduce((sum, r) => sum + r.balance, 0) / rows.length
     const latest = rows[rows.length - 1]
 
     return {
-      maxBalance,
-      minBalance,
+      maxBalance: maxRow.balance,
+      maxDate: maxRow.date,
+      minBalance: minRow.balance,
+      minDate: minRow.date,
       avgBalance,
       latestDate: latest.date,
       latestBalance: latest.balance,
@@ -159,10 +161,12 @@ export default function MarginTrading({ className }: { className?: string }) {
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">最大融资余额</div>
                 <div className="mt-1 text-lg font-semibold">{formatNumber(summary.maxBalance, 2)} 亿元</div>
+                <div className="mt-1 text-xs text-muted-foreground">{formatDate(summary.maxDate)}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">最小融资余额</div>
                 <div className="mt-1 text-lg font-semibold">{formatNumber(summary.minBalance, 2)} 亿元</div>
+                <div className="mt-1 text-xs text-muted-foreground">{formatDate(summary.minDate)}</div>
               </div>
               <div className="rounded-lg border p-3">
                 <div className="text-xs text-muted-foreground">平均融资余额</div>
