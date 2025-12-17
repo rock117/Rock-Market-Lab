@@ -1,10 +1,10 @@
-import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiPortfolioDetail, ApiHolding } from '@/types'
+import { PagedResponse, UsStock, UsStockMeta, MarketSummary, IndexData, VolumeDistribution, StockDetail, Security, SecurityKLineData, KLineData, SecuritySearchResult, TrendAnalysis, StrategyResult, StrategyType, StrategyStock, StrategyPerformance, StockHistoryData, StockHistoryResponse, ApiResponse, ApiPagedData, Portfolio, PortfolioStock, ApiPortfolio, ApiPortfolioDetail, ApiHolding, ExchangeCode, MarginTradingKLineRequest, MarginTradingKLineResponse } from '@/types'
 
 // 模拟延迟
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 
 // 美股模拟数据
-const mockUsStocks: UsStock[] = [
+const mockUsStocks = [
   {
     symbol: 'AAPL',
     name: 'Apple Inc.',
@@ -245,7 +245,7 @@ const mockUsStocks: UsStock[] = [
     founded_date: '1966-01-01',
     address: '2000 Purchase Street, Purchase, NY 10577'
   }
-]
+] as any as UsStock[];
 
 // A股市场模拟数据
 const mockMarketSummary: MarketSummary = {
@@ -348,12 +348,6 @@ function transformUsStock(apiStock: any): UsStock {
     description: apiStock.businessDescription,
     website: apiStock.webAddress,
   }
-}
-
-// 美股元数据类型定义
-interface UsStockMeta {
-  industries: string[]
-  sectors: string[]
 }
 
 // 美股相关API（使用真实数据）
@@ -895,6 +889,59 @@ export const klineApi = {
       analysis_period: periodDesc
     }
   }
+}
+
+export const marginTradingApi = {
+  getMarginTradingKLine: async (request: MarginTradingKLineRequest): Promise<MarginTradingKLineResponse> => {
+    await delay(500)
+
+    const startDate = new Date(request.startDate)
+    const endDate = new Date(request.endDate)
+
+    const exchangeBase: Record<ExchangeCode, number> = {
+      SSE: 1200,
+      SZSE: 900,
+      BSE: 180,
+      ALL: 2200,
+    }
+
+    const base = exchangeBase[request.exchange] ?? 2200
+    const kline = generateKLineDataWithDateRange(base, startDate, endDate, 'daily')
+
+    const data: StockHistoryData[] = kline.map((d, idx) => {
+      const open = d.open
+      const close = d.close
+      const high = d.high
+      const low = d.low
+      const prevClose = idx === 0 ? open : kline[idx - 1].close
+
+      const change = close - prevClose
+      const pctChg = prevClose === 0 ? 0 : change / prevClose
+
+      const volume = Math.floor(d.volume * 80 + Math.random() * 200000)
+      const amount = Math.floor(volume * ((open + close) / 2))
+
+      return {
+        trade_date: d.date,
+        open,
+        high,
+        low,
+        close,
+        volume,
+        amount,
+        turnover_rate: Number((Math.random() * 3 + 0.5).toFixed(2)),
+        pct_chg: Number((pctChg * 100).toFixed(2)),
+        change: Number(change.toFixed(2)),
+      }
+    })
+
+    return {
+      exchange: request.exchange,
+      startDate: request.startDate,
+      endDate: request.endDate,
+      data,
+    }
+  },
 }
 
 // 根据日期范围和周期生成K线数据

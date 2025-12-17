@@ -7,6 +7,7 @@ import MarketSummary from '@/components/market/MarketSummary'
 import UsStockList from '@/components/us-stocks/UsStockList'
 import StockDetail from '@/components/stock/StockDetail'
 import KLineComparison from '@/components/kline/KLineComparison'
+import MarginTrading from '@/components/margin-trading/MarginTrading'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import { 
@@ -72,6 +73,15 @@ const modules = [
     name: 'K线对比',
     description: '多证券走势对比',
     icon: BarChart3,
+    color: 'text-orange-500',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'margin-trading',
+    name: '融资融券',
+    description: '融资融券信息K线展示',
+    icon: Calculator,
     color: 'text-orange-500',
     category: 'analysis',
     status: 'active'
@@ -161,6 +171,8 @@ export default function HomePage() {
         return <StockDetail />
       case 'kline-comparison':
         return <KLineComparison />
+      case 'margin-trading':
+        return <MarginTrading />
       case 'stock-selection-strategy':
         return <StockSelectionStrategy />
       case 'portfolio-manager':

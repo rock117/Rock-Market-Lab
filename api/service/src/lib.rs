@@ -10,3 +10,4 @@ pub mod stock_picker_service;
 pub mod diagnosis;
 pub mod us_stock_service;
 pub mod portfolio_service;
+pub mod margin_service;

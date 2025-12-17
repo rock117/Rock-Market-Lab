@@ -228,6 +228,21 @@ export interface MarginTradingData {
   margin_ratio: number; // 融资融券比例
 }
 
+export type ExchangeCode = 'SSE' | 'SZSE' | 'BSE' | 'ALL';
+
+export interface MarginTradingKLineRequest {
+  startDate: string;
+  endDate: string;
+  exchange: ExchangeCode;
+}
+
+export interface MarginTradingKLineResponse {
+  exchange: ExchangeCode;
+  startDate: string;
+  endDate: string;
+  data: StockHistoryData[];
+}
+
 // 股东人数数据
 export interface ShareholderData {
   holder_count: number; // 股东人数

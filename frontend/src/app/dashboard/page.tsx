@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { 
@@ -50,6 +51,7 @@ const moduleCategories = [
     modules: [
       { id: 'stock-detail', name: '个股详情', description: 'PE/PB、基本面分析', status: 'active', path: '/stock-detail' },
       { id: 'kline-comparison', name: 'K线对比', description: '多证券走势对比', status: 'active', path: '/kline-comparison' },
+      { id: 'margin-trading', name: '融资融券', description: '融资融券信息K线展示', status: 'active', path: '/margin-trading' },
       { id: 'technical-analysis', name: '技术分析', description: 'MACD、RSI、布林带', status: 'coming', path: '/technical' },
       { id: 'fundamental-analysis', name: '基本面分析', description: 'ROE、ROA、财务比率', status: 'coming', path: '/fundamental' },
       { id: 'sector-analysis', name: '行业分析', description: '行业对比、轮动分析', status: 'coming', path: '/sector' },
@@ -98,6 +100,7 @@ const moduleCategories = [
 ]
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
   const [searchTerm, setSearchTerm] = useState('')
@@ -227,8 +230,7 @@ export default function DashboardPage() {
                 }`}
                 onClick={() => {
                   if (module.status === 'active') {
-                    // 这里可以添加路由跳转逻辑
-                    console.log(`Navigate to ${module.path}`)
+                    router.push(module.path)
                   }
                 }}
               >
@@ -272,7 +274,7 @@ export default function DashboardPage() {
                 }`}
                 onClick={() => {
                   if (module.status === 'active') {
-                    console.log(`Navigate to ${module.path}`)
+                    router.push(module.path)
                   }
                 }}
               >
