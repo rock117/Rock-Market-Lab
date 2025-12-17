@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
   return (
     <div className="bg-white p-3 border rounded-lg shadow-lg">
       <p className="font-medium">日期：{dateValue ? formatDate(dateValue) : '-'}</p>
-      <p className="text-sm">融资余额：{formatNumber(d.balance)}</p>
+      <p className="text-sm">融资余额：{formatNumber(d.balance, 2)} 亿元</p>
       <p className={`text-sm ${d.pct_chg >= 0 ? 'text-red-500' : 'text-green-500'}`}>
         涨跌幅：{formatPercent(d.pct_chg)}
       </p>
@@ -82,7 +82,12 @@ export default function MarginBalanceKLineChart({ data, title, className }: Marg
               height={60}
               tickMargin={10}
             />
-            <YAxis domain={['dataMin - 5', 'dataMax + 5']} tick={{ fontSize: 12 }} stroke="#666" />
+            <YAxis
+              domain={['dataMin - 5', 'dataMax + 5']}
+              tick={{ fontSize: 12 }}
+              stroke="#666"
+              label={{ value: '亿元', angle: -90, position: 'insideLeft' }}
+            />
             <Tooltip content={<CustomTooltip />} />
 
             <Line type="monotone" dataKey="balance" stroke="#2563eb" strokeWidth={2} dot={false} name="融资余额" />
