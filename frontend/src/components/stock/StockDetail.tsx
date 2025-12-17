@@ -43,7 +43,6 @@ interface StockDetailProps {
 interface StockSearchResult {
   ts_code: string
   name: string
-  market: string
 }
 
 export default function StockDetail({ className }: StockDetailProps) {
@@ -215,7 +214,6 @@ export default function StockDetail({ className }: StockDetailProps) {
                         <span className="font-medium">{stock.name}</span>
                         <span className="text-sm text-muted-foreground ml-2">{stock.ts_code}</span>
                       </div>
-                      <span className="text-xs text-muted-foreground">{stock.market}</span>
                     </div>
                   </div>
                 ))}
@@ -358,7 +356,7 @@ export default function StockDetail({ className }: StockDetailProps) {
             <div className="space-y-4">
               {/* 时间选择模式下拉框 */}
               <div>
-                <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                <label className="text-sm font-medium mb-2 flex items-center gap-1">
                   <Clock className="h-4 w-4" />
                   时间选择方式
                 </label>
@@ -376,7 +374,7 @@ export default function StockDetail({ className }: StockDetailProps) {
               {timeMode === 'custom' ? (
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                    <label className="text-sm font-medium mb-2 flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       开始时间
                     </label>
@@ -388,7 +386,7 @@ export default function StockDetail({ className }: StockDetailProps) {
                     />
                   </div>
                   <div>
-                    <label className="text-sm font-medium mb-2 block flex items-center gap-1">
+                    <label className="text-sm font-medium mb-2 flex items-center gap-1">
                       <Calendar className="h-4 w-4" />
                       结束时间
                     </label>
