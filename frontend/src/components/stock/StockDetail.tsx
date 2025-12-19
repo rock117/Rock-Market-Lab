@@ -1,7 +1,7 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -46,11 +46,15 @@ interface StockSearchResult {
 }
 
 export default function StockDetail({ className }: StockDetailProps) {
+  const queryClient = useQueryClient()
+
   const [selectedStock, setSelectedStock] = useState('000001.SZ') // 默认选择平安银行
   const [selectedStockName, setSelectedStockName] = useState<string>('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+
+  const [quickDays, setQuickDays] = useState<number>(30)
   
   // 时间选择状态
   const [startDate, setStartDate] = useState(() => {
@@ -85,8 +89,14 @@ export default function StockDetail({ className }: StockDetailProps) {
 
   // 获取历史价格数据
   const { data: historyData, isLoading: historyLoading, error: historyError } = useQuery({
-    queryKey: ['stock-history', selectedStock, startDate, endDate],
-    queryFn: () => stockDetailApi.getStockHistory(selectedStock, startDate, endDate),
+    queryKey: ['stock-history', selectedStock, timeMode, startDate, endDate, quickDays],
+    queryFn: () =>
+      stockDetailApi.getStockHistory(selectedStock, {
+        timeMode,
+        startDate: timeMode === 'custom' ? startDate : undefined,
+        endDate: timeMode === 'custom' ? endDate : undefined,
+        timePeriod: timeMode === 'quick' ? quickDays : undefined,
+      }),
     staleTime: 5 * 60 * 1000,
   })
 
@@ -108,6 +118,9 @@ export default function StockDetail({ className }: StockDetailProps) {
     setSelectedStockName(stock.name)
     setSearchKeyword('')
     setShowSearchResults(false)
+
+    queryClient.invalidateQueries({ queryKey: ['stock-detail'] })
+    queryClient.invalidateQueries({ queryKey: ['stock-history'] })
   }
 
   // 清空搜索
@@ -124,6 +137,7 @@ export default function StockDetail({ className }: StockDetailProps) {
     
     setStartDate(start.toISOString().split('T')[0])
     setEndDate(end.toISOString().split('T')[0])
+    setQuickDays(days)
   }
 
   if (isLoading) {
@@ -210,39 +224,41 @@ export default function StockDetail({ className }: StockDetailProps) {
                 <option value="custom">自定义时间范围</option>
               </select>
 
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                className="w-40 px-3 py-2 border rounded-md text-sm"
-                max={endDate}
-              />
-              <input
-                type="date"
-                value={endDate}
-                onChange={(e) => setEndDate(e.target.value)}
-                className="w-40 px-3 py-2 border rounded-md text-sm"
-                min={startDate}
-              />
-
-              <select
-                value={timeMode === 'quick' ? `${Math.abs(Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (24 * 60 * 60 * 1000)))}` : ''}
-                onChange={(e) => {
-                  const days = Number(e.target.value)
-                  if (Number.isFinite(days) && days > 0) {
-                    setTimeMode('quick')
-                    setQuickTimeRange(days)
-                  }
-                }}
-                className="w-40 px-3 py-2 border rounded-md text-sm bg-background"
-                disabled={timeMode !== 'quick'}
-              >
-                <option value="">快捷区间</option>
-                <option value="7">近7天</option>
-                <option value="30">近1个月</option>
-                <option value="90">近3个月</option>
-                <option value="180">近6个月</option>
-              </select>
+              {timeMode === 'custom' ? (
+                <>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-40 px-3 py-2 border rounded-md text-sm"
+                    max={endDate}
+                  />
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-40 px-3 py-2 border rounded-md text-sm"
+                    min={startDate}
+                  />
+                </>
+              ) : (
+                <select
+                  value={`${quickDays}`}
+                  onChange={(e) => {
+                    const days = Number(e.target.value)
+                    if (Number.isFinite(days) && days > 0) {
+                      setQuickTimeRange(days)
+                    }
+                  }}
+                  className="w-40 px-3 py-2 border rounded-md text-sm bg-background"
+                >
+                  <option value="">快捷区间</option>
+                  <option value="7">近7天</option>
+                  <option value="30">近1个月</option>
+                  <option value="90">近3个月</option>
+                  <option value="180">近6个月</option>
+                </select>
+              )}
             </div>
             
             {/* 搜索结果下拉框 */}

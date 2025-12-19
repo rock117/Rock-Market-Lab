@@ -1,13 +1,34 @@
-use anyhow::{Result, Context, bail};
+use anyhow::{Result, Context, bail, anyhow};
 use futures::future::err;
 use entity::sea_orm::{
     DatabaseConnection, EntityTrait, ActiveModelTrait, Set, 
     TransactionTrait, QueryFilter, ColumnTrait
 };
-use entity::{portfolio, holding, us_stock};
+use entity::{portfolio, holding, us_stock, stock};
 use serde::{Deserialize, Serialize};
 use tracing::{info, error};
 use entity::sea_orm::sea_query::ExprTrait;
+
+enum StockDto {
+    UsStock(us_stock::Model),
+    CnStock(stock::Model)
+}
+
+impl StockDto {
+    pub fn exchange_id(&self) -> Option<String> {
+        match self {
+            StockDto::UsStock(stock) => Some(stock.exchange_id.clone()),
+            StockDto::CnStock(stock) => None,
+        }
+    }
+
+    pub fn name(&self) -> Option<String> {
+        match self {
+            StockDto::UsStock(stock) => stock.name.clone(),
+            StockDto::CnStock(stock) => stock.name.clone(),
+        }
+    }
+}
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CreatePortfolioRequest {
@@ -190,7 +211,7 @@ pub async fn delete_portfolio(
 pub async fn add_holding(
     conn: &DatabaseConnection,
     portfolio_id: i32,
-    req: AddHoldingRequest,
+    mut req: AddHoldingRequest,
 ) -> Result<HoldingResponse> {
     info!("Adding holding to portfolio {}: {:?}/{:?}", 
         portfolio_id, req.exchange_id, req.symbol);
@@ -209,23 +230,17 @@ pub async fn add_holding(
     };
 
     // find by exchange_id and symbol
-    let stocks = us_stock::Entity::find()
-        .filter(
-            ColumnTrait::eq(&us_stock::Column::ExchangeId, &req.exchange_id)
-                .and(ColumnTrait::eq(&us_stock::Column::Symbol, &req.symbol)
-                )
-        )
-        .all(conn)
-        .await
-        .context("Failed to fetch stock")?;
-
-    let stock = stocks.into_iter().next().ok_or_else(|| anyhow::anyhow!("Stock not found: {}/{}", req.exchange_id, req.symbol))?;
-
+    let stock = if req.symbol.contains(".") {
+        stock::Entity::find_by_id(&req.symbol).one(conn).await?.map(|stock| StockDto::CnStock(stock)).ok_or_else(|| anyhow!("no stock found by {}", req.symbol))?
+    } else {
+        us_stock::Entity::find_by_id((req.exchange_id.clone(), req.symbol.clone())).one(conn).await?.map(|stock| StockDto::UsStock(stock)).ok_or_else(|| anyhow!("no stock found by {} {}", req.exchange_id, req.symbol))?
+    };
+    let exchange_id = if req.symbol.contains(".") { "cn".to_string() } else { req.exchange_id.clone() };
     let holding_model = holding::ActiveModel {
-        exchange_id: Set(req.exchange_id.clone()),
+        exchange_id: Set(exchange_id),
         symbol: Set(req.symbol.clone()),
         portfolio_id: Set(portfolio.id),
-        name: Set(stock.name.clone()),
+        name: Set(stock.name().clone()),
         desc: Set(req.desc.clone()),
         ..Default::default()
     };
@@ -237,7 +252,7 @@ pub async fn add_holding(
         id: result.id,
         exchange_id: result.exchange_id,
         symbol: result.symbol,
-        name: stock.name,
+        name: stock.name(),
         portfolio_id: result.portfolio_id,
         desc: result.desc,
     })
