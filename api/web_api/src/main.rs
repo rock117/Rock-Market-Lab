@@ -97,6 +97,7 @@ async fn rocket() -> _ {
             stock_bias_ratio_controller::get_bias_ratio,
             security_search_controller::search_securities,
             stock_search_controller::search_stocks,
+            stock_history_controller::get_stock_history,
             stock_price_controller::stock_price,
             security::security_price_controller::get_security_price,
             security::security_history_compare_controller::security_history_compare,

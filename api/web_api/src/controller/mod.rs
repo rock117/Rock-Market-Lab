@@ -5,6 +5,7 @@ pub mod macd_stastic_controller;
 pub mod stock_bias_ratio_controller;
 pub mod security_search_controller;
 pub mod stock_search_controller;
+pub mod stock_history_controller;
 pub mod filter;
 pub mod stock_price_controller;
 mod stock_compare_controller;

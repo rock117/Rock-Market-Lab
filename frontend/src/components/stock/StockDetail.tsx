@@ -47,6 +47,7 @@ interface StockSearchResult {
 
 export default function StockDetail({ className }: StockDetailProps) {
   const [selectedStock, setSelectedStock] = useState('000001.SZ') // 默认选择平安银行
+  const [selectedStockName, setSelectedStockName] = useState<string>('')
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
@@ -104,6 +105,7 @@ export default function StockDetail({ className }: StockDetailProps) {
   // 选择股票
   const selectStock = (stock: StockSearchResult) => {
     setSelectedStock(stock.ts_code)
+    setSelectedStockName(stock.name)
     setSearchKeyword('')
     setShowSearchResults(false)
   }
@@ -198,6 +200,49 @@ export default function StockDetail({ className }: StockDetailProps) {
                   </button>
                 )}
               </div>
+
+              <select
+                value={timeMode}
+                onChange={(e) => setTimeMode(e.target.value as 'custom' | 'quick')}
+                className="w-48 px-3 py-2 border rounded-md text-sm bg-background"
+              >
+                <option value="quick">快捷时间选择</option>
+                <option value="custom">自定义时间范围</option>
+              </select>
+
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-40 px-3 py-2 border rounded-md text-sm"
+                max={endDate}
+              />
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-40 px-3 py-2 border rounded-md text-sm"
+                min={startDate}
+              />
+
+              <select
+                value={timeMode === 'quick' ? `${Math.abs(Math.round((new Date(endDate).getTime() - new Date(startDate).getTime()) / (24 * 60 * 60 * 1000)))}` : ''}
+                onChange={(e) => {
+                  const days = Number(e.target.value)
+                  if (Number.isFinite(days) && days > 0) {
+                    setTimeMode('quick')
+                    setQuickTimeRange(days)
+                  }
+                }}
+                className="w-40 px-3 py-2 border rounded-md text-sm bg-background"
+                disabled={timeMode !== 'quick'}
+              >
+                <option value="">快捷区间</option>
+                <option value="7">近7天</option>
+                <option value="30">近1个月</option>
+                <option value="90">近3个月</option>
+                <option value="180">近6个月</option>
+              </select>
             </div>
             
             {/* 搜索结果下拉框 */}
@@ -225,8 +270,8 @@ export default function StockDetail({ className }: StockDetailProps) {
           <div className="mb-4 p-3 bg-muted rounded-lg">
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">当前股票:</span>
-              <span className="font-medium">{stockDetail.name}</span>
-              <span className="text-sm text-muted-foreground">({stockDetail.ts_code})</span>
+              <span className="font-medium">{stockDetail.name || selectedStockName || '--'}</span>
+              <span className="text-sm text-muted-foreground">({stockDetail.ts_code || selectedStock})</span>
             </div>
           </div>
           
@@ -352,85 +397,6 @@ export default function StockDetail({ className }: StockDetailProps) {
         <CardContent>
           {/* 时间选择和显示模式控制 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-            {/* 时间选择 */}
-            <div className="space-y-4">
-              {/* 时间选择模式下拉框 */}
-              <div>
-                <label className="text-sm font-medium mb-2 flex items-center gap-1">
-                  <Clock className="h-4 w-4" />
-                  时间选择方式
-                </label>
-                <select
-                  value={timeMode}
-                  onChange={(e) => setTimeMode(e.target.value as 'custom' | 'quick')}
-                  className="w-48 px-3 py-2 border rounded-md text-sm bg-background"
-                >
-                  <option value="quick">快捷时间选择</option>
-                  <option value="custom">自定义时间范围</option>
-                </select>
-              </div>
-
-              {/* 根据模式显示不同的时间选择方式 */}
-              {timeMode === 'custom' ? (
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      开始时间
-                    </label>
-                    <input
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-sm font-medium mb-2 flex items-center gap-1">
-                      <Calendar className="h-4 w-4" />
-                      结束时间
-                    </label>
-                    <input
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md text-sm"
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div>
-                  <label className="text-sm font-medium mb-2 block">快捷时间选择</label>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      onClick={() => setQuickTimeRange(7)}
-                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                    >
-                      近7天
-                    </button>
-                    <button
-                      onClick={() => setQuickTimeRange(30)}
-                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                    >
-                      近1个月
-                    </button>
-                    <button
-                      onClick={() => setQuickTimeRange(90)}
-                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                    >
-                      近3个月
-                    </button>
-                    <button
-                      onClick={() => setQuickTimeRange(180)}
-                      className="px-3 py-1 text-xs border rounded-md hover:bg-muted"
-                    >
-                      近6个月
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-
             {/* 显示模式选择 */}
             <div className="space-y-4">
               <div>
