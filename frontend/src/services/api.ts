@@ -660,82 +660,105 @@ export const stockDetailApi = {
 
   // 获取股票历史价格
   getStockHistory: async (
-    ts_code: string, 
-    startDate: string, 
-    endDate: string
-  ): Promise<StockHistoryResponse> => {
-    await delay(600)
-    
-    const stockInfo = mockStockList.find(stock => stock.ts_code === ts_code)
-    const stockName = stockInfo?.name || '示例股票'
-    
-    // 计算日期范围
-    const start = new Date(startDate)
-    const end = new Date(endDate)
-    const daysDiff = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-    
-    // 基础价格
-    const basePrice = ts_code === '600519.SH' ? 1680 : // 贵州茅台
-                     ts_code === '300750.SZ' ? 185 :   // 宁德时代
-                     ts_code === '000858.SZ' ? 158 :   // 五粮液
-                     ts_code === '600036.SH' ? 38 :    // 招商银行
-                     ts_code === '000002.SZ' ? 8.5 :   // 万科A
-                     12.58 // 平安银行等其他
-    
-    const historyData: StockHistoryData[] = []
-    let currentPrice = basePrice
-    
-    for (let i = 0; i <= daysDiff; i++) {
-      const currentDate = new Date(start)
-      currentDate.setDate(start.getDate() + i)
-      
-      // 跳过周末
-      if (currentDate.getDay() === 0 || currentDate.getDay() === 6) {
-        continue
-      }
-      
-      // 模拟价格波动
-      const dailyChange = (Math.random() - 0.5) * 0.08 // -4% 到 4%
-      const open = currentPrice
-      const close = currentPrice * (1 + dailyChange)
-      const high = Math.max(open, close) * (1 + Math.random() * 0.03)
-      const low = Math.min(open, close) * (1 - Math.random() * 0.03)
-      
-      // 成交量和成交额
-      const volume = Math.floor(Math.random() * 50000000 + 10000000) // 1000万到6000万
-      const amount = volume * ((high + low) / 2)
-      
-      // 换手率 (0.5% - 8%)
-      const turnoverRate = Math.random() * 7.5 + 0.5
-      
-      // 涨跌幅和涨跌额
-      const pctChg = dailyChange * 100
-      const change = close - open
-      
-      historyData.push({
-        trade_date: currentDate.toISOString().split('T')[0],
-        open: Number(open.toFixed(2)),
-        high: Number(high.toFixed(2)),
-        low: Number(low.toFixed(2)),
-        close: Number(close.toFixed(2)),
-        volume,
-        amount: Math.floor(amount),
-        turnover_rate: Number(turnoverRate.toFixed(2)),
-        pct_chg: Number(pctChg.toFixed(2)),
-        change: Number(change.toFixed(2))
-      })
-      
-      currentPrice = close
+    ts_code: string,
+    params: {
+      timeMode: 'custom' | 'quick'
+      startDate?: string
+      endDate?: string
+      timePeriod?: number
     }
-    
-    // 按日期倒序排列（最新的在前面）
+  ): Promise<StockHistoryResponse> => {
+    const normalizeDate = (input: string): string => {
+      const raw = String(input).trim()
+      if (!raw) return raw
+
+      if (/^\d{8}$/.test(raw)) {
+        const y = raw.slice(0, 4)
+        const m = raw.slice(4, 6)
+        const d = raw.slice(6, 8)
+        return `${y}-${m}-${d}`
+      }
+
+      if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw
+
+      const t = Date.parse(raw)
+      if (Number.isFinite(t)) {
+        const dt = new Date(t)
+        const y = dt.getFullYear()
+        const m = String(dt.getMonth() + 1).padStart(2, '0')
+        const d = String(dt.getDate()).padStart(2, '0')
+        return `${y}-${m}-${d}`
+      }
+
+      return raw
+    }
+
+    const query = new URLSearchParams()
+    query.set('ts_code', ts_code)
+    if (params.timeMode === 'custom') {
+      if (params.startDate) query.set('start_date', params.startDate)
+      if (params.endDate) query.set('end_date', params.endDate)
+    } else {
+      if (params.timePeriod) query.set('time_period', String(params.timePeriod))
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/stocks/history?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const raw = await response.json()
+    const rows: Array<{
+      open: string | number
+      high: string | number
+      low: string | number
+      close: string | number
+      pct_chg: string | number
+      date: string
+      turnover_rate: string | number
+    }> = Array.isArray(raw)
+      ? raw
+      : Array.isArray(raw?.data)
+        ? raw.data
+        : []
+
+    const historyData: StockHistoryData[] = rows
+      .filter(r => r?.date)
+      .map(r => {
+        const open = Number(r.open)
+        const high = Number(r.high)
+        const low = Number(r.low)
+        const close = Number(r.close)
+        const pctChg = Number(r.pct_chg)
+        const turnoverRate = Number(r.turnover_rate)
+
+        return {
+          trade_date: normalizeDate(r.date),
+          open: Number.isFinite(open) ? open : 0,
+          high: Number.isFinite(high) ? high : 0,
+          low: Number.isFinite(low) ? low : 0,
+          close: Number.isFinite(close) ? close : 0,
+          volume: 0,
+          amount: 0,
+          turnover_rate: Number.isFinite(turnoverRate) ? turnoverRate : 0,
+          pct_chg: Number.isFinite(pctChg) ? pctChg : 0,
+          change: Number.isFinite(open) && Number.isFinite(close) ? Number((close - open).toFixed(2)) : 0,
+        }
+      })
+
     historyData.sort((a, b) => new Date(b.trade_date).getTime() - new Date(a.trade_date).getTime())
-    
+
     return {
       ts_code,
-      name: stockName,
+      name: '',
       data: historyData,
-      total: historyData.length
+      total: historyData.length,
     }
   }
 }

@@ -40,6 +40,7 @@ export interface PortfolioStock {
   portfolio_id: string; // 投资组合ID
   desc?: string; // 描述/备注
   added_date: string; // 添加日期
+  tags?: string[]; // 标签ID列表
 }
 
 // 前端使用的投资组合格式（保持向后兼容）

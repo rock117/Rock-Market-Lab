@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useRef, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -10,8 +10,20 @@ import { Textarea } from '@/components/ui/textarea'
 import { portfolioApi } from '@/services/api'
 import { Portfolio, PortfolioStock } from '@/types'
 import { formatDate } from '@/lib/utils'
-import { Plus, Trash2, Edit2, FolderOpen, X, Search, Save } from 'lucide-react'
+import { Plus, Trash2, Edit2, FolderOpen, X, Search, Save, Tag } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
+
+// 假数据：标签列表
+const MOCK_TAGS = [
+  { id: '1', name: '蓝筹股', color: 'bg-blue-100 text-blue-800' },
+  { id: '2', name: '成长股', color: 'bg-green-100 text-green-800' },
+  { id: '3', name: '价值股', color: 'bg-purple-100 text-purple-800' },
+  { id: '4', name: '周期股', color: 'bg-orange-100 text-orange-800' },
+  { id: '5', name: '防守股', color: 'bg-red-100 text-red-800' },
+  { id: '6', name: '科技股', color: 'bg-indigo-100 text-indigo-800' },
+  { id: '7', name: '消费股', color: 'bg-pink-100 text-pink-800' },
+  { id: '8', name: '金融股', color: 'bg-yellow-100 text-yellow-800' },
+]
 
 interface PortfolioManagerProps {
   className?: string
@@ -27,11 +39,28 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   // 添加股票相关状态
   const [isAddingStock, setIsAddingStock] = useState(false)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [selectedTags, setSelectedTags] = useState<string[]>([])
+  const [showTagDropdown, setShowTagDropdown] = useState(false)
+  const tagDropdownRef = useRef<HTMLDivElement>(null)
   const [newStock, setNewStock] = useState({
     symbol: '',
     exchange_id: '',
     desc: ''
   })
+
+  // 点击外部关闭标签下拉框
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
+        setShowTagDropdown(false)
+      }
+    }
+
+    if (showTagDropdown) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showTagDropdown])
   
   // 编辑股票描述相关状态
   const [editingStockId, setEditingStockId] = useState<string | null>(null)
@@ -190,10 +219,28 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       portfolioId: selectedPortfolio.id,
       stock: {
         symbol: newStock.symbol,
+        name: '',
         exchange_id: newStock.exchange_id || undefined,
-        desc: newStock.desc || undefined
-      }
+        portfolio_id: selectedPortfolio.id,
+        desc: newStock.desc || undefined,
+        tags: selectedTags.length > 0 ? selectedTags : undefined
+      } as any
     })
+  }
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags(prev =>
+      prev.includes(tagId)
+        ? prev.filter(id => id !== tagId)
+        : [...prev, tagId]
+    )
+  }
+
+  const handleCancelAddStock = () => {
+    setIsAddingStock(false)
+    setNewStock({ symbol: '', exchange_id: '', desc: '' })
+    setSelectedTags([])
+    setShowTagDropdown(false)
   }
 
   const handleRemoveStock = (stockId: string, stockName: string) => {
@@ -497,6 +544,53 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       />
                     </div>
                     <div>
+                      <label className="text-sm font-medium flex items-center gap-2">
+                        <Tag className="h-4 w-4" />
+                        标签（可选）
+                      </label>
+                      <div className="relative" ref={tagDropdownRef}>
+                        <button
+                          type="button"
+                          onClick={() => setShowTagDropdown(!showTagDropdown)}
+                          className="w-full px-3 py-2 border rounded-md text-sm text-left bg-background hover:bg-muted transition-colors"
+                        >
+                          {selectedTags.length === 0 ? (
+                            <span className="text-muted-foreground">选择标签...</span>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {selectedTags.map(tagId => {
+                                const tag = MOCK_TAGS.find(t => t.id === tagId)
+                                return tag ? (
+                                  <span key={tagId} className={`px-2 py-1 rounded text-xs ${tag.color}`}>
+                                    {tag.name}
+                                  </span>
+                                ) : null
+                              })}
+                            </div>
+                          )}
+                        </button>
+                        {showTagDropdown && (
+                          <div className="absolute top-full left-0 right-0 mt-1 border rounded-md bg-background shadow-lg z-10 p-2 max-h-48 overflow-y-auto">
+                            <div className="space-y-2">
+                              {MOCK_TAGS.map(tag => (
+                                <label key={tag.id} className="flex items-center gap-2 cursor-pointer p-2 hover:bg-muted rounded transition-colors">
+                                  <input
+                                    type="checkbox"
+                                    checked={selectedTags.includes(tag.id)}
+                                    onChange={() => toggleTag(tag.id)}
+                                    className="w-4 h-4 rounded"
+                                  />
+                                  <span className={`px-2 py-1 rounded text-xs ${tag.color}`}>
+                                    {tag.name}
+                                  </span>
+                                </label>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <div>
                       <label className="text-sm font-medium">描述（可选）</label>
                       <Textarea
                         placeholder="添加描述信息..."
@@ -517,10 +611,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => {
-                          setIsAddingStock(false)
-                          setNewStock({ symbol: '', name: '', exchange_id: '', desc: '' })
-                        }}
+                        onClick={handleCancelAddStock}
                       >
                         <X className="h-4 w-4 mr-1" />
                         取消
@@ -544,6 +635,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         <TableHead className="w-[300px]">股票名称</TableHead>
                         <TableHead className="w-[100px]">交易所</TableHead>
                         <TableHead className="w-[120px]">添加日期</TableHead>
+                        <TableHead className="w-[200px]">标签</TableHead>
                         <TableHead>描述</TableHead>
                         <TableHead className="w-[100px] text-right">操作</TableHead>
                       </TableRow>
@@ -564,6 +656,22 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             <span className="text-sm text-muted-foreground">
                               {formatDate(stock.added_date)}
                             </span>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {(stock as any).tags && (stock as any).tags.length > 0 ? (
+                                (stock as any).tags.map((tagId: string) => {
+                                  const tag = MOCK_TAGS.find(t => t.id === tagId)
+                                  return tag ? (
+                                    <span key={tagId} className={`px-2 py-1 rounded text-xs ${tag.color}`}>
+                                      {tag.name}
+                                    </span>
+                                  ) : null
+                                })
+                              ) : (
+                                <span className="text-xs text-muted-foreground">暂无标签</span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell>
                             {editingStockId === stock.id ? (

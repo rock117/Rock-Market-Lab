@@ -9,6 +9,7 @@ import StockDetail from '@/components/stock/StockDetail'
 import KLineComparison from '@/components/kline/KLineComparison'
 import MarginTrading from '@/components/margin-trading/MarginTrading'
 import StockMarginTrading from '@/components/margin-trading/StockMarginTrading'
+import StreakStats from '@/components/analysis/StreakStats'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import { 
@@ -30,7 +31,8 @@ import {
   Briefcase,
   Calculator,
   ChevronDown,
-  ChevronRight
+  ChevronRight,
+  ArrowUpDown
 } from 'lucide-react'
 
 // 模块定义
@@ -92,6 +94,15 @@ const modules = [
     name: '个股融资融券',
     description: '按股票维度查看融资余额趋势',
     icon: Calculator,
+    color: 'text-orange-500',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'streak-stats',
+    name: '连涨连跌统计',
+    description: '统计连涨/连跌天数',
+    icon: ArrowUpDown,
     color: 'text-orange-500',
     category: 'analysis',
     status: 'active'
@@ -185,6 +196,8 @@ export default function HomePage() {
         return <MarginTrading />
       case 'stock-margin-trading':
         return <StockMarginTrading />
+      case 'streak-stats':
+        return <StreakStats />
       case 'stock-selection-strategy':
         return <StockSelectionStrategy />
       case 'portfolio-manager':
