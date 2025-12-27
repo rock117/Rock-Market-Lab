@@ -3,7 +3,7 @@ use async_trait::async_trait;
 use chrono::{Days, Local, NaiveDate};
 use tracing::{error, warn, info};
 use entity::sea_orm::{Condition, DatabaseConnection, Set, TransactionTrait};
-use entity::{stock_daily_basic, trade_calendar};
+use entity::{margin, stock_daily_basic, trade_calendar};
 use crate::task::Task;
 use ext_api::tushare;
 use entity::stock_daily_basic::{Model as StockDailyBasic, Model};
@@ -18,6 +18,7 @@ use entity::sea_orm::EntityOrSelect;
 use tokio::sync::{mpsc, Semaphore};
 use std::sync::Arc;
 use tokio::sync::mpsc::Receiver;
+use common::db::get_entity_update_columns;
 
 const DAYS_AGO: u64 = 250;
 
@@ -50,12 +51,26 @@ impl FetchStockDailyBasicTask {
         for stock_daily_data in stock_dailys {
             let ts_code = stock_daily_data.ts_code.clone();
             let trade_date = stock_daily_data.trade_date.clone();
-            let res = stock_daily_basic::ActiveModel { ..stock_daily_data.clone().into() }.insert(&self.0).await;
-            if res.is_err() {
-                //  error!("insert stock_daily failed, ts_code: {}, trade_date: {}, data: {:?}, error: {:?}", ts_code, trade_date, stock_daily_data, res);
+
+            let active_model = entity::stock_daily_basic::ActiveModel { ..stock_daily_data.clone().into() };
+            let pks = [
+                stock_daily_basic::Column::TsCode,
+                stock_daily_basic::Column::TradeDate
+            ];
+            let update_columns = get_entity_update_columns::<entity::stock_daily_basic::Entity>(&pks);
+            let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                .update_columns(update_columns)
+                .to_owned();
+
+            if let Err(e) = entity::stock_daily_basic::Entity::insert(active_model)
+                .on_conflict(on_conflict)
+                .exec(&tx)
+                .await {
+                error!("insert stock_daily_basic failed, tscode: {}, trade date: {}, error: {:?}", ts_code,  trade_date, e);
+                panic!("insert stock_daily_basic failed, tscode: {}, trade date: {}, error: {:?}", ts_code,  trade_date, e);
             }
             curr += 1;
-            info!("insert stock_daily_basic complete, ts_code: {}, trade_date: {}, {}/{}", ts_code, trade_date,  curr, total);
+            info!("Insert stock_daily_basic data for tscode: {}, trade_date: {}, {}/{}", ts_code, trade_date, curr, total);
         }
         info!("insert stock_daily_basic complete, trade_date: {}, total: {}", date, total);
         tx.commit().await?;

@@ -613,6 +613,12 @@ export const stockDetailApi = {
     }
 
     const raw = await response.json()
+    
+    // 检查 API 是否返回错误格式 {data: string, success: false}
+    if (raw?.success === false) {
+      throw new Error(raw?.data || '搜索股票失败')
+    }
+
     const rows: Array<{ ts_code: string; name: string }> = Array.isArray(raw)
       ? raw
       : Array.isArray(raw?.data)
@@ -628,6 +634,39 @@ export const stockDetailApi = {
 
   // 获取股票详情
   getStockDetail: async (ts_code: string): Promise<StockDetail> => {
+    if (!ts_code) {
+      throw new Error('股票代码不能为空')
+    }
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/stocks/detail?ts_code=${ts_code}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (response.ok) {
+        const raw = await response.json()
+        
+        // 检查 API 是否返回错误格式 {data: string, success: false}
+        if (raw?.success === false) {
+          throw new Error(raw?.data || '获取股票详情失败')
+        }
+
+        // 如果成功获取真实数据，直接返回
+        if (raw && typeof raw === 'object') {
+          return raw as StockDetail
+        }
+      }
+    } catch (error) {
+      // 如果 API 调用失败，继续使用模拟数据
+      if (error instanceof Error && error.message.includes('success')) {
+        throw error
+      }
+    }
+
+    // 降级到模拟数据
     await delay(400)
     
     // 根据不同股票代码返回不同数据
@@ -665,7 +704,7 @@ export const stockDetailApi = {
       timeMode: 'custom' | 'quick'
       startDate?: string
       endDate?: string
-      timePeriod?: number
+      timePeriod?: string
     }
   ): Promise<StockHistoryResponse> => {
     const normalizeDate = (input: string): string => {
@@ -699,7 +738,7 @@ export const stockDetailApi = {
       if (params.startDate) query.set('start_date', params.startDate)
       if (params.endDate) query.set('end_date', params.endDate)
     } else {
-      if (params.timePeriod) query.set('time_period', String(params.timePeriod))
+      if (params.timePeriod) query.set('time_period', params.timePeriod)
     }
 
     const response = await fetch(`${API_BASE_URL}/api/stocks/history?${query.toString()}`, {
@@ -714,14 +753,22 @@ export const stockDetailApi = {
     }
 
     const raw = await response.json()
+    
+    // 检查 API 是否返回错误格式 {data: string, success: false}
+    if (raw?.success === false) {
+      throw new Error(raw?.data || '获取历史数据失败')
+    }
+
     const rows: Array<{
-      open: string | number
-      high: string | number
-      low: string | number
-      close: string | number
-      pct_chg: string | number
+      open?: string | number
+      high?: string | number
+      low?: string | number
+      close?: string | number
+      pct_chg?: string | number
+      pctChg?: string | number
       date: string
-      turnover_rate: string | number
+      turnover_rate?: string | number
+      turnoverRate?: string | number
     }> = Array.isArray(raw)
       ? raw
       : Array.isArray(raw?.data)
@@ -735,8 +782,8 @@ export const stockDetailApi = {
         const high = Number(r.high)
         const low = Number(r.low)
         const close = Number(r.close)
-        const pctChg = Number(r.pct_chg)
-        const turnoverRate = Number(r.turnover_rate)
+        const pctChg = Number(r.pct_chg ?? r.pctChg)
+        const turnoverRate = Number(r.turnover_rate ?? r.turnoverRate)
 
         return {
           trade_date: normalizeDate(r.date),

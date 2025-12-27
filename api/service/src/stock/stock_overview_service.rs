@@ -271,7 +271,7 @@ fn sort(views: &mut [StockOverView], sort_by: &str, order: &str) { // ascending 
 
 async fn get_stock_daily_basic(ts_code: &str, conn: &DatabaseConnection) -> anyhow::Result<stock_daily_basic::Model> {
     let stock_daily_basics: Vec<stock_daily_basic::Model> = stock_daily_basic::Entity::find()
-        .filter(stock_daily_basic::Column::TsCode.eq(ts_code))
+        .filter(ColumnTrait::eq(&stock_daily_basic::Column::TsCode, ts_code))
         .order_by_desc(stock_daily_basic::Column::TradeDate)
         .all(conn)
         .await?;

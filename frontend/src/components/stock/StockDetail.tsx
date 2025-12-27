@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { stockDetailApi } from '@/services/api'
 import { StockDetail as StockDetailType, StockHistoryResponse } from '@/types'
 import KLineChart from '@/components/charts/KLineChart'
+import { useToast } from '@/components/ui/toast'
 import { 
   formatNumber, 
   formatLargeNumber, 
@@ -47,6 +48,7 @@ interface StockSearchResult {
 
 export default function StockDetail({ className }: StockDetailProps) {
   const queryClient = useQueryClient()
+  const { showToast } = useToast()
 
   const [selectedStock, setSelectedStock] = useState('000001.SZ') // 默认选择平安银行
   const [selectedStockName, setSelectedStockName] = useState<string>('')
@@ -54,7 +56,7 @@ export default function StockDetail({ className }: StockDetailProps) {
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
 
-  const [quickDays, setQuickDays] = useState<number>(30)
+  const [timePeriod, setTimePeriod] = useState<string>('7d')
   
   // 时间选择状态
   const [startDate, setStartDate] = useState(() => {
@@ -79,26 +81,47 @@ export default function StockDetail({ className }: StockDetailProps) {
     staleTime: 5 * 60 * 1000, // 5分钟缓存
   })
 
+  // 股票详情加载错误提示
+  useEffect(() => {
+    if (error) {
+      showToast(`获取股票详情失败: ${error instanceof Error ? error.message : '未知错误'}`, 'error')
+    }
+  }, [error, showToast])
+
   // 搜索股票
-  const { data: searchData } = useQuery({
+  const { data: searchData, error: searchError } = useQuery({
     queryKey: ['search-stocks', searchKeyword],
     queryFn: () => stockDetailApi.searchStocks(searchKeyword),
     enabled: searchKeyword.length >= 1,
     staleTime: 2 * 60 * 1000,
   })
 
+  // 搜索股票错误提示
+  useEffect(() => {
+    if (searchError) {
+      showToast(`搜索股票失败: ${searchError instanceof Error ? searchError.message : '未知错误'}`, 'error')
+    }
+  }, [searchError, showToast])
+
   // 获取历史价格数据
   const { data: historyData, isLoading: historyLoading, error: historyError } = useQuery({
-    queryKey: ['stock-history', selectedStock, timeMode, startDate, endDate, quickDays],
+    queryKey: ['stock-history', selectedStock, timeMode, startDate, endDate, timePeriod],
     queryFn: () =>
       stockDetailApi.getStockHistory(selectedStock, {
         timeMode,
         startDate: timeMode === 'custom' ? startDate : undefined,
         endDate: timeMode === 'custom' ? endDate : undefined,
-        timePeriod: timeMode === 'quick' ? quickDays : undefined,
+        timePeriod: timeMode === 'quick' ? timePeriod : undefined,
       }),
     staleTime: 5 * 60 * 1000,
   })
+
+  // 历史数据加载错误提示
+  useEffect(() => {
+    if (historyError) {
+      showToast(`获取历史数据失败: ${historyError instanceof Error ? historyError.message : '未知错误'}`, 'error')
+    }
+  }, [historyError, showToast])
 
   useEffect(() => {
     if (searchData?.stocks) {
@@ -106,6 +129,11 @@ export default function StockDetail({ className }: StockDetailProps) {
       setShowSearchResults(true)
     }
   }, [searchData])
+
+  // 当选中的股票变化时，确保历史数据查询被触发
+  useEffect(() => {
+    // 查询会自动触发因为 selectedStock 在 queryKey 中
+  }, [selectedStock])
 
   // 防抖搜索
   const debouncedSearch = debounce((keyword: string) => {
@@ -119,8 +147,9 @@ export default function StockDetail({ className }: StockDetailProps) {
     setSearchKeyword('')
     setShowSearchResults(false)
 
-    queryClient.invalidateQueries({ queryKey: ['stock-detail'] })
-    queryClient.invalidateQueries({ queryKey: ['stock-history'] })
+    // 立即失效并重新获取股票详情和历史数据
+    queryClient.invalidateQueries({ queryKey: ['stock-detail', stock.ts_code] })
+    queryClient.invalidateQueries({ queryKey: ['stock-history', stock.ts_code] })
   }
 
   // 清空搜索
@@ -129,15 +158,35 @@ export default function StockDetail({ className }: StockDetailProps) {
     setShowSearchResults(false)
   }
 
-  // 快捷时间选择
-  const setQuickTimeRange = (days: number) => {
+  // 快捷时间选择（仅用于 custom 模式下的日期计算）
+  const setQuickTimeRange = (period: string) => {
     const end = new Date()
     const start = new Date()
-    start.setDate(end.getDate() - days)
+    
+    // 根据 period 格式计算日期范围
+    const match = period.match(/^(\d+)([dwmy])$/i)
+    if (match) {
+      const value = parseInt(match[1])
+      const unit = match[2].toLowerCase()
+      
+      switch (unit) {
+        case 'd':
+          start.setDate(end.getDate() - value)
+          break
+        case 'w':
+          start.setDate(end.getDate() - value * 7)
+          break
+        case 'm':
+          start.setMonth(end.getMonth() - value)
+          break
+        case 'y':
+          start.setFullYear(end.getFullYear() - value)
+          break
+      }
+    }
     
     setStartDate(start.toISOString().split('T')[0])
     setEndDate(end.toISOString().split('T')[0])
-    setQuickDays(days)
   }
 
   if (isLoading) {
@@ -243,20 +292,19 @@ export default function StockDetail({ className }: StockDetailProps) {
                 </>
               ) : (
                 <select
-                  value={`${quickDays}`}
+                  value={timePeriod}
                   onChange={(e) => {
-                    const days = Number(e.target.value)
-                    if (Number.isFinite(days) && days > 0) {
-                      setQuickTimeRange(days)
-                    }
+                    const period = e.target.value
+                    setTimePeriod(period)
                   }}
                   className="w-40 px-3 py-2 border rounded-md text-sm bg-background"
                 >
                   <option value="">快捷区间</option>
-                  <option value="7">近7天</option>
-                  <option value="30">近1个月</option>
-                  <option value="90">近3个月</option>
-                  <option value="180">近6个月</option>
+                  <option value="7d">近7天</option>
+                  <option value="1m">近1个月</option>
+                  <option value="3m">近3个月</option>
+                  <option value="6m">近6个月</option>
+                  <option value="1y">近1年</option>
                 </select>
               )}
             </div>
@@ -285,9 +333,8 @@ export default function StockDetail({ className }: StockDetailProps) {
           {/* 当前选中股票信息 */}
           <div className="mb-4 p-3 bg-muted rounded-lg">
             <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">当前股票:</span>
-              <span className="font-medium">{stockDetail.name || selectedStockName || '--'}</span>
-              <span className="text-sm text-muted-foreground">({stockDetail.ts_code || selectedStock})</span>
+              <span className="text-sm text-muted-foreground">当前选中的股票:</span>
+              <span className="font-medium">{selectedStockName || stockDetail.name || '--'}({stockDetail.ts_code || selectedStock})</span>
             </div>
           </div>
           
@@ -472,12 +519,8 @@ export default function StockDetail({ className }: StockDetailProps) {
                 <TableHeader>
                   <TableRow>
                     <TableHead>交易日期</TableHead>
-                    <TableHead className="text-right">开盘价</TableHead>
-                    <TableHead className="text-right">最高价</TableHead>
-                    <TableHead className="text-right">最低价</TableHead>
                     <TableHead className="text-right">收盘价</TableHead>
                     <TableHead className="text-right">涨跌幅</TableHead>
-                    <TableHead className="text-right">涨跌额</TableHead>
                     <TableHead className="text-right">成交量</TableHead>
                     <TableHead className="text-right">换手率</TableHead>
                   </TableRow>
@@ -486,22 +529,14 @@ export default function StockDetail({ className }: StockDetailProps) {
                   {historyData.data.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">{formatDate(item.trade_date)}</TableCell>
-                      <TableCell className="text-right">{formatNumber(item.open, 2)}</TableCell>
-                      <TableCell className="text-right text-red-600">{formatNumber(item.high, 2)}</TableCell>
-                      <TableCell className="text-right text-green-600">{formatNumber(item.low, 2)}</TableCell>
                       <TableCell className="text-right font-medium">{formatNumber(item.close, 2)}</TableCell>
                       <TableCell className={`text-right font-medium ${
-                        item.pct_chg > 0 ? 'text-red-600' : item.pct_chg < 0 ? 'text-green-600' : 'text-gray-600'
+                        item.pct_chg > 0 ? 'text-red-600' : 'text-green-600'
                       }`}>
-                        {item.pct_chg > 0 ? '+' : ''}{formatPercent(item.pct_chg / 100)}
-                      </TableCell>
-                      <TableCell className={`text-right ${
-                        item.change > 0 ? 'text-red-600' : item.change < 0 ? 'text-green-600' : 'text-gray-600'
-                      }`}>
-                        {item.change > 0 ? '+' : ''}{formatNumber(item.change, 2)}
+                        {item.pct_chg > 0 ? '+' : ''}{formatNumber(item.pct_chg, 2)}%
                       </TableCell>
                       <TableCell className="text-right">{formatLargeNumber(item.volume)}</TableCell>
-                      <TableCell className="text-right">{formatPercent(item.turnover_rate / 100)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(item.turnover_rate, 2)}%</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
