@@ -13,6 +13,8 @@ import { formatNumber } from '@/lib/utils'
 export default function EtfModule() {
   const [listKeyword, setListKeyword] = useState('')
 
+  const [activeTab, setActiveTab] = useState<'list' | 'holdings'>('list')
+
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
   const [sortKey, setSortKey] = useState<'tsCode' | 'cname' | 'listDate' | 'exchange' | 'etfType'>('tsCode')
@@ -155,7 +157,7 @@ export default function EtfModule() {
 
   return (
     <div className="space-y-6">
-      <Tabs defaultValue="list" className="w-full">
+      <Tabs value={activeTab} onValueChange={v => setActiveTab(v as 'list' | 'holdings')} className="w-full">
         <TabsList>
           <TabsTrigger value="list">ETF列表</TabsTrigger>
           <TabsTrigger value="holdings">ETF持仓</TabsTrigger>
@@ -208,7 +210,17 @@ export default function EtfModule() {
                     <TableBody>
                       {pagedEtfList.map(item => (
                         <TableRow key={item.tsCode || item.ts_code}>
-                          <TableCell className="font-medium">{item.tsCode || '-'}</TableCell>
+                          <TableCell
+                            className="font-medium cursor-pointer"
+                            onClick={() => {
+                              setSelectedEtf(item)
+                              setHoldingKeyword('')
+                              setHoldingSearchKeyword('')
+                              setActiveTab('holdings')
+                            }}
+                          >
+                            {item.tsCode || '-'}
+                          </TableCell>
                           <TableCell>{item.cname || '-'}</TableCell>
                           <TableCell>{item.listDate ? normalizeDate(String(item.listDate)) : '-'}</TableCell>
                           <TableCell>{item.exchange || '-'}</TableCell>
