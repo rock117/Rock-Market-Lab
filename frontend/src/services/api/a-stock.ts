@@ -32,10 +32,13 @@ export const stockApi = {
       throw new Error((raw as any)?.data || '获取A股列表失败')
     }
 
-    const all = (raw?.data || []) as AStockOverview[]
+    const payload = raw?.data as unknown
+    const all: AStockOverview[] = Array.isArray(payload)
+      ? (payload as AStockOverview[])
+      : ((payload as any)?.data as AStockOverview[]) || []
     const total = all.length
     const pageSize = Math.max(1, params.page_size)
-    const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    const totalPages = total === 0 ? 0 : Math.ceil(total / pageSize)
     const page = Math.min(Math.max(1, params.page), totalPages)
     const start = (page - 1) * pageSize
     const end = start + pageSize
