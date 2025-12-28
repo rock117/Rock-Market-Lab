@@ -12,27 +12,30 @@ use serde::Serialize;
 pub struct AStockOverview {
     pub ts_code: String,
     pub name: String,
+    pub name_py: Option<String>,
+    pub list_date: Option<String>,
     pub close: Option<Decimal>,
     pub pct_chg: Option<Decimal>,
-    pub ma5: Option<Decimal>,
-    pub ma10: Option<Decimal>,
-    pub ma20: Option<Decimal>,
-    pub ma60: Option<Decimal>,
+    pub pct5: Option<Decimal>,
+    pub pct10: Option<Decimal>,
+    pub pct20: Option<Decimal>,
+    pub pct60: Option<Decimal>,
     pub pe: Option<Decimal>,
     pub dv_ratio: Option<Decimal>,
     pub total_mv: Option<Decimal>,
 }
 
-fn calc_ma(closes_desc: &[Decimal], window: usize) -> Option<Decimal> {
-    if closes_desc.len() < window {
+fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<Decimal> {
+    // closes_desc: [today, yesterday, ...] (desc)
+    if closes_desc.len() <= days {
         return None;
     }
-    let sum = closes_desc
-        .iter()
-        .take(window)
-        .fold(Decimal::ZERO, |acc, v| acc + *v);
-    let denom = Decimal::from(window as i64);
-    Some(sum / denom)
+    let today = closes_desc.get(0).copied()?;
+    let past = closes_desc.get(days).copied()?;
+    if past.is_zero() {
+        return None;
+    }
+    Some((today - past) / past * Decimal::from(100i64))
 }
 
 pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<AStockOverview>> {
@@ -60,7 +63,7 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
         .column(stock_daily::Column::TradeDate)
         .distinct()
         .order_by_desc(stock_daily::Column::TradeDate)
-        .limit(60)
+        .limit(65)
         .into_tuple::<String>()
         .all(conn)
         .await?;
@@ -126,12 +129,14 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
         items.push(AStockOverview {
             ts_code: s.ts_code,
             name,
+            name_py: s.name_py,
+            list_date: s.list_date,
             close,
             pct_chg,
-            ma5: calc_ma(closes_desc, 5),
-            ma10: calc_ma(closes_desc, 10),
-            ma20: calc_ma(closes_desc, 20),
-            ma60: calc_ma(closes_desc, 60),
+            pct5: calc_period_pct_chg(closes_desc, 5),
+            pct10: calc_period_pct_chg(closes_desc, 10),
+            pct20: calc_period_pct_chg(closes_desc, 20),
+            pct60: calc_period_pct_chg(closes_desc, 60),
             pe,
             dv_ratio,
             total_mv,

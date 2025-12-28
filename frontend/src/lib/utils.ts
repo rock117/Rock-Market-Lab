@@ -103,6 +103,21 @@ export function getTrendColor(trend: StockTrend): string {
   }
 }
 
+export function formatYmd(dateStr: string | null | undefined): string {
+  if (!dateStr) return '--'
+  const s = String(dateStr).trim()
+  if (/^\d{8}$/.test(s)) {
+    const y = s.slice(0, 4)
+    const m = s.slice(4, 6)
+    const d = s.slice(6, 8)
+    return `${y}-${m}-${d}`
+  }
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    return s
+  }
+  return formatDate(s, 'YYYY-MM-DD')
+}
+
 // 格式化日期
 export function formatDate(dateStr: string | null | undefined, format: 'YYYY-MM-DD' | 'MM-DD' | 'YYYY/MM/DD' = 'YYYY-MM-DD'): string {
   if (!dateStr) return '--'

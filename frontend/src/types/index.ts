@@ -436,7 +436,8 @@ export interface StockHistoryResponse {
 export interface AStockOverview {
   name: string
   ts_code: string
-  list_date: string
+  name_py?: string | null
+  list_date?: string | null
   market?: string | null
   area?: string | null
   industry?: string | null
@@ -444,10 +445,10 @@ export interface AStockOverview {
   close?: number | null
   pct_chg?: number | null
 
-  ma5?: number | null
-  ma10?: number | null
-  ma20?: number | null
-  ma60?: number | null
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
 
   pe?: number | null
   dv_ratio?: number | null
