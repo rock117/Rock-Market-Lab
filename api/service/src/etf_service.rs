@@ -2,6 +2,8 @@ use entity::{etf, fund_portfolio};
 use entity::sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
 use entity::sea_orm::sea_query::{Expr, Func};
 use entity::sea_orm::QuerySelect;
+use entity::stock;
+use std::collections::HashMap;
 
 pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<etf::Model>> {
     let items = etf::Entity::find()
@@ -9,6 +11,26 @@ pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<etf::
         .all(conn)
         .await?;
     Ok(items)
+}
+
+pub async fn get_stock_name_map(
+    conn: &DatabaseConnection,
+    ts_codes: Vec<String>,
+) -> anyhow::Result<HashMap<String, Option<String>>> {
+    if ts_codes.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = stock::Entity::find()
+        .select_only()
+        .column(stock::Column::TsCode)
+        .column(stock::Column::Name)
+        .filter(stock::Column::TsCode.is_in(ts_codes))
+        .into_tuple::<(String, Option<String>)>()
+        .all(conn)
+        .await?;
+
+    Ok(rows.into_iter().collect())
 }
 
 pub async fn search_etfs(conn: &DatabaseConnection, keyword: &str) -> anyhow::Result<Vec<etf::Model>> {

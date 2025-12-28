@@ -38,6 +38,7 @@ pub struct EtfHoldingResp {
     pub ann_date: String,
     pub end_date: String,
     pub symbol: String,
+    pub name: Option<String>,
     pub mkv: String,
     pub amount: String,
     pub stk_mkv_ratio: Option<String>,
@@ -111,17 +112,26 @@ pub async fn get_etf_holdings(
     let conn = conn as &DatabaseConnection;
     let rows = etf_service::get_etf_holdings_latest(conn, &params.ts_code).await?;
 
+    let symbols: Vec<String> = rows.iter().map(|r| r.symbol.clone()).collect();
+    let name_map = etf_service::get_stock_name_map(conn, symbols).await?;
+
     let resp = rows
         .into_iter()
-        .map(|r| EtfHoldingResp {
-            ts_code: r.ts_code,
-            ann_date: r.ann_date,
-            end_date: r.end_date,
-            symbol: r.symbol,
-            mkv: r.mkv.to_string(),
-            amount: r.amount.to_string(),
-            stk_mkv_ratio: r.stk_mkv_ratio.map(|v| v.to_string()),
-            stk_float_ratio: r.stk_float_ratio.map(|v| v.to_string()),
+        .map(|r| {
+            let symbol = r.symbol.clone();
+            let name = name_map.get(&symbol).cloned().unwrap_or(None);
+
+            EtfHoldingResp {
+                ts_code: r.ts_code,
+                ann_date: r.ann_date,
+                end_date: r.end_date,
+                symbol,
+                name,
+                mkv: r.mkv.to_string(),
+                amount: r.amount.to_string(),
+                stk_mkv_ratio: r.stk_mkv_ratio.map(|v| v.to_string()),
+                stk_float_ratio: r.stk_float_ratio.map(|v| v.to_string()),
+            }
         })
         .collect();
 

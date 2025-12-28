@@ -98,6 +98,7 @@ export const etfApi = {
       ann_date: String(r.ann_date ?? ''),
       end_date: String(r.end_date ?? ''),
       symbol: String(r.symbol ?? ''),
+      name: r.name == null ? null : String(r.name),
       mkv: Number(r.mkv),
       amount: Number(r.amount),
       stk_mkv_ratio: r.stk_mkv_ratio == null ? null : Number(r.stk_mkv_ratio),

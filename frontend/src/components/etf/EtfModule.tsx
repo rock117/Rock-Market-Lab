@@ -333,7 +333,8 @@ export default function EtfModule() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>成分股</TableHead>
+                        <TableHead>股票代码</TableHead>
+                        <TableHead>股票名</TableHead>
                         <TableHead className="text-right">市值</TableHead>
                         <TableHead className="text-right">金额</TableHead>
                         <TableHead className="text-right">占净值比(%)</TableHead>
@@ -343,19 +344,19 @@ export default function EtfModule() {
                     <TableBody>
                       {holdingsLoading ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
                             加载中...
                           </TableCell>
                         </TableRow>
                       ) : holdingsError ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-destructive">
+                          <TableCell colSpan={6} className="text-center text-destructive">
                             加载持仓失败
                           </TableCell>
                         </TableRow>
                       ) : (holdings as EtfHolding[]).length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={5} className="text-center text-muted-foreground">
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
                             没数据
                           </TableCell>
                         </TableRow>
@@ -363,6 +364,7 @@ export default function EtfModule() {
                         (holdings as EtfHolding[]).map((h, idx) => (
                           <TableRow key={`${h.symbol}-${idx}`}>
                             <TableCell className="font-medium">{h.symbol}</TableCell>
+                            <TableCell>{h.name || '-'}</TableCell>
                             <TableCell className="text-right">{formatNumber(h.mkv, 2)}</TableCell>
                             <TableCell className="text-right">{formatNumber(h.amount, 2)}</TableCell>
                             <TableCell className="text-right">

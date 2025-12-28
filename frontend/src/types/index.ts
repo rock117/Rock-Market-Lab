@@ -81,6 +81,7 @@ export interface EtfHolding {
   ann_date: string
   end_date: string
   symbol: string
+  name?: string | null
   mkv: number
   amount: number
   stk_mkv_ratio?: number | null
