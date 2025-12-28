@@ -27,11 +27,15 @@ pub struct AStockOverview {
 
 fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<Decimal> {
     // closes_desc: [today, yesterday, ...] (desc)
-    if closes_desc.len() <= days {
+    // days: window size including today, e.g. days=5 means [day1..day5] => (day5-day1)/day1
+    if days < 2 {
+        return None;
+    }
+    if closes_desc.len() < days {
         return None;
     }
     let today = closes_desc.get(0).copied()?;
-    let past = closes_desc.get(days).copied()?;
+    let past = closes_desc.get(days - 1).copied()?;
     if past.is_zero() {
         return None;
     }
