@@ -16,16 +16,7 @@ export const stockApi = {
     area: string
     industry: string
   }): Promise<PagedResponse<AStockOverview>> => {
-    const query = new URLSearchParams()
-    query.set('page', String(params.page))
-    query.set('page_size', String(params.page_size))
-    query.set('order_by', params.order_by)
-    query.set('order', params.order)
-    query.set('market', params.market)
-    query.set('area', params.area)
-    query.set('industry', params.industry)
-
-    const resp = await fetch(`${API_BASE_URL}/api/stocks?${query.toString()}`, {
+    const resp = await fetch(`${API_BASE_URL}/api/a-stocks`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -36,19 +27,26 @@ export const stockApi = {
       throw new Error(`HTTP error! status: ${resp.status}`)
     }
 
-    const raw: ApiResponse<{ data: AStockOverview[]; total: number }> = await resp.json()
+    const raw: ApiResponse<AStockOverview[]> = await resp.json()
     if (raw?.success === false) {
       throw new Error((raw as any)?.data || '获取A股列表失败')
     }
 
-    const payload = raw?.data as unknown as ApiPagedData<AStockOverview>
+    const all = (raw?.data || []) as AStockOverview[]
+    const total = all.length
+    const pageSize = Math.max(1, params.page_size)
+    const totalPages = Math.max(1, Math.ceil(total / pageSize))
+    const page = Math.min(Math.max(1, params.page), totalPages)
+    const start = (page - 1) * pageSize
+    const end = start + pageSize
+    const items = all.slice(start, end)
 
     return {
-      items: payload.data || [],
-      total: payload.total || 0,
-      page: payload.page || params.page,
-      page_size: payload.page_size || params.page_size,
-      total_pages: payload.total_pages || 0,
+      items,
+      total,
+      page,
+      page_size: pageSize,
+      total_pages: totalPages,
     }
   },
 

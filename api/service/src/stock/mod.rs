@@ -9,6 +9,7 @@ use entity::sea_orm::EntityOrSelect;
 use entity::sea_orm::QuerySelect;
 
 mod stock_filter_service;
+pub mod a_stock_service;
 pub mod stock_overview_service;
 pub mod filter;
 pub mod stock_bias_ratio_service;

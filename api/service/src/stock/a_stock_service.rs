@@ -1,0 +1,143 @@
+use std::collections::HashMap;
+
+use anyhow::anyhow;
+use entity::sea_orm::{
+    ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
+};
+use entity::{stock, stock_daily, stock_daily_basic};
+use entity::sea_orm::prelude::Decimal;
+use serde::Serialize;
+
+#[derive(Debug, Clone, Serialize)]
+pub struct AStockOverview {
+    pub ts_code: String,
+    pub name: String,
+    pub close: Option<Decimal>,
+    pub pct_chg: Option<Decimal>,
+    pub ma5: Option<Decimal>,
+    pub ma10: Option<Decimal>,
+    pub ma20: Option<Decimal>,
+    pub ma60: Option<Decimal>,
+    pub pe: Option<Decimal>,
+    pub dv_ratio: Option<Decimal>,
+    pub total_mv: Option<Decimal>,
+}
+
+fn calc_ma(closes_desc: &[Decimal], window: usize) -> Option<Decimal> {
+    if closes_desc.len() < window {
+        return None;
+    }
+    let sum = closes_desc
+        .iter()
+        .take(window)
+        .fold(Decimal::ZERO, |acc, v| acc + *v);
+    let denom = Decimal::from(window as i64);
+    Some(sum / denom)
+}
+
+pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<AStockOverview>> {
+    // 1) 股票基础信息
+    let stocks = stock::Entity::find().all(conn).await?;
+    if stocks.is_empty() {
+        return Ok(vec![]);
+    }
+
+    // 2) 全市场最新交易日（用于取 close/pct_chg 和 pe/dv_ratio/total_mv）
+    let latest_trade_date: Option<String> = stock_daily::Entity::find()
+        .select_only()
+        .column(stock_daily::Column::TradeDate)
+        .order_by_desc(stock_daily::Column::TradeDate)
+        .limit(1)
+        .into_tuple::<String>()
+        .one(conn)
+        .await?;
+
+    let latest_trade_date = latest_trade_date.ok_or(anyhow!("stock_daily is empty"))?;
+
+    // 3) 最近60个交易日（distinct）用于计算MA
+    let last_60_dates: Vec<String> = stock_daily::Entity::find()
+        .select_only()
+        .column(stock_daily::Column::TradeDate)
+        .distinct()
+        .order_by_desc(stock_daily::Column::TradeDate)
+        .limit(60)
+        .into_tuple::<String>()
+        .all(conn)
+        .await?;
+
+    // 4) 最新日线（close/pct_chg）
+    let latest_dailies = stock_daily::Entity::find()
+        .filter(<stock_daily::Column as ColumnTrait>::eq(
+            &stock_daily::Column::TradeDate,
+            latest_trade_date.clone(),
+        ))
+        .all(conn)
+        .await?;
+    let latest_daily_map: HashMap<String, stock_daily::Model> = latest_dailies
+        .into_iter()
+        .map(|m| (m.ts_code.clone(), m))
+        .collect();
+
+    // 5) 最新每日指标（pe/dv_ratio/total_mv）
+    let latest_basics = stock_daily_basic::Entity::find()
+        .filter(<stock_daily_basic::Column as ColumnTrait>::eq(
+            &stock_daily_basic::Column::TradeDate,
+            latest_trade_date.clone(),
+        ))
+        .all(conn)
+        .await?;
+    let latest_basic_map: HashMap<String, stock_daily_basic::Model> = latest_basics
+        .into_iter()
+        .map(|m| (m.ts_code.clone(), m))
+        .collect();
+
+    // 6) 近60日 close 序列（按 trade_date desc 排序）
+    let ma_dailies = stock_daily::Entity::find()
+        .filter(<stock_daily::Column as ColumnTrait>::is_in(
+            &stock_daily::Column::TradeDate,
+            last_60_dates,
+        ))
+        .order_by_desc(stock_daily::Column::TradeDate)
+        .all(conn)
+        .await?;
+
+    let mut closes_map: HashMap<String, Vec<Decimal>> = HashMap::new();
+    for d in ma_dailies {
+        closes_map.entry(d.ts_code.clone()).or_default().push(d.close);
+    }
+
+    // 7) 组装返回
+    let mut items: Vec<AStockOverview> = Vec::with_capacity(stocks.len());
+    for s in stocks {
+        let name = s.name.clone().unwrap_or_else(|| s.ts_code.clone());
+
+        let (close, pct_chg) = match latest_daily_map.get(&s.ts_code) {
+            Some(d) => (Some(d.close), d.pct_chg),
+            None => (None, None),
+        };
+
+        let (pe, dv_ratio, total_mv) = match latest_basic_map.get(&s.ts_code) {
+            Some(b) => (b.pe, b.dv_ratio, b.total_mv),
+            None => (None, None, None),
+        };
+
+        let closes_desc = closes_map.get(&s.ts_code).map(|v| v.as_slice()).unwrap_or(&[]);
+
+        items.push(AStockOverview {
+            ts_code: s.ts_code,
+            name,
+            close,
+            pct_chg,
+            ma5: calc_ma(closes_desc, 5),
+            ma10: calc_ma(closes_desc, 10),
+            ma20: calc_ma(closes_desc, 20),
+            ma60: calc_ma(closes_desc, 60),
+            pe,
+            dv_ratio,
+            total_mv,
+        });
+    }
+
+    items.sort_by(|a, b| a.ts_code.cmp(&b.ts_code));
+    Ok(items)
+}
