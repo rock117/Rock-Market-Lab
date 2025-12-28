@@ -56,16 +56,20 @@ export interface Portfolio {
 
 // ETF 相关类型
 export interface EtfItem {
-  ts_code: string
-  csname: string
+  tsCode?: string
+  listDate?: string | null
+  etfType?: string | null
   cname?: string | null
+  exchange?: string | null
+
+  ts_code?: string
+  csname?: string
   extname?: string | null
   index_code?: string | null
   index_name?: string | null
   setup_date?: string | null
   list_date?: string | null
   list_status?: string | null
-  exchange?: string | null
   custod_name?: string | null
   mgr_name?: string | null
   mgt_fee?: string | null

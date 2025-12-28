@@ -1,11 +1,37 @@
 use entity::{etf, fund_portfolio};
-use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
+use entity::sea_orm::{ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder};
+use entity::sea_orm::sea_query::{Expr, Func};
+use entity::sea_orm::QuerySelect;
 
 pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<etf::Model>> {
     let items = etf::Entity::find()
         .order_by_asc(etf::Column::TsCode)
         .all(conn)
         .await?;
+    Ok(items)
+}
+
+pub async fn search_etfs(conn: &DatabaseConnection, keyword: &str) -> anyhow::Result<Vec<etf::Model>> {
+    let keyword = keyword.trim();
+    if keyword.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let keyword = keyword.to_lowercase();
+    let pattern = format!("%{}%", keyword);
+
+    let condition = Condition::any()
+        .add(Expr::expr(Func::lower(Expr::col(etf::Column::TsCode))).like(&pattern))
+        .add(Expr::expr(Func::lower(Expr::col(etf::Column::Csname))).like(&pattern))
+        .add(Expr::expr(Func::lower(Expr::col(etf::Column::Cname))).like(&pattern));
+
+    let items = etf::Entity::find()
+        .filter(condition)
+        .order_by_asc(etf::Column::TsCode)
+        .limit(50)
+        .all(conn)
+        .await?;
+
     Ok(items)
 }
 

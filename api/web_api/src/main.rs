@@ -126,6 +126,7 @@ async fn rocket() -> _ {
 
             etf_controller::get_etf_list,
             etf_controller::get_etf_holdings,
+            etf_controller::search_etfs,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

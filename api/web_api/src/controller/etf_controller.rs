@@ -72,6 +72,37 @@ pub async fn get_etf_list(conn: &State<DatabaseConnection>) -> Result<WebRespons
     WebResponse::new(resp).into_result()
 }
 
+#[get("/api/etf/search?<keyword>")]
+pub async fn search_etfs(
+    keyword: &str,
+    conn: &State<DatabaseConnection>,
+) -> Result<WebResponse<Vec<EtfItemResp>>> {
+    let conn = conn as &DatabaseConnection;
+    let rows = etf_service::search_etfs(conn, keyword).await?;
+
+    let resp = rows
+        .into_iter()
+        .map(|r| EtfItemResp {
+            ts_code: r.ts_code,
+            csname: r.csname,
+            cname: r.cname,
+            extname: r.extname,
+            index_code: r.index_code,
+            index_name: r.index_name,
+            setup_date: r.setup_date,
+            list_date: r.list_date,
+            list_status: r.list_status,
+            exchange: r.exchange,
+            custod_name: r.custod_name,
+            mgr_name: r.mgr_name,
+            mgt_fee: r.mgt_fee,
+            etf_type: r.etf_type,
+        })
+        .collect();
+
+    WebResponse::new(resp).into_result()
+}
+
 #[get("/api/etf/holdings?<params..>")]
 pub async fn get_etf_holdings(
     params: EtfHoldingsParams,
