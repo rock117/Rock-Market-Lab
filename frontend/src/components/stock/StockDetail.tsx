@@ -70,6 +70,10 @@ export default function StockDetail({ className }: StockDetailProps) {
   
   // 显示模式：table 或 chart
   const [displayMode, setDisplayMode] = useState<'table' | 'chart'>('table')
+
+  // 表格分页（前端分页）
+  const [page, setPage] = useState(1)
+  const [pageSize] = useState(20)
   
   // 时间选择模式：custom 或 quick
   const [timeMode, setTimeMode] = useState<'custom' | 'quick'>('quick')
@@ -122,6 +126,16 @@ export default function StockDetail({ className }: StockDetailProps) {
       showToast(`获取历史数据失败: ${historyError instanceof Error ? historyError.message : '未知错误'}`, 'error')
     }
   }, [historyError, showToast])
+
+  // 切换股票 / 时间条件后回到第一页
+  useEffect(() => {
+    setPage(1)
+  }, [selectedStock, timeMode, startDate, endDate, timePeriod, displayMode])
+
+  const totalRows = historyData?.data?.length ?? 0
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize))
+  const safePage = Math.min(page, totalPages)
+  const pagedHistoryData = historyData?.data?.slice((safePage - 1) * pageSize, safePage * pageSize) ?? []
 
   useEffect(() => {
     if (searchData?.stocks) {
@@ -526,7 +540,7 @@ export default function StockDetail({ className }: StockDetailProps) {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {historyData.data.map((item, index) => (
+                  {pagedHistoryData.map((item, index) => (
                     <TableRow key={index}>
                       <TableCell className="font-medium">{formatDate(item.trade_date)}</TableCell>
                       <TableCell className="text-right font-medium">{formatNumber(item.close, 2)}</TableCell>
@@ -535,12 +549,34 @@ export default function StockDetail({ className }: StockDetailProps) {
                       }`}>
                         {item.pct_chg > 0 ? '+' : ''}{formatNumber(item.pct_chg, 2)}%
                       </TableCell>
-                      <TableCell className="text-right">{formatLargeNumber(item.volume)}</TableCell>
+                      <TableCell className="text-right">{formatNumber(item.amount / 100000, 2)}亿</TableCell>
                       <TableCell className="text-right">{formatNumber(item.turnover_rate, 2)}%</TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+
+              <div className="flex items-center justify-between mt-4">
+                <div className="text-sm text-muted-foreground">
+                  第 {safePage} / {totalPages} 页（共 {totalRows} 条）
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={safePage <= 1}
+                    className={`px-3 py-1 rounded-md text-sm border ${safePage <= 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'}`}
+                  >
+                    上一页
+                  </button>
+                  <button
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                    disabled={safePage >= totalPages}
+                    className={`px-3 py-1 rounded-md text-sm border ${safePage >= totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-muted'}`}
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
             </div>
           )}
 

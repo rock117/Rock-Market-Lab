@@ -764,6 +764,9 @@ export const stockDetailApi = {
       high?: string | number
       low?: string | number
       close?: string | number
+      amount?: string | number
+      vol?: string | number
+      volume?: string | number
       pct_chg?: string | number
       pctChg?: string | number
       date: string
@@ -782,6 +785,7 @@ export const stockDetailApi = {
         const high = Number(r.high)
         const low = Number(r.low)
         const close = Number(r.close)
+        const amount = Number(r.amount ?? r.vol ?? r.volume)
         const pctChg = Number(r.pct_chg ?? r.pctChg)
         const turnoverRate = Number(r.turnover_rate ?? r.turnoverRate)
 
@@ -792,7 +796,7 @@ export const stockDetailApi = {
           low: Number.isFinite(low) ? low : 0,
           close: Number.isFinite(close) ? close : 0,
           volume: 0,
-          amount: 0,
+          amount: Number.isFinite(amount) ? amount : 0,
           turnover_rate: Number.isFinite(turnoverRate) ? turnoverRate : 0,
           pct_chg: Number.isFinite(pctChg) ? pctChg : 0,
           change: Number.isFinite(open) && Number.isFinite(close) ? Number((close - open).toFixed(2)) : 0,

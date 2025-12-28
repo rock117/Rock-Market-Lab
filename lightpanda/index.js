@@ -1,7 +1,14 @@
 const { chromium } = require('playwright');
 
+const url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=TSLA&type=web&color=w#/hxbd";
 (async () => {
-  const browser = await chromium.launch({ headless: false });
+  await find_word(url, '1.58万亿');
+})();
+
+
+async function find_word(url, word) {
+
+   const browser = await chromium.launch({ headless: false });
   const page = await browser.newPage();
 
   // 监听响应
@@ -17,14 +24,10 @@ const { chromium } = require('playwright');
 
     const isText = true
     if (isText) {
-      //   console.log('=== 拦截到响应 ===');
-      //   console.log('状态码:', response.status());
-      //   console.log('响应头:', response.headers());
-
       try {
         // 获取响应体（文本）
         const body = await response.text();
-        if (body.includes('所属板块')) {
+        if (body.includes(word)) {
           console.log('URL:', url);
           console.log('body ===>:', body);
         } else {
@@ -35,10 +38,7 @@ const { chromium } = require('playwright');
       }
     }
   });
-
-  // https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/hxtc
-  // https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SZ300620&color=b#/gsgk
-  await page.goto('https://emweb.securities.eastmoney.com/pc_hsf10/pages/index.html?type=web&code=SH600343&color=b#/hxtc', { timeout: 160000 });
+  await page.goto(url, { timeout: 160000 });
   await page.waitForTimeout(20000);
   await browser.close();
-})();
+}

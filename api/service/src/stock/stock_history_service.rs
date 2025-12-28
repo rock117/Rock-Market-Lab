@@ -6,6 +6,7 @@ use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter,
 use entity::{stock_daily, stock_daily_basic};
 use rust_decimal::prelude::ToPrimitive;
 use serde::Serialize;
+use tracing::info;
 
 #[derive(Debug, Clone, Serialize)]
 pub struct StockHistoryPoint {
@@ -16,6 +17,7 @@ pub struct StockHistoryPoint {
     pub close: f64,
     pub pct_chg: f64,
     pub turnover_rate: f64,
+    pub amount: Option<f64>,
 }
 
 #[derive(Debug, Clone)]
@@ -128,7 +130,7 @@ pub async fn get_stock_history(
     for r in daily_rows {
         let date = parse_trade_date_yyyymmdd(&r.trade_date)?;
         let turnover_rate = turnover_by_date.get(&r.trade_date).copied().unwrap_or(0.0);
-
+        info!("date: {}, amount: {:?}", date, r.amount);
         out.push(StockHistoryPoint {
             date: format_dash(&date),
             open: r.open.to_f64().unwrap_or(0.0),
@@ -137,6 +139,7 @@ pub async fn get_stock_history(
             close: r.close.to_f64().unwrap_or(0.0),
             pct_chg: r.pct_chg.and_then(|d| d.to_f64()).unwrap_or(0.0),
             turnover_rate,
+            amount: r.amount.to_f64()
         });
     }
 

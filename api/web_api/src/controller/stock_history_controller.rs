@@ -27,6 +27,7 @@ pub struct StockHistoryResp {
     pub pct_chg: f64,
     pub date: String,
     pub turnover_rate: f64,
+    pub amount: Option<f64>,
 }
 
 #[get("/api/stocks/history?<params..>")]
@@ -61,6 +62,7 @@ pub async fn get_stock_history(
             pct_chg: p.pct_chg,
             date: p.date,
             turnover_rate: p.turnover_rate,
+            amount: p.amount,
         })
         .collect();
 
