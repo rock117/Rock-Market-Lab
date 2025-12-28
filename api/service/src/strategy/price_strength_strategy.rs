@@ -494,13 +494,22 @@ mod tests {
 
     fn create_test_data(open: f64, high: f64, low: f64, close: f64) -> SecurityData {
         SecurityData {
+            symbol: "TEST001".to_string(),
             trade_date: "20240101".to_string(),
             open,
             high,
             low,
             close,
+            pre_close: None,
+            change: None,
+            pct_change: None,
             volume: 1000000.0,
             amount: 10000000.0,
+            turnover_rate: None,
+            security_type: SecurityType::Stock,
+            time_frame: TimeFrame::Daily,
+            financial_data: None,
+            target: None,
         }
     }
 

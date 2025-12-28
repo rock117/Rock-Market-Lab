@@ -54,6 +54,35 @@ export interface Portfolio {
   holdings_num?: number; // 持仓数量（从列表接口获取）
 }
 
+// ETF 相关类型
+export interface EtfItem {
+  ts_code: string
+  csname: string
+  cname?: string | null
+  extname?: string | null
+  index_code?: string | null
+  index_name?: string | null
+  setup_date?: string | null
+  list_date?: string | null
+  list_status?: string | null
+  exchange?: string | null
+  custod_name?: string | null
+  mgr_name?: string | null
+  mgt_fee?: string | null
+  etf_type?: string | null
+}
+
+export interface EtfHolding {
+  ts_code: string
+  ann_date: string
+  end_date: string
+  symbol: string
+  mkv: number
+  amount: number
+  stk_mkv_ratio?: number | null
+  stk_float_ratio?: number | null
+}
+
 // 美股相关类型定义
 export interface UsStock {
   tsCode: string; // 股票代码

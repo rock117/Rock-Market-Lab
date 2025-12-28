@@ -80,6 +80,7 @@ fn create_test_scenario() -> Vec<SecurityData> {
             time_frame: TimeFrame::Daily,
             security_type: SecurityType::Stock,
             financial_data: None,
+            target: None,
         });
     }
     
@@ -100,6 +101,7 @@ fn create_test_scenario() -> Vec<SecurityData> {
         time_frame: TimeFrame::Daily,
         security_type: SecurityType::Stock,
         financial_data: None,
+        target: None,
     });
     
     data

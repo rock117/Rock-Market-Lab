@@ -36,6 +36,7 @@ const moduleCategories = [
     modules: [
       { id: 'market-summary', name: 'A股大盘', description: '市场概览、涨跌分布', status: 'active', path: '/market' },
       { id: 'us-stocks', name: '美股市场', description: '美股列表、财务指标', status: 'active', path: '/us-stocks' },
+      { id: 'etf', name: 'ETF', description: 'ETF列表、ETF持仓', status: 'active', path: '/etf' },
       { id: 'hk-stocks', name: '港股市场', description: '港股行情、沪深港通', status: 'coming', path: '/hk-stocks' },
       { id: 'futures', name: '期货市场', description: '商品期货、股指期货', status: 'coming', path: '/futures' },
       { id: 'bonds', name: '债券市场', description: '国债、企业债、可转债', status: 'coming', path: '/bonds' },

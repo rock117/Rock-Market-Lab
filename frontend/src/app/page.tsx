@@ -12,6 +12,7 @@ import StockMarginTrading from '@/components/margin-trading/StockMarginTrading'
 import StreakStats from '@/components/analysis/StreakStats'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
+import EtfModule from '@/components/etf/EtfModule'
 import { 
   TrendingUp, 
   Globe, 
@@ -118,6 +119,15 @@ const modules = [
   },
   // 即将上线的模块
   {
+    id: 'etf',
+    name: 'ETF',
+    description: 'ETF列表、ETF持仓',
+    icon: PieChart,
+    color: 'text-emerald-500',
+    category: 'market',
+    status: 'active'
+  },
+  {
     id: 'hk-stocks',
     name: '港股市场',
     description: '港股行情、沪深港通',
@@ -202,6 +212,8 @@ export default function HomePage() {
         return <StockSelectionStrategy />
       case 'portfolio-manager':
         return <PortfolioManager />
+      case 'etf':
+        return <EtfModule />
       default:
         return <ComingSoonModule moduleName={modules.find(m => m.id === activeModule)?.name || ''} />
     }
