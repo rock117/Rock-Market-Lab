@@ -13,6 +13,7 @@ import StreakStats from '@/components/analysis/StreakStats'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import EtfModule from '@/components/etf/EtfModule'
+import AStockList from '@/components/stock/AStockList'
 import { 
   TrendingUp, 
   Globe, 
@@ -49,6 +50,15 @@ const modules = [
     id: 'market-summary',
     name: 'A股大盘',
     description: '市场概览、涨跌分布',
+    icon: TrendingUp,
+    color: 'text-bull',
+    category: 'market',
+    status: 'active'
+  },
+  {
+    id: 'a-stocks',
+    name: 'A股列表',
+    description: 'A股全市场列表与指标',
     icon: TrendingUp,
     color: 'text-bull',
     category: 'market',
@@ -196,6 +206,8 @@ export default function HomePage() {
         return <HomeOverview />
       case 'market-summary':
         return <MarketSummary />
+      case 'a-stocks':
+        return <AStockList />
       case 'us-stocks':
         return <UsStockList />
       case 'stock-detail':

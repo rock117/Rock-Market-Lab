@@ -431,3 +431,25 @@ export interface StockHistoryResponse {
   data: StockHistoryData[];
   total: number;
 }
+
+// A股列表/概览
+export interface AStockOverview {
+  name: string
+  ts_code: string
+  list_date: string
+  market?: string | null
+  area?: string | null
+  industry?: string | null
+
+  close?: number | null
+  pct_chg?: number | null
+
+  ma5?: number | null
+  ma10?: number | null
+  ma20?: number | null
+  ma60?: number | null
+
+  pe?: number | null
+  dv_ratio?: number | null
+  total_mv?: number | null
+}

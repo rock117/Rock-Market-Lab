@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Tooltip } from '@/components/ui/tooltip'
 import { Select, SelectItem } from '@/components/ui/select'
 import { usStockApi } from '@/services/api'
-import { UsStock } from '@/types'
+import { PagedResponse, UsStock } from '@/types'
 import { formatNumber, formatMarketCap, formatPercent, formatDate, getTrendColorClass, getStockTrend } from '@/lib/utils'
 import { Search, Filter, TrendingUp, TrendingDown, Building2, Globe } from 'lucide-react'
 
@@ -180,7 +180,7 @@ const StockTable = React.memo(({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {stockData.items.map((stock) => {
+            {stockData.items.map((stock: UsStock) => {
               // 调试：打印第一条数据的结构
               if (stock === stockData.items[0]) {
                 console.log('Stock data structure:', stock)
@@ -246,22 +246,16 @@ const StockTable = React.memo(({
                 </TableCell>
                 <TableCell>
                   {stock.businessDescription ? (
-                    <Tooltip content={
-                      <div className="space-y-2">
-                        {stock.businessDescription && (
-                          <div>
-                            <div className="text-xs font-medium text-muted-foreground mb-1">English:</div>
-                            <div className="text-sm">{stock.businessDescription}</div>
-                          </div>
-                        )}
-                        {stock.businessDescriptionCn && (
-                          <div>
-                            <div className="text-xs font-medium text-muted-foreground mb-1">中文:</div>
-                            <div className="text-sm">{stock.businessDescriptionCn}</div>
-                          </div>
-                        )}
-                      </div>
-                    }>
+                    <Tooltip
+                      content={
+                        [
+                          stock.businessDescription ? `English:\n${stock.businessDescription}` : '',
+                          stock.businessDescriptionCn ? `中文:\n${stock.businessDescriptionCn}` : '',
+                        ]
+                          .filter(Boolean)
+                          .join('\n\n')
+                      }
+                    >
                       <div className="text-sm text-muted-foreground max-w-[300px] truncate cursor-help">
                         {stock.businessDescription}
                       </div>
@@ -393,7 +387,7 @@ function UsStockList({ className }: UsStockListProps) {
       industry: selectedIndustry || undefined,
     }),
     staleTime: 5 * 60 * 1000, // 5分钟缓存
-    keepPreviousData: true, // 保持之前的数据，避免闪烁
+    placeholderData: prev => prev, // 保持之前的数据，避免闪烁
     refetchOnWindowFocus: false, // 避免窗口聚焦时重新获取
     refetchOnMount: false, // 避免组件挂载时重新获取
     notifyOnChangeProps: ['data', 'error'], // 只在关键属性变化时通知

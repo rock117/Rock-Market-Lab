@@ -1,10 +1,57 @@
 // A股市场相关 API
-import { MarketSummary, IndexData, VolumeDistribution } from '@/types'
+import type { AStockOverview, ApiPagedData, ApiResponse, IndexData, MarketSummary, PagedResponse, VolumeDistribution } from '@/types'
+import { API_BASE_URL } from './config'
 import { delay } from './config'
 import { mockMarketSummary, mockIndexData, mockDistributionData, mockVolumeDistribution } from './mock-data'
 
 // A股市场摘要相关API（使用模拟数据）
 export const stockApi = {
+  // 获取A股列表（后端真实数据）
+  getAStockOverviews: async (params: {
+    page: number
+    page_size: number
+    order_by: string
+    order: string
+    market: string
+    area: string
+    industry: string
+  }): Promise<PagedResponse<AStockOverview>> => {
+    const query = new URLSearchParams()
+    query.set('page', String(params.page))
+    query.set('page_size', String(params.page_size))
+    query.set('order_by', params.order_by)
+    query.set('order', params.order)
+    query.set('market', params.market)
+    query.set('area', params.area)
+    query.set('industry', params.industry)
+
+    const resp = await fetch(`${API_BASE_URL}/api/stocks?${query.toString()}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!resp.ok) {
+      throw new Error(`HTTP error! status: ${resp.status}`)
+    }
+
+    const raw: ApiResponse<{ data: AStockOverview[]; total: number }> = await resp.json()
+    if (raw?.success === false) {
+      throw new Error((raw as any)?.data || '获取A股列表失败')
+    }
+
+    const payload = raw?.data as unknown as ApiPagedData<AStockOverview>
+
+    return {
+      items: payload.data || [],
+      total: payload.total || 0,
+      page: payload.page || params.page,
+      page_size: payload.page_size || params.page_size,
+      total_pages: payload.total_pages || 0,
+    }
+  },
+
   // 获取市场摘要
   getMarketSummary: async (): Promise<MarketSummary> => {
     await delay(300)

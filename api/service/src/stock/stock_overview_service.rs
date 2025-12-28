@@ -56,6 +56,8 @@ pub struct StockOverView {
 
     pub gross_margin: Option<f64>, // 毛利率
     pub roe: Option<f64>, // roe
+    pub pe: Option<f64>,
+    pub dv_ratio: Option<f64>,
     pub total_mv: Option<f64>, // 总市值(万元)
     pub circ_mv: Option<f64>, // 流通市值
 }
@@ -121,7 +123,7 @@ pub async fn get_stock_overviews(param: &StockQueryParams, conn: &DatabaseConnec
 }
 
 fn get_from_cache() -> anyhow::Result<Option<Vec<StockOverView>>> {
-    let key = "stock_overviews";
+    let key = "stock_overviews_v2";
     let file = format!("{}/{}-cache.json", r#"C:\rock\coding\code\my\rust\Rock-Market-Lab\api\tmp\data"#, key);
     if std::fs::exists(&file).unwrap_or(false)  {
         let data = std::fs::read_to_string(&file)?;
@@ -132,7 +134,7 @@ fn get_from_cache() -> anyhow::Result<Option<Vec<StockOverView>>> {
 }
 
 fn save_to_cache(views: &Vec<StockOverView>) -> anyhow::Result<()> {
-    let key = "stock_overviews";
+    let key = "stock_overviews_v2";
     let file = format!("{}/{}-cache.json", r#"C:\rock\coding\code\my\rust\Rock-Market-Lab\api\tmp\data"#, key);
     std::fs::write(&file, serde_json::to_string(views)?)?;
     Ok(())
@@ -312,7 +314,7 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
         industry: stock.industry.clone(),
         market: stock.market.clone(),
         list_date: stock.list_date.clone().unwrap_or("".to_string()),
-        close: stock_daily_basic.close.map(|v| v.to_f64()).flatten(),
+        close: stock_prices.first().cloned(),
         low,
         high,
         pct_chg: pct_chgv,
@@ -330,6 +332,8 @@ fn create_stock_overview(stock: &stock::Model, stock_daily_basic: &stock_daily_b
         ma250: ma::<250>(stock_prices),
         gross_margin,
         roe,
+        pe: stock_daily_basic.pe.map(|v| v.to_f64()).flatten(),
+        dv_ratio: stock_daily_basic.dv_ratio.map(|v| v.to_f64()).flatten(),
         total_mv: stock_daily_basic.total_mv.map(|v| v.to_f64()).flatten(),
         circ_mv: stock_daily_basic.circ_mv.map(|v| v.to_f64()).flatten(),
     };
