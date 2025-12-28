@@ -100,6 +100,21 @@ export default function EtfModule() {
     setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'))
   }
 
+  const renderSortIcon = (key: typeof sortKey) => {
+    if (sortKey !== key) {
+      return (
+        <span className="ml-1 text-muted-foreground" aria-hidden>
+          ↕
+        </span>
+      )
+    }
+    return (
+      <span className="ml-1" aria-hidden>
+        {sortDir === 'asc' ? '↑' : '↓'}
+      </span>
+    )
+  }
+
   useEffect(() => {
     const kw = holdingKeyword.trim()
     if (!kw) {
@@ -170,18 +185,23 @@ export default function EtfModule() {
                       <TableRow>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('tsCode')}>
                           etf代码
+                          {renderSortIcon('tsCode')}
                         </TableHead>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('cname')}>
                           名称
+                          {renderSortIcon('cname')}
                         </TableHead>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('listDate')}>
                           发行日期
+                          {renderSortIcon('listDate')}
                         </TableHead>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('exchange')}>
                           市场
+                          {renderSortIcon('exchange')}
                         </TableHead>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('etfType')}>
                           境内/境外
+                          {renderSortIcon('etfType')}
                         </TableHead>
                       </TableRow>
                     </TableHeader>

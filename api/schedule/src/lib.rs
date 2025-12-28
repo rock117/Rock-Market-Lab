@@ -140,7 +140,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let others: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
-        //   Arc::new(FetchFundPortfolioTask::new(conn.clone())),
+          Arc::new(FetchEtfTask::new(conn.clone())),
+          Arc::new(FetchFundPortfolioTask::new(conn.clone())),
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
         //  Arc::new(FetchDcIndexTask::new(conn.clone())),
        // Arc::new(FetchDcMemberTask::new(conn.clone())),
@@ -161,7 +162,7 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     
     // jobs.extend(dailys);
-    // jobs.extend(others);
+    jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);
