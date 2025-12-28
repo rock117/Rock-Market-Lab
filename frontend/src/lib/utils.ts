@@ -2,67 +2,80 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { StockTrend } from "@/types"
 
+function toNumber(value: unknown): number {
+  if (value === null || value === undefined) return NaN
+  if (typeof value === 'number') return value
+  if (typeof value === 'string') return Number(value)
+  if (typeof (value as any)?.toString === 'function') return Number((value as any).toString())
+  return NaN
+}
+
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
 // 格式化数字
-export function formatNumber(num: number | null | undefined, decimals: number = 2): string {
-  if (num === null || num === undefined || isNaN(num)) {
+export function formatNumber(num: number | string | null | undefined, decimals: number = 2): string {
+  const n = toNumber(num)
+  if (!Number.isFinite(n)) {
     return '--'
   }
-  return num.toLocaleString('zh-CN', {
+  return n.toLocaleString('zh-CN', {
     minimumFractionDigits: decimals,
     maximumFractionDigits: decimals
   })
 }
 
 // 格式化大数字（万、亿）
-export function formatLargeNumber(num: number | null | undefined): string {
-  if (num === null || num === undefined || isNaN(num)) {
+export function formatLargeNumber(num: number | string | null | undefined): string {
+  const n = toNumber(num)
+  if (!Number.isFinite(n)) {
     return '--'
   }
   
-  if (num >= 100000000) { // 亿
-    return `${(num / 100000000).toFixed(2)}亿`
-  } else if (num >= 10000) { // 万
-    return `${(num / 10000).toFixed(2)}万`
+  if (n >= 100000000) { // 亿
+    return `${(n / 100000000).toFixed(2)}亿`
+  } else if (n >= 10000) { // 万
+    return `${(n / 10000).toFixed(2)}万`
   } else {
-    return formatNumber(num, 0)
+    return formatNumber(n, 0)
   }
 }
 
 // 格式化百分比
-export function formatPercent(num: number | null | undefined, decimals: number = 2): string {
-  if (num === null || num === undefined || isNaN(num)) {
+export function formatPercent(num: number | string | null | undefined, decimals: number = 2): string {
+  const n = toNumber(num)
+  if (!Number.isFinite(n)) {
     return '--'
   }
-  return `${num.toFixed(decimals)}%`
+  return `${n.toFixed(decimals)}%`
 }
 
 // 格式化市值
-export function formatMarketCap(marketCap: number | null | undefined): string {
-  if (marketCap === null || marketCap === undefined || isNaN(marketCap)) {
+export function formatMarketCap(marketCap: number | string | null | undefined): string {
+  const n = toNumber(marketCap)
+  if (!Number.isFinite(n)) {
     return '--'
   }
   
   // 假设市值单位是万元
-  if (marketCap >= 100000000) { // 万亿
-    return `${(marketCap / 100000000).toFixed(2)}万亿`
-  } else if (marketCap >= 10000) { // 亿
-    return `${(marketCap / 10000).toFixed(2)}亿`
+  if (n >= 100000000) { // 万亿
+    return `${(n / 100000000).toFixed(2)}万亿`
+  } else if (n >= 10000) { // 亿
+    return `${(n / 10000).toFixed(2)}亿`
   } else {
-    return `${marketCap.toFixed(2)}万`
+    return `${n.toFixed(2)}万`
   }
 }
 
 // 获取股票趋势
-export function getStockTrend(change: number | null | undefined): StockTrend {
-  if (change === null || change === undefined || isNaN(change)) {
+export function getStockTrend(change: number | string | null | undefined): StockTrend {
+  const n = toNumber(change)
+  if (!Number.isFinite(n)) {
     return 'neutral'
   }
-  if (change > 0) return 'up'
-  if (change < 0) return 'down'
+  if (n > 0) return 'up'
+  if (n < 0) return 'down'
   return 'neutral'
 }
 
