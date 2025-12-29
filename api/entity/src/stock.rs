@@ -35,7 +35,7 @@ pub struct Model {
     pub name_py: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     TsCode,
     Symbol,

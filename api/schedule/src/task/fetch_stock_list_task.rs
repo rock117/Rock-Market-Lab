@@ -7,6 +7,8 @@ use ext_api::tushare;
 use entity::stock::Model as Stock;
 use entity::sea_orm::ActiveModelTrait;
 use entity::sea_orm::EntityTrait;
+use common::db::get_entity_update_columns;
+
 
 pub struct FetchStockListTask(DatabaseConnection);
 
@@ -28,28 +30,21 @@ impl Task for FetchStockListTask {
         let tx = self.0.begin().await?;
         let total = stocks.len();
         let mut curr = 0;
-        for mut stock_m in stocks {
-            let ts_code = stock_m.ts_code.clone();
-            let old_res = stock::Entity::find_by_id(&ts_code).one(&self.0).await;
-            if let Some(ref name) = stock_m.name {
-                stock_m.name_py = Some(common::get_security_pinyin(name));
-            }
-            info!("name_py = {:?}, name = {:?}", stock_m.name_py, stock_m.name_py);
-            if let Ok(None) = old_res {
-                let res = stock::ActiveModel { ..stock_m.clone().into() }.insert(&self.0).await;
-                if res.is_err() {
-                    error!("insert stock failed, ts_code: {}, data: {:?}, error: {:?}", ts_code, stock_m, res);
+        for mut stock in stocks {
+           let active_model = entity::stock::ActiveModel { ..stock.clone().into() };
+                let pks = [
+                    stock::Column::TsCode,
+                ];
+                let update_columns = get_entity_update_columns::<stock::Entity>(&pks);
+                let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                    .update_columns(update_columns)
+                    .to_owned();
+                if let Err(e) = entity::stock::Entity::insert(active_model)
+                    .on_conflict(on_conflict)
+                    .exec(&tx)
+                    .await {
+                    error!("insert stock failed, ts_code: {},  error: {:?}", stock.ts_code, e);
                 }
-            } else if let Err(e) = old_res {
-                error!("find stock by  ts_code failed, ts_code: {}, error: {:?}", ts_code, e);
-            } else {
-                let res = stock::ActiveModel { ..stock_m.clone().into() }.update(&self.0).await;
-                if res.is_err() {
-                    error!("update stock failed ts_code: {}, data: {:?}, error: {:?}", ts_code, stock_m, res);
-                }
-            }
-            curr += 1;
-            info!("insert stock complete: {}, {}/{}", ts_code, curr, total);
         }
         tx.commit().await?;
         info!("fetch stock list task complete...");

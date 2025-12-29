@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use anyhow::anyhow;
 use async_trait::async_trait;
 use chrono::NaiveDate;
@@ -29,8 +30,7 @@ impl Task for FetchFundPortfolioTask {
         let etfs: Vec<etf::Model> = etf::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for etf in &etfs {
-            let period = get_period(etf.list_date.clone());
-            let res = ext_api::tushare::fund_portfolio(&etf.ts_code, period).await;
+            let res = get_fund_portfolio(etf).await;
             if let Err(e) = res {
                 error!("fetch etf portfolio failed, ts_code: {}, error: {:?}", etf.ts_code, e);
                 continue;
@@ -70,11 +70,7 @@ fn get_period(list_date: Option<String>) -> Option<String> {
     
     let today = Local::now().naive_local().date();
     let current_year = today.year();
-    
-    // 二季度末：6月30日
     let q2_end = NaiveDate::from_ymd_opt(current_year, 6, 30).unwrap();
-    // 上一年四季度末：12月31日
-    let last_q4_end = NaiveDate::from_ymd_opt(current_year - 1, 12, 31).unwrap();
     
     match list_date {
         None => {
@@ -89,10 +85,20 @@ fn get_period(list_date: Option<String>) -> Option<String> {
         Some(date_str) => {
             let list_date = NaiveDate::parse_from_str(&date_str, "%Y%m%d").ok()?;
             if list_date > q2_end {
-                 Some(format!("{}0630", current_year))
+                None
             } else {
-                 Some(format!("{}1231", current_year - 1))
+                 Some(format!("{}0630", current_year))
             }
         }
     }
+}
+
+async fn get_fund_portfolio(etf: &etf::Model) -> anyhow::Result<Vec<fund_portfolio::Model>> {
+      let period = get_period(etf.list_date.clone());
+      let res = ext_api::tushare::fund_portfolio(&etf.ts_code, period).await?;
+      if res.is_empty() {
+        ext_api::tushare::fund_portfolio(&etf.ts_code, None).await
+      } else {
+        Ok(res)
+      }
 }
