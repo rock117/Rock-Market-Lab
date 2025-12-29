@@ -11,6 +11,7 @@ pub struct StockSimilarityParams {
     pub ts_code: String,
     pub days: Option<usize>,
     pub top: Option<usize>,
+    pub algo: Option<String>,
 }
 
 #[get("/api/stocks/similarity?<params..>")]
@@ -23,6 +24,13 @@ pub async fn get_stock_similarity(
     let days = params.days.unwrap_or(60);
     let top = params.top.unwrap_or(50);
 
-    let items = stock_similarity_service::get_similar_stocks(conn, &params.ts_code, days, top).await?;
+    let items = stock_similarity_service::get_similar_stocks_by_algo(
+        conn,
+        &params.ts_code,
+        days,
+        top,
+        params.algo.as_deref(),
+    )
+    .await?;
     WebResponse::new(items).into_result()
 }
