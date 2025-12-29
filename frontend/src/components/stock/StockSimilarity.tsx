@@ -229,7 +229,14 @@ export default function StockSimilarity() {
                   </TableRow>
                 ) : (
                   similarityList.map((r, idx) => (
-                    <TableRow key={r.ts_code}>
+                    <TableRow
+                      key={r.ts_code}
+                      className={
+                        r.ts_code === selected?.ts_code
+                          ? 'border-l-4 border-l-primary bg-muted/50 font-medium'
+                          : undefined
+                      }
+                    >
                       <TableCell>{idx + 1}</TableCell>
                       <TableCell>{r.ts_code}</TableCell>
                       <TableCell>{r.name || '-'}</TableCell>
