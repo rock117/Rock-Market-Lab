@@ -193,12 +193,19 @@ export default function StockSimilarity() {
                     <TableHead>股票代码</TableHead>
                     <TableHead>名称</TableHead>
                     <TableHead className="text-right">相似度</TableHead>
+                    <TableHead className="text-right">当前价</TableHead>
+                    <TableHead className="text-right">换手率</TableHead>
+                    <TableHead className="text-right">涨跌幅</TableHead>
+                    <TableHead className="text-right">5日涨跌幅</TableHead>
+                    <TableHead className="text-right">10日涨跌幅</TableHead>
+                    <TableHead className="text-right">20日涨跌幅</TableHead>
+                    <TableHead className="text-right">60日涨跌幅</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {similarityList.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="text-center text-muted-foreground">
+                      <TableCell colSpan={11} className="text-center text-muted-foreground">
                         暂无数据
                       </TableCell>
                     </TableRow>
@@ -209,6 +216,13 @@ export default function StockSimilarity() {
                         <TableCell>{r.ts_code}</TableCell>
                         <TableCell>{r.name || '-'}</TableCell>
                         <TableCell className="text-right">{formatNumber(r.similarity, 2)}</TableCell>
+                        <TableCell className="text-right">{r.current_price == null ? '-' : formatNumber(r.current_price, 2)}</TableCell>
+                        <TableCell className="text-right">{r.turnover_rate == null ? '-' : formatNumber(r.turnover_rate, 2)}</TableCell>
+                        <TableCell className="text-right">{r.pct_chg == null ? '-' : formatNumber(r.pct_chg, 2)}</TableCell>
+                        <TableCell className="text-right">{r.pct5 == null ? '-' : formatNumber(r.pct5, 2)}</TableCell>
+                        <TableCell className="text-right">{r.pct10 == null ? '-' : formatNumber(r.pct10, 2)}</TableCell>
+                        <TableCell className="text-right">{r.pct20 == null ? '-' : formatNumber(r.pct20, 2)}</TableCell>
+                        <TableCell className="text-right">{r.pct60 == null ? '-' : formatNumber(r.pct60, 2)}</TableCell>
                       </TableRow>
                     ))
                   )}

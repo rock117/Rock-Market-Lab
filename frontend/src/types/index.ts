@@ -101,6 +101,13 @@ export interface StockSimilarityItem {
   ts_code: string
   name?: string | null
   similarity: number
+  current_price?: number | null
+  turnover_rate?: number | null
+  pct_chg?: number | null
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
 }
 
 // 美股相关类型定义

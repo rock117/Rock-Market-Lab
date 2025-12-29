@@ -5,6 +5,9 @@ use entity::sea_orm::DatabaseConnection;
 use entity::stock;
 use rust_decimal::prelude::ToPrimitive;
 use entity::sea_orm::EntityTrait;
+use entity::sea_orm::{ColumnTrait, Condition, QueryFilter};
+use entity::stock_daily_basic;
+use tracing::info;
 use super::stock_price_service;
 
 // 股票走势相似度服务
@@ -27,6 +30,13 @@ pub struct StockSimilarityItem {
     pub ts_code: String,
     pub name: Option<String>,
     pub similarity: f64,
+    pub current_price: Option<f64>,
+    pub turnover_rate: Option<f64>,
+    pub pct_chg: Option<f64>,
+    pub pct5: Option<f64>,
+    pub pct10: Option<f64>,
+    pub pct20: Option<f64>,
+    pub pct60: Option<f64>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -305,8 +315,11 @@ pub async fn get_similar_stocks_by_algo(
     // Build a loose date range to cover trading day gaps.
     // 由于交易日不是自然日连续的，这里用较宽松的自然日区间来“覆盖”至少 days 个交易日。
     // 经验上乘以 3 足以应对周末/节假日缺口（并不保证，但能显著降低取不到 days 条的问题）。
+    //
+    // 额外指标：5/10/20/60 日涨跌幅需要至少 61 个交易日 close（含当日）。
+    let metrics_days = days.max(61);
     let end: NaiveDate = Local::now().date_naive();
-    let start: NaiveDate = end - Duration::days((days as i64) * 3);
+    let start: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
 
     // 批量拉取所有股票在区间内的日线 close（一次性查询，避免 N+1）。
     let mut prices_map = stock_price_service::get_stock_prices_batch(&all_codes, &start, &end, conn).await?;
@@ -347,7 +360,7 @@ pub async fn get_similar_stocks_by_algo(
 
         rows.sort_by(|a, b| b.trade_date.cmp(&a.trade_date));
         let closes_desc: Vec<f64> = rows
-            .into_iter()
+            .iter()
             .take(days)
             .map(|r| r.close.to_f64().unwrap_or(0.0))
             .collect();
@@ -382,16 +395,72 @@ pub async fn get_similar_stocks_by_algo(
             },
         };
 
+        let current_price = closes_desc.first().copied();
+
+        let pct_chg = rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
+        info!("{} pct_chg: {:?}", code, pct_chg);
+        let calc_pct_n = |n: usize| -> Option<f64> {
+            if closes_desc.len() <= n {
+                return None;
+            }
+            let latest = closes_desc[0];
+            let base = closes_desc[n];
+            if base == 0.0 {
+                return None;
+            }
+            let v = (latest / base - 1.0) * 100.0;
+            if v.is_finite() { Some(v) } else { None }
+        };
+
         scored.push(StockSimilarityItem {
             ts_code: code.clone(),
             name: name_map.get(&code).cloned().unwrap_or(None),
             similarity: sim,
+            current_price,
+            turnover_rate: None,
+            pct_chg,
+            pct5: calc_pct_n(5),
+            pct10: calc_pct_n(10),
+            pct20: calc_pct_n(20),
+            pct60: calc_pct_n(60),
         });
     }
 
     // 相似度降序，取 top。
     scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(top);
+
+    // 批量补充换手率（来自 stock_daily_basic 的 turnover_rate，取最近一条）。
+    if !scored.is_empty() {
+        let codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
+        let start_s = start.format("%Y%m%d").to_string();
+        let end_s = end.format("%Y%m%d").to_string();
+
+        let code_condition = codes
+            .iter()
+            .map(|code| ColumnTrait::eq(&stock_daily_basic::Column::TsCode, code.as_str()))
+            .fold(Condition::any(), |acc, condition| acc.add(condition));
+
+        let basic_rows = stock_daily_basic::Entity::find()
+            .filter(code_condition)
+            .filter(stock_daily_basic::Column::TradeDate.gte(start_s))
+            .filter(stock_daily_basic::Column::TradeDate.lte(end_s))
+            .all(conn)
+            .await?;
+
+        let mut latest_turnover: HashMap<String, (String, f64)> = HashMap::new();
+        for r in basic_rows {
+            let tr = r.turnover_rate.and_then(|d| d.to_f64()).unwrap_or(0.0);
+            let entry = latest_turnover.entry(r.ts_code.clone()).or_insert((r.trade_date.clone(), tr));
+            if r.trade_date > entry.0 {
+                *entry = (r.trade_date, tr);
+            }
+        }
+
+        for item in &mut scored {
+            item.turnover_rate = latest_turnover.get(&item.ts_code).map(|(_, v)| *v);
+        }
+    }
 
     Ok(scored)
 }
