@@ -29,7 +29,8 @@ impl Task for FetchFundPortfolioTask {
         let etfs: Vec<etf::Model> = etf::Entity::find().all(&self.0).await?;
         let mut curr = 0;
         for etf in &etfs {
-            let res = ext_api::tushare::fund_portfolio(&etf.ts_code).await;
+            let period = get_period(etf.list_date.clone());
+            let res = ext_api::tushare::fund_portfolio(&etf.ts_code, period).await;
             if let Err(e) = res {
                 error!("fetch etf portfolio failed, ts_code: {}, error: {:?}", etf.ts_code, e);
                 continue;
@@ -61,5 +62,37 @@ impl Task for FetchFundPortfolioTask {
         }
         info!("fetch etf portfolio complete");
         Ok(())
+    }
+}
+
+fn get_period(list_date: Option<String>) -> Option<String> {
+    use chrono::{Datelike, Local, NaiveDate};
+    
+    let today = Local::now().naive_local().date();
+    let current_year = today.year();
+    
+    // 二季度末：6月30日
+    let q2_end = NaiveDate::from_ymd_opt(current_year, 6, 30).unwrap();
+    // 上一年四季度末：12月31日
+    let last_q4_end = NaiveDate::from_ymd_opt(current_year - 1, 12, 31).unwrap();
+    
+    match list_date {
+        None => {
+            // 如果当前日期大于第二季度末，返回第二季度
+            if today > q2_end {
+                Some(format!("{}0630", current_year))
+            } else {
+                // 否则返回上一年的四季度
+                Some(format!("{}1231", current_year - 1))
+            }
+        }
+        Some(date_str) => {
+            let list_date = NaiveDate::parse_from_str(&date_str, "%Y%m%d").ok()?;
+            if list_date > q2_end {
+                 Some(format!("{}0630", current_year))
+            } else {
+                 Some(format!("{}1231", current_year - 1))
+            }
+        }
     }
 }

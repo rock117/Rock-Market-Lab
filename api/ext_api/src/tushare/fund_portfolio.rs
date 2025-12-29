@@ -8,8 +8,12 @@ use crate::tushare::call_api_as;
 
 
 /// 基金日线行情行情
-pub async fn fund_portfolio(tscode: &str) -> anyhow::Result<Vec<FundPortfolio>> {
-    let parmas = hash_map! {"ts_code".into() => tscode.into()};
+pub async fn fund_portfolio(tscode: &str, period: Option<String>) -> anyhow::Result<Vec<FundPortfolio>> {
+    let parmas = match period {
+        Some(period) => hash_map! {"ts_code".into() => tscode.into(), "period".into() => period.into()},
+        None => hash_map! {"ts_code".into() => tscode.into()},
+    };
+
     let fields = fields!["ts_code",
                                               "ann_date",
                                               "end_date",
