@@ -16,6 +16,7 @@ interface StockSearchResult {
 
 export default function StockSimilarity() {
   const [selected, setSelected] = useState<StockSearchResult | null>(null)
+  const [inputValue, setInputValue] = useState('')
 
   const [days, setDays] = useState(60)
   const [top, setTop] = useState(50)
@@ -64,6 +65,7 @@ export default function StockSimilarity() {
 
   const onSelect = (s: StockSearchResult) => {
     setSelected(s)
+    setInputValue(s.name)
     setSearchKeyword('')
     setShowSearchResults(false)
   }
@@ -97,9 +99,17 @@ export default function StockSimilarity() {
                   <Search className="h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
-                    placeholder={selected ? `${selected.name} (${selected.ts_code})` : '搜索股票代码或名称...'}
+                    value={inputValue}
+                    placeholder={'搜索股票代码或名称...'}
                     className="w-full bg-transparent text-sm outline-none"
-                    onChange={(e) => debouncedSearch(e.target.value)}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setInputValue(v)
+                      if (selected) {
+                        setSelected(null)
+                      }
+                      debouncedSearch(v)
+                    }}
                     onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
                   />
                 </div>

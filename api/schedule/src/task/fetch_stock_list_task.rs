@@ -31,6 +31,11 @@ impl Task for FetchStockListTask {
         let total = stocks.len();
         let mut curr = 0;
         for mut stock in stocks {
+           let simple_name = match &stock.name {
+               Some(name) => Some(common::get_security_pinyin(name)),
+               None => None,
+           };
+           stock.name_py = simple_name;
            let active_model = entity::stock::ActiveModel { ..stock.clone().into() };
                 let pks = [
                     stock::Column::TsCode,
