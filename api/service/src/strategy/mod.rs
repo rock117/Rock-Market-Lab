@@ -18,7 +18,6 @@ pub mod strong_close_strategy;
 pub mod quality_value_strategy;
 pub mod turnover_ma_bullish_strategy;
 pub mod low_shadow_strategy;
-pub mod similarity_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -147,9 +146,3 @@ pub use low_shadow_strategy::{
     LowShadowResult,
 };
 
-// 重新导出相似度策略相关类型
-pub use similarity_strategy::{
-    SimilarityStrategy,
-    SimilarityStrategyConfig,
-    SimilarityResult,
-};
