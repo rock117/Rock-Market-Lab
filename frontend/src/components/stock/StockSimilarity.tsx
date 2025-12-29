@@ -35,6 +35,21 @@ export default function StockSimilarity() {
     staleTime: 2 * 60 * 1000,
   })
 
+  const renderPctCell = (value?: number | null) => {
+    if (value == null || !Number.isFinite(value)) {
+      return <span>-</span>
+    }
+    const cls = value > 0 ? 'text-red-600' : 'text-green-600'
+    return <span className={cls}>{`${formatNumber(value, 2)}%`}</span>
+  }
+
+  const renderPctCellNoColor = (value?: number | null) => {
+    if (value == null || !Number.isFinite(value)) {
+      return <span>-</span>
+    }
+    return <span>{`${formatNumber(value, 2)}%`}</span>
+  }
+
   useEffect(() => {
     if (searchData?.stocks) {
       setSearchResults(searchData.stocks)
@@ -182,54 +197,56 @@ export default function StockSimilarity() {
           <CardDescription>相似度范围 [-1, 1]，越接近 1 越相似</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading ? (
-            <div className="py-8 text-center text-sm text-muted-foreground">加载中...</div>
-          ) : (
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>排名</TableHead>
+                  <TableHead>股票代码</TableHead>
+                  <TableHead>名称</TableHead>
+                  <TableHead className="text-right">相似度</TableHead>
+                  <TableHead className="text-right">当前价</TableHead>
+                  <TableHead className="text-right">涨跌幅</TableHead>
+                  <TableHead className="text-right">5日涨跌幅</TableHead>
+                  <TableHead className="text-right">10日涨跌幅</TableHead>
+                  <TableHead className="text-right">20日涨跌幅</TableHead>
+                  <TableHead className="text-right">60日涨跌幅</TableHead>
+                  <TableHead className="text-right">换手率</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
                   <TableRow>
-                    <TableHead>排名</TableHead>
-                    <TableHead>股票代码</TableHead>
-                    <TableHead>名称</TableHead>
-                    <TableHead className="text-right">相似度</TableHead>
-                    <TableHead className="text-right">当前价</TableHead>
-                    <TableHead className="text-right">换手率</TableHead>
-                    <TableHead className="text-right">涨跌幅</TableHead>
-                    <TableHead className="text-right">5日涨跌幅</TableHead>
-                    <TableHead className="text-right">10日涨跌幅</TableHead>
-                    <TableHead className="text-right">20日涨跌幅</TableHead>
-                    <TableHead className="text-right">60日涨跌幅</TableHead>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground">
+                      加载中...
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {similarityList.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={11} className="text-center text-muted-foreground">
-                        暂无数据
-                      </TableCell>
+                ) : similarityList.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={11} className="text-center text-muted-foreground">
+                      暂无数据
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  similarityList.map((r, idx) => (
+                    <TableRow key={r.ts_code}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>{r.ts_code}</TableCell>
+                      <TableCell>{r.name || '-'}</TableCell>
+                      <TableCell className="text-right">{formatNumber(r.similarity, 2)}</TableCell>
+                      <TableCell className="text-right">{r.current_price == null ? '-' : formatNumber(r.current_price, 2)}</TableCell>
+                      <TableCell className="text-right">{renderPctCell(r.pct_chg)}</TableCell>
+                      <TableCell className="text-right">{renderPctCell(r.pct5)}</TableCell>
+                      <TableCell className="text-right">{renderPctCell(r.pct10)}</TableCell>
+                      <TableCell className="text-right">{renderPctCell(r.pct20)}</TableCell>
+                      <TableCell className="text-right">{renderPctCell(r.pct60)}</TableCell>
+                      <TableCell className="text-right">{renderPctCellNoColor(r.turnover_rate)}</TableCell>
                     </TableRow>
-                  ) : (
-                    similarityList.map((r, idx) => (
-                      <TableRow key={r.ts_code}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{r.ts_code}</TableCell>
-                        <TableCell>{r.name || '-'}</TableCell>
-                        <TableCell className="text-right">{formatNumber(r.similarity, 2)}</TableCell>
-                        <TableCell className="text-right">{r.current_price == null ? '-' : formatNumber(r.current_price, 2)}</TableCell>
-                        <TableCell className="text-right">{r.turnover_rate == null ? '-' : formatNumber(r.turnover_rate, 2)}</TableCell>
-                        <TableCell className="text-right">{r.pct_chg == null ? '-' : formatNumber(r.pct_chg, 2)}</TableCell>
-                        <TableCell className="text-right">{r.pct5 == null ? '-' : formatNumber(r.pct5, 2)}</TableCell>
-                        <TableCell className="text-right">{r.pct10 == null ? '-' : formatNumber(r.pct10, 2)}</TableCell>
-                        <TableCell className="text-right">{r.pct20 == null ? '-' : formatNumber(r.pct20, 2)}</TableCell>
-                        <TableCell className="text-right">{r.pct60 == null ? '-' : formatNumber(r.pct60, 2)}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

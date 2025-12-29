@@ -324,23 +324,29 @@ pub async fn get_similar_stocks_by_algo(
     // 批量拉取所有股票在区间内的日线 close（一次性查询，避免 N+1）。
     let mut prices_map = stock_price_service::get_stock_prices_batch(&all_codes, &start, &end, conn).await?;
 
-    // Extract target close series (latest N)
+    // Extract target close series
     let target_rows = prices_map.remove(ts_code).unwrap_or_default();
     let mut target_rows = target_rows;
     // trade_date 为字符串（yyyymmdd），按字符串倒序即可得到最近日期优先。
     target_rows.sort_by(|a, b| b.trade_date.cmp(&a.trade_date));
-    let target_closes_desc: Vec<f64> = target_rows
-        .into_iter()
+    let target_closes_desc_days: Vec<f64> = target_rows
+        .iter()
         .take(days)
         .map(|r| r.close.to_f64().unwrap_or(0.0))
         .collect();
 
-    if target_closes_desc.len() < days {
+    let target_closes_desc_metrics: Vec<f64> = target_rows
+        .iter()
+        .take(metrics_days)
+        .map(|r| r.close.to_f64().unwrap_or(0.0))
+        .collect();
+
+    if target_closes_desc_days.len() < days {
         // 目标股票数据不足：无法形成指定窗口，直接返回空。
         return Ok(vec![]);
     }
 
-    let target_rets = match to_returns(&target_closes_desc) {
+    let target_rets = match to_returns(&target_closes_desc_days) {
         Some(v) => v,
         None => return Ok(vec![]),
     };
@@ -398,7 +404,6 @@ pub async fn get_similar_stocks_by_algo(
         let current_price = closes_desc.first().copied();
 
         let pct_chg = rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
-        info!("{} pct_chg: {:?}", code, pct_chg);
         let calc_pct_n = |n: usize| -> Option<f64> {
             if closes_desc.len() <= n {
                 return None;
@@ -430,9 +435,39 @@ pub async fn get_similar_stocks_by_algo(
     scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(top);
 
+    let target_current_price = target_closes_desc_metrics.first().copied();
+    let target_pct_chg = target_rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
+
+    let calc_target_pct_n = |n: usize| -> Option<f64> {
+        if target_closes_desc_metrics.len() <= n {
+            return None;
+        }
+        let latest = target_closes_desc_metrics[0];
+        let base = target_closes_desc_metrics[n];
+        if base == 0.0 {
+            return None;
+        }
+        let v = (latest / base - 1.0) * 100.0;
+        if v.is_finite() { Some(v) } else { None }
+    };
+
+    let mut target_item = StockSimilarityItem {
+        ts_code: ts_code.to_string(),
+        name: name_map.get(ts_code).cloned().unwrap_or(None),
+        similarity: 1.0,
+        current_price: target_current_price,
+        turnover_rate: None,
+        pct_chg: target_pct_chg,
+        pct5: calc_target_pct_n(5),
+        pct10: calc_target_pct_n(10),
+        pct20: calc_target_pct_n(20),
+        pct60: calc_target_pct_n(60),
+    };
+
     // 批量补充换手率（来自 stock_daily_basic 的 turnover_rate，取最近一条）。
-    if !scored.is_empty() {
-        let codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
+    {
+        let mut codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
+        codes.push(ts_code.to_string());
         let start_s = start.format("%Y%m%d").to_string();
         let end_s = end.format("%Y%m%d").to_string();
 
@@ -460,7 +495,12 @@ pub async fn get_similar_stocks_by_algo(
         for item in &mut scored {
             item.turnover_rate = latest_turnover.get(&item.ts_code).map(|(_, v)| *v);
         }
+
+        target_item.turnover_rate = latest_turnover.get(&target_item.ts_code).map(|(_, v)| *v);
     }
+
+    // 置顶目标股票
+    scored.insert(0, target_item);
 
     Ok(scored)
 }
