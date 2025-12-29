@@ -14,6 +14,7 @@ import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import EtfModule from '@/components/etf/EtfModule'
 import AStockList from '@/components/stock/AStockList'
+import StockSimilarity from '@/components/stock/StockSimilarity'
 import { 
   TrendingUp, 
   Globe, 
@@ -86,6 +87,15 @@ const modules = [
     id: 'kline-comparison',
     name: 'K线对比',
     description: '多证券走势对比',
+    icon: BarChart3,
+    color: 'text-orange-500',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'stock-similarity',
+    name: '走势相似度',
+    description: '按近N天走势找相似股票',
     icon: BarChart3,
     color: 'text-orange-500',
     category: 'analysis',
@@ -214,6 +224,8 @@ export default function HomePage() {
         return <StockDetail />
       case 'kline-comparison':
         return <KLineComparison />
+      case 'stock-similarity':
+        return <StockSimilarity />
       case 'margin-trading':
         return <MarginTrading />
       case 'stock-margin-trading':

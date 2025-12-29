@@ -97,6 +97,7 @@ async fn rocket() -> _ {
             security_search_controller::search_securities,
             stock_search_controller::search_stocks,
             stock_history_controller::get_stock_history,
+            stock_similarity_controller::get_stock_similarity,
             stock_price_controller::stock_price,
             security::security_price_controller::get_security_price,
             security::security_history_compare_controller::security_history_compare,

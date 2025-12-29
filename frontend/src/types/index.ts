@@ -97,6 +97,12 @@ export interface EtfHolding {
   stk_float_ratio?: number | null
 }
 
+export interface StockSimilarityItem {
+  ts_code: string
+  name?: string | null
+  similarity: number
+}
+
 // 美股相关类型定义
 export interface UsStock {
   tsCode: string; // 股票代码
