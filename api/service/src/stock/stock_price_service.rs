@@ -54,6 +54,7 @@ pub async fn get_stock_prices_batch(ts_codes: &[String], start_date: &NaiveDate,
                     .filter(ts_code_condition)
                     .filter(stock_daily::Column::TradeDate.gte(&start))
                     .filter(stock_daily::Column::TradeDate.lte(&end))
+                    .order_by_asc(stock_daily::Column::TsCode)
                     .order_by_desc(stock_daily::Column::TradeDate)
                     .all(&conn)
                     .await?;

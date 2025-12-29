@@ -312,32 +312,23 @@ pub async fn get_similar_stocks_by_algo(
         all_codes.push(s.ts_code);
     }
 
-    // Build a loose date range to cover trading day gaps.
-    // 由于交易日不是自然日连续的，这里用较宽松的自然日区间来“覆盖”至少 days 个交易日。
-    // 经验上乘以 3 足以应对周末/节假日缺口（并不保证，但能显著降低取不到 days 条的问题）。
-    //
-    // 额外指标：5/10/20/60 日涨跌幅需要至少 61 个交易日 close（含当日）。
+    // 两阶段：
+    // 1) 相似度计算：只需要 days 窗口
+    // 2) 展示指标：需要至少 61 个交易日 close（含当日）计算 60 日涨跌幅
     let metrics_days = days.max(61);
     let end: NaiveDate = Local::now().date_naive();
-    let start: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
 
-    // 批量拉取所有股票在区间内的日线 close（一次性查询，避免 N+1）。
-    let mut prices_map = stock_price_service::get_stock_prices_batch(&all_codes, &start, &end, conn).await?;
+    // phase1: 相似度窗口
+    let start_sim: NaiveDate = end - Duration::days((days as i64) * 3);
 
-    // Extract target close series
-    let target_rows = prices_map.remove(ts_code).unwrap_or_default();
-    let mut target_rows = target_rows;
-    // trade_date 为字符串（yyyymmdd），按字符串倒序即可得到最近日期优先。
-    target_rows.sort_by(|a, b| b.trade_date.cmp(&a.trade_date));
-    let target_closes_desc_days: Vec<f64> = target_rows
+    // 批量拉取所有股票在区间内的日线（一次性查询，避免 N+1）。
+    let mut prices_map = stock_price_service::get_stock_prices_batch(&all_codes, &start_sim, &end, conn).await?;
+
+    // Extract target close series (phase1)
+    let target_rows_sim = prices_map.remove(ts_code).unwrap_or_default();
+    let target_closes_desc_days: Vec<f64> = target_rows_sim
         .iter()
         .take(days)
-        .map(|r| r.close.to_f64().unwrap_or(0.0))
-        .collect();
-
-    let target_closes_desc_metrics: Vec<f64> = target_rows
-        .iter()
-        .take(metrics_days)
         .map(|r| r.close.to_f64().unwrap_or(0.0))
         .collect();
 
@@ -363,8 +354,6 @@ pub async fn get_similar_stocks_by_algo(
         if code == ts_code {
             continue;
         }
-
-        rows.sort_by(|a, b| b.trade_date.cmp(&a.trade_date));
         let closes_desc: Vec<f64> = rows
             .iter()
             .take(days)
@@ -401,9 +390,44 @@ pub async fn get_similar_stocks_by_algo(
             },
         };
 
-        let current_price = closes_desc.first().copied();
+        scored.push(StockSimilarityItem {
+            ts_code: code.clone(),
+            name: name_map.get(&code).cloned().unwrap_or(None),
+            similarity: sim,
+            current_price: None,
+            turnover_rate: None,
+            pct_chg: None,
+            pct5: None,
+            pct10: None,
+            pct20: None,
+            pct60: None,
+        });
+    }
 
+    // 相似度降序，取 top。
+    scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
+    scored.truncate(top);
+
+    // phase2: 仅对目标股票 + top 候选补齐展示字段
+    let start_metrics: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
+    let mut metric_codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
+    metric_codes.push(ts_code.to_string());
+
+    let metrics_map = stock_price_service::get_stock_prices_batch(&metric_codes, &start_metrics, &end, conn).await?;
+
+    let calc_metrics = |rows: &Vec<entity::stock_daily::Model>| -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
+        if rows.is_empty() {
+            return (None, None, None, None, None, None);
+        }
+        let closes_desc: Vec<f64> = rows
+            .iter()
+            .take(metrics_days)
+            .map(|r| r.close.to_f64().unwrap_or(0.0))
+            .collect();
+
+        let current_price = closes_desc.first().copied();
         let pct_chg = rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
+
         let calc_pct_n = |n: usize| -> Option<f64> {
             if closes_desc.len() <= n {
                 return None;
@@ -417,58 +441,48 @@ pub async fn get_similar_stocks_by_algo(
             if v.is_finite() { Some(v) } else { None }
         };
 
-        scored.push(StockSimilarityItem {
-            ts_code: code.clone(),
-            name: name_map.get(&code).cloned().unwrap_or(None),
-            similarity: sim,
-            current_price,
-            turnover_rate: None,
-            pct_chg,
-            pct5: calc_pct_n(5),
-            pct10: calc_pct_n(10),
-            pct20: calc_pct_n(20),
-            pct60: calc_pct_n(60),
-        });
-    }
-
-    // 相似度降序，取 top。
-    scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
-    scored.truncate(top);
-
-    let target_current_price = target_closes_desc_metrics.first().copied();
-    let target_pct_chg = target_rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
-
-    let calc_target_pct_n = |n: usize| -> Option<f64> {
-        if target_closes_desc_metrics.len() <= n {
-            return None;
-        }
-        let latest = target_closes_desc_metrics[0];
-        let base = target_closes_desc_metrics[n];
-        if base == 0.0 {
-            return None;
-        }
-        let v = (latest / base - 1.0) * 100.0;
-        if v.is_finite() { Some(v) } else { None }
+        (current_price, pct_chg, calc_pct_n(5), calc_pct_n(10), calc_pct_n(20), calc_pct_n(60))
     };
+
+    for item in &mut scored {
+        if let Some(rows) = metrics_map.get(&item.ts_code) {
+            let (cp, pc, p5, p10, p20, p60) = calc_metrics(rows);
+            item.current_price = cp;
+            item.pct_chg = pc;
+            item.pct5 = p5;
+            item.pct10 = p10;
+            item.pct20 = p20;
+            item.pct60 = p60;
+        }
+    }
 
     let mut target_item = StockSimilarityItem {
         ts_code: ts_code.to_string(),
         name: name_map.get(ts_code).cloned().unwrap_or(None),
         similarity: 1.0,
-        current_price: target_current_price,
+        current_price: None,
         turnover_rate: None,
-        pct_chg: target_pct_chg,
-        pct5: calc_target_pct_n(5),
-        pct10: calc_target_pct_n(10),
-        pct20: calc_target_pct_n(20),
-        pct60: calc_target_pct_n(60),
+        pct_chg: None,
+        pct5: None,
+        pct10: None,
+        pct20: None,
+        pct60: None,
     };
+
+    if let Some(rows) = metrics_map.get(ts_code) {
+        let (cp, pc, p5, p10, p20, p60) = calc_metrics(rows);
+        target_item.current_price = cp;
+        target_item.pct_chg = pc;
+        target_item.pct5 = p5;
+        target_item.pct10 = p10;
+        target_item.pct20 = p20;
+        target_item.pct60 = p60;
+    }
 
     // 批量补充换手率（来自 stock_daily_basic 的 turnover_rate，取最近一条）。
     {
-        let mut codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
-        codes.push(ts_code.to_string());
-        let start_s = start.format("%Y%m%d").to_string();
+        let codes: Vec<String> = metric_codes;
+        let start_s = start_metrics.format("%Y%m%d").to_string();
         let end_s = end.format("%Y%m%d").to_string();
 
         let code_condition = codes
