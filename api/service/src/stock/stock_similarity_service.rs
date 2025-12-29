@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Instant;
 
 use chrono::{Duration, Local, NaiveDate};
 use entity::sea_orm::DatabaseConnection;
@@ -289,6 +290,7 @@ pub async fn get_similar_stocks_by_algo(
     top: usize,
     algo: Option<&str>,
 ) -> anyhow::Result<Vec<StockSimilarityItem>> {
+    let t_total = Instant::now();
     // 对外主入口：计算与 ts_code 最相似的 top 支股票。
     //
     // 重要约束：
@@ -298,8 +300,12 @@ pub async fn get_similar_stocks_by_algo(
     let top = sanitize_top(top);
     let algo = parse_algo(algo);
 
+    info!("[similarity] start ts_code={} days={} top={} algo={:?}", ts_code, days, top, algo);
+
     // Get all stocks (for name mapping + candidate list)
+    let t_stocks = Instant::now();
     let stocks: Vec<stock::Model> = stock::Entity::find().all(conn).await?;
+    info!("[similarity] load_stocks done elapsed_ms={} stocks={} ", t_stocks.elapsed().as_millis(), stocks.len());
     if stocks.is_empty() {
         return Ok(vec![]);
     }
@@ -322,7 +328,18 @@ pub async fn get_similar_stocks_by_algo(
     let start_sim: NaiveDate = end - Duration::days((days as i64) * 3);
 
     // 批量拉取所有股票在区间内的日线（一次性查询，避免 N+1）。
+    let t_phase1_fetch = Instant::now();
     let mut prices_map = stock_price_service::get_stock_prices_batch(&all_codes, &start_sim, &end, conn).await?;
+    let phase1_total_rows: usize = prices_map.values().map(|v| v.len()).sum();
+    info!(
+        "[similarity] phase1_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={}",
+        t_phase1_fetch.elapsed().as_millis(),
+        all_codes.len(),
+        prices_map.len(),
+        phase1_total_rows,
+        start_sim.format("%Y-%m-%d").to_string(),
+        end.format("%Y-%m-%d").to_string(),
+    );
 
     // Extract target close series (phase1)
     let target_rows_sim = prices_map.remove(ts_code).unwrap_or_default();
@@ -350,6 +367,9 @@ pub async fn get_similar_stocks_by_algo(
     let mut scored: Vec<StockSimilarityItem> = Vec::new();
 
     // 遍历候选股票：构造同样长度的向量并计算相似度。
+    let t_phase1_calc = Instant::now();
+    let mut skipped_short = 0usize;
+    let mut skipped_invalid = 0usize;
     for (code, mut rows) in prices_map {
         if code == ts_code {
             continue;
@@ -362,17 +382,24 @@ pub async fn get_similar_stocks_by_algo(
 
         if closes_desc.len() < days {
             // 候选股票数据不足：跳过
+            skipped_short += 1;
             continue;
         }
 
         let rets = match to_returns(&closes_desc) {
             Some(v) => v,
-            None => continue,
+            None => {
+                skipped_invalid += 1;
+                continue;
+            }
         };
 
         let v_norm = match zscore_norm(&rets) {
             Some(v) => v,
-            None => continue,
+            None => {
+                skipped_invalid += 1;
+                continue;
+            }
         };
 
         let sim = match algo {
@@ -386,7 +413,10 @@ pub async fn get_similar_stocks_by_algo(
             },
             SimilarityAlgo::BestLagCosine => match best_lag_cosine(&target_vec_norm, &v_norm, 5) {
                 Some(s) if s.is_finite() => s,
-                _ => continue,
+                _ => {
+                    skipped_invalid += 1;
+                    continue;
+                }
             },
         };
 
@@ -404,16 +434,38 @@ pub async fn get_similar_stocks_by_algo(
         });
     }
 
+    info!(
+        "[similarity] phase1_calc done elapsed_ms={} scored={} skipped_short={} skipped_invalid={}",
+        t_phase1_calc.elapsed().as_millis(),
+        scored.len(),
+        skipped_short,
+        skipped_invalid
+    );
+
     // 相似度降序，取 top。
+    let t_sort = Instant::now();
     scored.sort_by(|a, b| b.similarity.partial_cmp(&a.similarity).unwrap_or(std::cmp::Ordering::Equal));
     scored.truncate(top);
+    info!("[similarity] sort_truncate done elapsed_ms={} top_returned={}", t_sort.elapsed().as_millis(), scored.len());
 
     // phase2: 仅对目标股票 + top 候选补齐展示字段
     let start_metrics: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
     let mut metric_codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
     metric_codes.push(ts_code.to_string());
 
+    let t_phase2_fetch = Instant::now();
     let metrics_map = stock_price_service::get_stock_prices_batch(&metric_codes, &start_metrics, &end, conn).await?;
+    let phase2_total_rows: usize = metrics_map.values().map(|v| v.len()).sum();
+    info!(
+        "[similarity] phase2_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} metrics_days={}",
+        t_phase2_fetch.elapsed().as_millis(),
+        metric_codes.len(),
+        metrics_map.len(),
+        phase2_total_rows,
+        start_metrics.format("%Y-%m-%d").to_string(),
+        end.format("%Y-%m-%d").to_string(),
+        metrics_days
+    );
 
     let calc_metrics = |rows: &Vec<entity::stock_daily::Model>| -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
         if rows.is_empty() {
@@ -481,6 +533,7 @@ pub async fn get_similar_stocks_by_algo(
 
     // 批量补充换手率（来自 stock_daily_basic 的 turnover_rate，取最近一条）。
     {
+        let t_turnover = Instant::now();
         let codes: Vec<String> = metric_codes;
         let start_s = start_metrics.format("%Y%m%d").to_string();
         let end_s = end.format("%Y%m%d").to_string();
@@ -496,6 +549,11 @@ pub async fn get_similar_stocks_by_algo(
             .filter(stock_daily_basic::Column::TradeDate.lte(end_s))
             .all(conn)
             .await?;
+        info!(
+            "[similarity] phase2_turnover_fetch done elapsed_ms={} rows={}",
+            t_turnover.elapsed().as_millis(),
+            basic_rows.len()
+        );
 
         let mut latest_turnover: HashMap<String, (String, f64)> = HashMap::new();
         for r in basic_rows {
@@ -515,6 +573,8 @@ pub async fn get_similar_stocks_by_algo(
 
     // 置顶目标股票
     scored.insert(0, target_item);
+
+    info!("[similarity] done elapsed_ms={} returned={}", t_total.elapsed().as_millis(), scored.len());
 
     Ok(scored)
 }
