@@ -442,6 +442,8 @@ export interface AStockOverview {
   area?: string | null
   industry?: string | null
 
+  concepts?: string | null
+
   close?: number | null
   pct_chg?: number | null
 

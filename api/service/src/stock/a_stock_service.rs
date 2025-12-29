@@ -5,6 +5,7 @@ use entity::sea_orm::{
     ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
 };
 use entity::{stock, stock_daily, stock_daily_basic};
+use entity::cn_security_info;
 use entity::sea_orm::prelude::Decimal;
 use serde::Serialize;
 
@@ -20,6 +21,7 @@ pub struct AStockOverview {
     pub pct10: Option<Decimal>,
     pub pct20: Option<Decimal>,
     pub pct60: Option<Decimal>,
+    pub concepts: Option<String>,
     pub pe: Option<Decimal>,
     pub dv_ratio: Option<Decimal>,
     pub total_mv: Option<Decimal>,
@@ -48,6 +50,20 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
     if stocks.is_empty() {
         return Ok(vec![]);
     }
+
+    // 1.1) 概念信息（cn_security_info.concepts）
+    let ts_codes: Vec<String> = stocks.iter().map(|s| s.ts_code.clone()).collect();
+    let cn_infos = cn_security_info::Entity::find()
+        .filter(<cn_security_info::Column as ColumnTrait>::is_in(
+            &cn_security_info::Column::Secucode,
+            ts_codes.clone(),
+        ))
+        .all(conn)
+        .await?;
+    let concepts_map: std::collections::HashMap<String, Option<String>> = cn_infos
+        .into_iter()
+        .map(|m| (m.secucode, m.concepts))
+        .collect();
 
     // 2) 全市场最新交易日（用于取 close/pct_chg 和 pe/dv_ratio/total_mv）
     let latest_trade_date: Option<String> = stock_daily::Entity::find()
@@ -116,22 +132,23 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
     // 7) 组装返回
     let mut items: Vec<AStockOverview> = Vec::with_capacity(stocks.len());
     for s in stocks {
-        let name = s.name.clone().unwrap_or_else(|| s.ts_code.clone());
+        let ts_code = s.ts_code.clone();
+        let name = s.name.clone().unwrap_or_else(|| "-".to_string());
 
-        let (close, pct_chg) = match latest_daily_map.get(&s.ts_code) {
+        let (close, pct_chg) = match latest_daily_map.get(&ts_code) {
             Some(d) => (Some(d.close), d.pct_chg),
             None => (None, None),
         };
 
-        let (pe, dv_ratio, total_mv) = match latest_basic_map.get(&s.ts_code) {
+        let (pe, dv_ratio, total_mv) = match latest_basic_map.get(&ts_code) {
             Some(b) => (b.pe, b.dv_ratio, b.total_mv),
             None => (None, None, None),
         };
 
-        let closes_desc = closes_map.get(&s.ts_code).map(|v| v.as_slice()).unwrap_or(&[]);
+        let closes_desc = closes_map.get(&ts_code).map(|v| v.as_slice()).unwrap_or(&[]);
 
         items.push(AStockOverview {
-            ts_code: s.ts_code,
+            ts_code: ts_code.clone(),
             name,
             name_py: s.name_py,
             list_date: s.list_date,
@@ -141,6 +158,7 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
             pct10: calc_period_pct_chg(closes_desc, 10),
             pct20: calc_period_pct_chg(closes_desc, 20),
             pct60: calc_period_pct_chg(closes_desc, 60),
+            concepts: concepts_map.get(&ts_code).cloned().flatten(),
             pe,
             dv_ratio,
             total_mv,

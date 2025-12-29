@@ -213,6 +213,7 @@ export default function AStockList({ className }: AStockListProps) {
                 <TableHead className="w-[120px] text-right cursor-pointer select-none" onClick={() => toggleSort('pct60')}>
                   {getSortLabel('pct60', '60日涨跌幅')}
                 </TableHead>
+                <TableHead className="w-[240px]">概念</TableHead>
                 <TableHead className="w-[90px] text-right cursor-pointer select-none" onClick={() => toggleSort('pe')}>
                   {getSortLabel('pe', 'PE')}
                 </TableHead>
@@ -230,7 +231,7 @@ export default function AStockList({ className }: AStockListProps) {
             <TableBody>
               {data.items.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={12} className="text-center text-muted-foreground py-10">
+                  <TableCell colSpan={13} className="text-center text-muted-foreground py-10">
                     {keyword.trim() ? '没有匹配结果' : '暂无数据'}
                   </TableCell>
                 </TableRow>
@@ -255,6 +256,9 @@ export default function AStockList({ className }: AStockListProps) {
                       </TableCell>
                       <TableCell className={`text-right ${getUpDownClass(stock.pct60)}`}>
                         {stock.pct60 == null ? '-' : formatPercent(stock.pct60, 2)}
+                      </TableCell>
+                      <TableCell className="max-w-[240px] truncate" title={stock.concepts || ''}>
+                        {stock.concepts || '-'}
                       </TableCell>
                       <TableCell className="text-right">{stock.pe == null ? '-' : formatNumber(stock.pe, 2)}</TableCell>
                       <TableCell className="text-right">{stock.dv_ratio == null ? '-' : formatPercent(stock.dv_ratio, 2)}
