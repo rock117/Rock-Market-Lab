@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { etfApi, normalizeDate } from '@/services/api'
 import type { EtfHolding, EtfItem } from '@/types'
-import { formatNumber } from '@/lib/utils'
+import { formatLargeNumber, formatNumber, formatPercent } from '@/lib/utils'
 
 export default function EtfModule() {
   const [listKeyword, setListKeyword] = useState('')
@@ -17,7 +17,10 @@ export default function EtfModule() {
 
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  const [sortKey, setSortKey] = useState<'tsCode' | 'cname' | 'listDate' | 'exchange' | 'etfType'>('tsCode')
+  const [sortKey, setSortKey] = useState<
+    'tsCode' | 'cname' | 'listDate' | 'exchange' | 'etfType' |
+    'close' | 'amount' | 'pct_chg' | 'pct5' | 'pct10' | 'pct20' | 'pct60' | 'vol'
+  >('tsCode')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc')
 
   const [holdingKeyword, setHoldingKeyword] = useState('')
@@ -46,6 +49,12 @@ export default function EtfModule() {
 
   const sortedEtfList = useMemo(() => {
     const dir = sortDir === 'asc' ? 1 : -1
+    const toNumber = (v: any) => {
+      if (v === null || v === undefined) return NaN
+      const n = typeof v === 'number' ? v : Number(v)
+      return Number.isFinite(n) ? n : NaN
+    }
+
     const getVal = (item: EtfItem): string | number => {
       switch (sortKey) {
         case 'tsCode':
@@ -58,6 +67,22 @@ export default function EtfModule() {
           return item.exchange || ''
         case 'etfType':
           return item.etfType || ''
+        case 'close':
+          return toNumber(item.close)
+        case 'amount':
+          return toNumber(item.amount)
+        case 'pct_chg':
+          return toNumber(item.pct_chg)
+        case 'pct5':
+          return toNumber(item.pct5)
+        case 'pct10':
+          return toNumber(item.pct10)
+        case 'pct20':
+          return toNumber(item.pct20)
+        case 'pct60':
+          return toNumber(item.pct60)
+        case 'vol':
+          return toNumber(item.vol)
         default:
           return ''
       }
@@ -68,6 +93,11 @@ export default function EtfModule() {
       const vb = getVal(b)
       if (va === vb) return 0
       if (typeof va === 'number' && typeof vb === 'number') {
+        const aValid = Number.isFinite(va)
+        const bValid = Number.isFinite(vb)
+        if (!aValid && !bValid) return 0
+        if (!aValid) return 1
+        if (!bValid) return -1
         return va > vb ? dir : -dir
       }
       const sa = String(va)
@@ -193,6 +223,38 @@ export default function EtfModule() {
                           名称
                           {renderSortIcon('cname')}
                         </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('close')}>
+                          当前价
+                          {renderSortIcon('close')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('amount')}>
+                          当前成交量
+                          {renderSortIcon('amount')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('pct_chg')}>
+                          涨跌幅
+                          {renderSortIcon('pct_chg')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('pct5')}>
+                          5日涨跌幅
+                          {renderSortIcon('pct5')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('pct10')}>
+                          10日涨跌幅
+                          {renderSortIcon('pct10')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('pct20')}>
+                          20日涨跌幅
+                          {renderSortIcon('pct20')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('pct60')}>
+                          60日涨跌幅
+                          {renderSortIcon('pct60')}
+                        </TableHead>
+                        <TableHead className="cursor-pointer text-right" onClick={() => toggleSort('vol')}>
+                          成交量
+                          {renderSortIcon('vol')}
+                        </TableHead>
                         <TableHead className="cursor-pointer" onClick={() => toggleSort('listDate')}>
                           发行日期
                           {renderSortIcon('listDate')}
@@ -222,6 +284,14 @@ export default function EtfModule() {
                             {item.tsCode || '-'}
                           </TableCell>
                           <TableCell>{item.cname || '-'}</TableCell>
+                          <TableCell className="text-right">{item.close == null ? '-' : formatNumber(item.close, 4)}</TableCell>
+                          <TableCell className="text-right">{item.amount == null ? '-' : formatLargeNumber(item.amount)}</TableCell>
+                          <TableCell className="text-right">{item.pct_chg == null ? '-' : formatPercent(item.pct_chg, 2)}</TableCell>
+                          <TableCell className="text-right">{item.pct5 == null ? '-' : formatPercent(item.pct5, 2)}</TableCell>
+                          <TableCell className="text-right">{item.pct10 == null ? '-' : formatPercent(item.pct10, 2)}</TableCell>
+                          <TableCell className="text-right">{item.pct20 == null ? '-' : formatPercent(item.pct20, 2)}</TableCell>
+                          <TableCell className="text-right">{item.pct60 == null ? '-' : formatPercent(item.pct60, 2)}</TableCell>
+                          <TableCell className="text-right">{item.vol == null ? '-' : formatLargeNumber(item.vol)}</TableCell>
                           <TableCell>{item.listDate ? normalizeDate(String(item.listDate)) : '-'}</TableCell>
                           <TableCell>{item.exchange || '-'}</TableCell>
                           <TableCell>{item.etfType || '-'}</TableCell>

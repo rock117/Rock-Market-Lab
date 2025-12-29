@@ -8,6 +8,16 @@ const normalizeEtfItem = (r: any): EtfItem => ({
   listDate: r.listDate ?? r.list_date ?? null,
   etfType: r.etfType ?? r.etf_type ?? null,
   exchange: r.exchange ?? null,
+
+  close: r.close == null ? null : Number(r.close),
+  vol: r.vol == null ? null : Number(r.vol),
+  amount: r.amount == null ? null : Number(r.amount),
+  pct_chg: r.pct_chg == null ? null : Number(r.pct_chg),
+  pct5: r.pct5 == null ? null : Number(r.pct5),
+  pct10: r.pct10 == null ? null : Number(r.pct10),
+  pct20: r.pct20 == null ? null : Number(r.pct20),
+  pct60: r.pct60 == null ? null : Number(r.pct60),
+
   ts_code: r.ts_code,
   csname: r.csname,
   extname: r.extname,

@@ -1,6 +1,7 @@
 use entity::sea_orm::DatabaseConnection;
 use rocket::{get, State};
 use rocket::FromForm;
+
 use serde_derive::Serialize;
 
 use crate::response::WebResponse;
@@ -24,6 +25,15 @@ pub struct EtfItemResp {
     pub mgr_name: Option<String>,
     pub mgt_fee: Option<String>,
     pub etf_type: Option<String>,
+
+    pub close: Option<f64>,
+    pub vol: Option<f64>,
+    pub amount: Option<f64>,
+    pub pct_chg: Option<f64>,
+    pub pct5: Option<f64>,
+    pub pct10: Option<f64>,
+    pub pct20: Option<f64>,
+    pub pct60: Option<f64>,
 }
 
 #[derive(FromForm, Debug)]
@@ -67,6 +77,15 @@ pub async fn get_etf_list(conn: &State<DatabaseConnection>) -> Result<WebRespons
             mgr_name: r.mgr_name,
             mgt_fee: r.mgt_fee,
             etf_type: r.etf_type,
+
+            close: r.close,
+            vol: r.vol,
+            amount: r.amount,
+            pct_chg: r.pct_chg,
+            pct5: r.pct5,
+            pct10: r.pct10,
+            pct20: r.pct20,
+            pct60: r.pct60,
         })
         .collect();
 
@@ -98,6 +117,15 @@ pub async fn search_etfs(
             mgr_name: r.mgr_name,
             mgt_fee: r.mgt_fee,
             etf_type: r.etf_type,
+
+            close: None,
+            vol: None,
+            amount: None,
+            pct_chg: None,
+            pct5: None,
+            pct10: None,
+            pct20: None,
+            pct60: None,
         })
         .collect();
 

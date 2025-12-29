@@ -62,6 +62,15 @@ export interface EtfItem {
   cname?: string | null
   exchange?: string | null
 
+  close?: number | null
+  vol?: number | null
+  amount?: number | null
+  pct_chg?: number | null
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
+
   ts_code?: string
   csname?: string
   extname?: string | null
