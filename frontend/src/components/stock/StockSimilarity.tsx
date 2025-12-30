@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { stockDetailApi, stockSimilarityApi } from '@/services/api'
 import type { StockSimilarityResponse } from '@/types'
 import { debounce, formatNumber } from '@/lib/utils'
-import { Search } from 'lucide-react'
+import { Check, ChevronDown, Search } from 'lucide-react'
 import {
   CartesianGrid,
   Legend,
@@ -30,8 +30,12 @@ export default function StockSimilarity() {
   const [selected, setSelected] = useState<StockSearchResult | null>(null)
   const [inputValue, setInputValue] = useState('')
 
+  const [visibleCodes, setVisibleCodes] = useState<string[] | null>(null)
+  const [codesPickerOpen, setCodesPickerOpen] = useState(false)
+  const codesPickerRef = useRef<HTMLDivElement | null>(null)
+
   const [days, setDays] = useState(60)
-  const [top, setTop] = useState(5)
+  const [top, setTop] = useState(20)
   const [algo, setAlgo] = useState<SimilarityAlgoKey>('zscore_cosine')
 
   const [searchKeyword, setSearchKeyword] = useState('')
@@ -95,6 +99,31 @@ export default function StockSimilarity() {
 
   const similarityList = similarityResp?.items ?? []
   const klineMap = similarityResp?.kline ?? {}
+
+  useEffect(() => {
+    if (!codesPickerOpen) return
+
+    const onMouseDown = (e: MouseEvent) => {
+      const el = codesPickerRef.current
+      if (!el) return
+      if (el.contains(e.target as Node)) return
+      setCodesPickerOpen(false)
+    }
+
+    document.addEventListener('mousedown', onMouseDown)
+    return () => document.removeEventListener('mousedown', onMouseDown)
+  }, [codesPickerOpen])
+
+  useEffect(() => {
+    const codes = similarityList.map((x) => x.ts_code)
+    setVisibleCodes((prev) => {
+      if (codes.length === 0) return null
+      if (prev == null) return null
+      const prevSet = new Set(prev)
+      const next = codes.filter((c) => prevSet.has(c))
+      return next
+    })
+  }, [similarityList])
 
   const onSelect = (s: StockSearchResult) => {
     setSelected(s)
@@ -237,6 +266,7 @@ export default function StockSimilarity() {
               ) : (
                 (() => {
                   const codes = similarityList.map(x => x.ts_code)
+                  const visibleSet = new Set(visibleCodes == null ? codes : visibleCodes)
                   const dateSet = new Set<string>()
                   for (const code of codes) {
                     const pts = klineMap[code] ?? []
@@ -327,6 +357,90 @@ export default function StockSimilarity() {
                       <div className="mb-3 text-sm text-muted-foreground">
                         归一化规则：各股票首日收盘价 = 100
                       </div>
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <label className="text-sm font-medium">显示股票</label>
+                        {(() => {
+                          const currentVisible = visibleCodes == null ? codes : visibleCodes
+                          const visibleSetLocal = new Set(currentVisible)
+                          const total = codes.length
+                          const selectedCount = codes.filter((c) => visibleSetLocal.has(c)).length
+
+                          const setVisibleSafe = (nextCodes: string[]) => {
+                            setVisibleCodes(nextCodes)
+                          }
+
+                          const onToggleCode = (code: string) => {
+                            const next = new Set(currentVisible)
+                            if (next.has(code)) {
+                              next.delete(code)
+                            } else {
+                              next.add(code)
+                            }
+                            setVisibleSafe(Array.from(next))
+                          }
+
+                          const onToggleAll = () => {
+                            setVisibleCodes((prev) => (prev == null ? [] : null))
+                          }
+
+                          return (
+                            <div className="relative" ref={codesPickerRef}>
+                              <button
+                                type="button"
+                                className="flex h-10 w-72 items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                onClick={() => setCodesPickerOpen((v) => !v)}
+                              >
+                                <span className="truncate">
+                                  {visibleCodes == null
+                                    ? `全部显示（${total}）`
+                                    : selectedCount === 0
+                                      ? '已隐藏全部'
+                                      : `已选 ${selectedCount}/${total}`}
+                                </span>
+                                <ChevronDown className={`h-4 w-4 opacity-60 transition-transform ${codesPickerOpen ? 'rotate-180' : ''}`} />
+                              </button>
+
+                              {codesPickerOpen && (
+                                <div className="absolute left-0 right-0 z-20 mt-1 rounded-md border bg-white shadow-lg">
+                                  <div className="flex items-center justify-between gap-2 border-b p-2">
+                                    <button
+                                      type="button"
+                                      className={`rounded-md border px-2 py-1 text-xs hover:bg-muted ${visibleCodes == null ? 'bg-muted font-medium' : ''}`}
+                                      onClick={onToggleAll}
+                                    >
+                                      全选
+                                    </button>
+                                  </div>
+
+                                  <div className="max-h-64 overflow-y-auto p-1">
+                                    {codes.map((code, idx) => {
+                                      const isChecked = visibleSetLocal.has(code)
+                                      const isSel = code === selected?.ts_code
+                                      return (
+                                        <button
+                                          key={code}
+                                          type="button"
+                                          className={`flex w-full items-center gap-2 rounded-sm px-2 py-2 text-left text-sm hover:bg-muted ${isSel ? 'font-medium' : ''}`}
+                                          onClick={() => onToggleCode(code)}
+                                        >
+                                          <span
+                                            className={`flex h-4 w-4 items-center justify-center rounded border ${isChecked ? 'bg-primary text-primary-foreground border-primary' : 'bg-white'}`}
+                                            style={{ borderColor: isChecked ? undefined : colors[idx % colors.length] }}
+                                          >
+                                            {isChecked ? <Check className="h-3 w-3" /> : null}
+                                          </span>
+                                          <span className="flex-1 truncate">{nameByCode[code] || code}</span>
+                                          <span className="text-xs text-muted-foreground">{code}</span>
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })()}
+                      </div>
                       <div className="h-[520px] w-full">
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
@@ -341,6 +455,7 @@ export default function StockSimilarity() {
                             <Tooltip content={<CustomTooltip />} />
                             <Legend />
                             {codes.map((code, idx) => (
+                              !visibleSet.has(code) ? null :
                               <Line
                                 key={code}
                                 type="monotone"
