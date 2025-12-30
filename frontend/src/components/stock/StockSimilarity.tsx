@@ -348,6 +348,7 @@ export default function StockSimilarity() {
                                 name={nameByCode[code]}
                                 stroke={colors[idx % colors.length]}
                                 strokeWidth={code === selected.ts_code ? 3 : 2}
+                                strokeOpacity={code === selected.ts_code ? 1 : 0.55}
                                 dot={false}
                                 connectNulls={false}
                                 isAnimationActive={false}
