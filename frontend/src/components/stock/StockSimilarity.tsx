@@ -8,7 +8,16 @@ import { stockDetailApi, stockSimilarityApi } from '@/services/api'
 import type { StockSimilarityResponse } from '@/types'
 import { debounce, formatNumber } from '@/lib/utils'
 import { Search } from 'lucide-react'
-import KLineChart from '@/components/charts/KLineChart'
+import {
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts'
 
 interface StockSearchResult {
   ts_code: string
@@ -229,41 +238,93 @@ export default function StockSimilarity() {
               ) : similarityList.length === 0 ? (
                 <div className="text-center text-muted-foreground">暂无数据</div>
               ) : (
-                similarityList.map((it) => {
-                  const pts = klineMap[it.ts_code] ?? []
-                  const chartData = pts.map(p => {
-                    const open = Number(p.open)
-                    const close = Number(p.close)
-                    return {
-                      trade_date: p.date,
-                      open: Number.isFinite(open) ? open : 0,
-                      high: Number.isFinite(p.high) ? p.high : 0,
-                      low: Number.isFinite(p.low) ? p.low : 0,
-                      close: Number.isFinite(close) ? close : 0,
-                      volume: 0,
-                      amount: Number(p.amount ?? 0),
-                      turnover_rate: Number(p.turnover_rate ?? 0),
-                      pct_chg: Number(p.pct_chg ?? 0),
-                      change: Number.isFinite(open) && Number.isFinite(close) ? Number((close - open).toFixed(2)) : 0,
+                (() => {
+                  const codes = similarityList.map(x => x.ts_code)
+                  const dateSet = new Set<string>()
+                  for (const code of codes) {
+                    const pts = klineMap[code] ?? []
+                    for (const p of pts) {
+                      if (p?.date) dateSet.add(p.date)
                     }
+                  }
+                  const dates = Array.from(dateSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
+
+                  const closeByCode: Record<string, Record<string, number>> = {}
+                  const baseByCode: Record<string, number> = {}
+                  for (const code of codes) {
+                    const pts = (klineMap[code] ?? []).slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+                    if (pts.length > 0) {
+                      const base = Number(pts[0]?.close)
+                      baseByCode[code] = Number.isFinite(base) && base !== 0 ? base : 1
+                    } else {
+                      baseByCode[code] = 1
+                    }
+
+                    const map: Record<string, number> = {}
+                    for (const p of pts) {
+                      const c = Number(p.close)
+                      if (p?.date && Number.isFinite(c)) map[p.date] = c
+                    }
+                    closeByCode[code] = map
+                  }
+
+                  const chartData = dates.map(date => {
+                    const row: any = { date }
+                    for (const code of codes) {
+                      const c = closeByCode[code]?.[date]
+                      if (c == null) {
+                        row[code] = null
+                      } else {
+                        row[code] = Number(((c / baseByCode[code]) * 100).toFixed(2))
+                      }
+                    }
+                    return row
                   })
 
+                  const nameByCode: Record<string, string> = {}
+                  for (const it of similarityList) {
+                    nameByCode[it.ts_code] = it.name || it.ts_code
+                  }
+
+                  const colors = ['#2563eb', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#14b8a6', '#ec4899', '#64748b']
+
                   return (
-                    <Card key={it.ts_code} className={it.ts_code === selected?.ts_code ? 'border-primary' : undefined}>
-                      <CardHeader>
-                        <CardTitle className="text-base">
-                          {it.name || it.ts_code} ({it.ts_code})
-                        </CardTitle>
-                        <CardDescription>
-                          相似度：{formatNumber(it.similarity, 2)}
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent>
-                        <KLineChart data={chartData} stockName={it.name || it.ts_code} />
-                      </CardContent>
-                    </Card>
+                    <div>
+                      <div className="mb-3 text-sm text-muted-foreground">
+                        归一化规则：各股票首日收盘价 = 100
+                      </div>
+                      <div className="h-[520px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 10, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e1e5e9" />
+                            <XAxis
+                              dataKey="date"
+                              tick={{ fontSize: 12 }}
+                              stroke="#666"
+                              tickFormatter={(v) => String(v).slice(5)}
+                            />
+                            <YAxis tick={{ fontSize: 12 }} stroke="#666" />
+                            <Tooltip />
+                            <Legend />
+                            {codes.map((code, idx) => (
+                              <Line
+                                key={code}
+                                type="monotone"
+                                dataKey={code}
+                                name={nameByCode[code]}
+                                stroke={colors[idx % colors.length]}
+                                strokeWidth={code === selected.ts_code ? 3 : 2}
+                                dot={false}
+                                connectNulls={false}
+                                isAnimationActive={false}
+                              />
+                            ))}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
                   )
-                })
+                })()
               )}
             </div>
           ) : (
