@@ -225,7 +225,7 @@ export default function StockSimilarity() {
               onClick={() => setViewMode('chart')}
               type="button"
             >
-              图表(K线)
+              图表(走势对比)
             </button>
           </div>
 
@@ -250,6 +250,7 @@ export default function StockSimilarity() {
                   const dates = Array.from(dateSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime())
 
                   const closeByCode: Record<string, Record<string, number>> = {}
+                  const pctByCode: Record<string, Record<string, number>> = {}
                   const baseByCode: Record<string, number> = {}
                   for (const code of codes) {
                     const pts = (klineMap[code] ?? []).slice().sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
@@ -261,11 +262,15 @@ export default function StockSimilarity() {
                     }
 
                     const map: Record<string, number> = {}
+                    const pctMap: Record<string, number> = {}
                     for (const p of pts) {
                       const c = Number(p.close)
+                      const pct = Number(p.pct_chg)
                       if (p?.date && Number.isFinite(c)) map[p.date] = c
+                      if (p?.date && Number.isFinite(pct)) pctMap[p.date] = pct
                     }
                     closeByCode[code] = map
+                    pctByCode[code] = pctMap
                   }
 
                   const chartData = dates.map(date => {
@@ -288,6 +293,38 @@ export default function StockSimilarity() {
 
                   const colors = ['#2563eb', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#14b8a6', '#ec4899', '#64748b']
 
+                  const CustomTooltip = ({ active, label, payload }: any) => {
+                    if (!active || !payload || payload.length === 0) return null
+                    const date = label
+                    return (
+                      <div className="bg-white p-3 border rounded-lg shadow-lg">
+                        <div className="font-medium mb-2">{date}</div>
+                        <div className="space-y-1 text-sm">
+                          {payload
+                            .filter((p: any) => p && p.dataKey)
+                            .map((p: any) => {
+                              const code = String(p.dataKey)
+                              const price = closeByCode[code]?.[date]
+                              const pct = pctByCode[code]?.[date]
+                              const pctCls = pct == null ? '' : pct > 0 ? 'text-red-600' : pct < 0 ? 'text-green-600' : ''
+                              return (
+                                <div key={code} className="flex items-center justify-between gap-6">
+                                  <div className="flex items-center gap-2">
+                                    <span className="inline-block h-2 w-2 rounded-full" style={{ backgroundColor: p.color || '#999' }}></span>
+                                    <span>{nameByCode[code] || code}</span>
+                                  </div>
+                                  <div className="flex items-center gap-3 whitespace-nowrap">
+                                    <span>{price == null ? '-' : formatNumber(Number(price), 2)}</span>
+                                    <span className={pctCls}>{pct == null ? '-' : `${formatNumber(pct, 2)}%`}</span>
+                                  </div>
+                                </div>
+                              )
+                            })}
+                        </div>
+                      </div>
+                    )
+                  }
+
                   return (
                     <div>
                       <div className="mb-3 text-sm text-muted-foreground">
@@ -304,7 +341,7 @@ export default function StockSimilarity() {
                               tickFormatter={(v) => String(v).slice(5)}
                             />
                             <YAxis tick={{ fontSize: 12 }} stroke="#666" />
-                            <Tooltip />
+                            <Tooltip content={<CustomTooltip />} />
                             <Legend />
                             {codes.map((code, idx) => (
                               <Line
