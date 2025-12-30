@@ -127,9 +127,6 @@ export default function StockSimilarity() {
                         onChange={(e) => {
                           const v = e.target.value
                           setInputValue(v)
-                          if (selected) {
-                            setSelected(null)
-                          }
                           debouncedSearch(v)
                         }}
                         onFocus={() => searchResults.length > 0 && setShowSearchResults(true)}
