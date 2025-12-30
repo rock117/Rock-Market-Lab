@@ -18,13 +18,13 @@ pub struct StockSimilarityParams {
 pub async fn get_stock_similarity(
     params: StockSimilarityParams,
     conn: &State<DatabaseConnection>,
-) -> Result<WebResponse<Vec<stock_similarity_service::StockSimilarityItem>>> {
+) -> Result<WebResponse<stock_similarity_service::StockSimilarityResp>> {
     let conn = conn as &DatabaseConnection;
 
     let days = params.days.unwrap_or(60);
     let top = params.top.unwrap_or(50);
 
-    let items = stock_similarity_service::get_similar_stocks_by_algo(
+    let resp = stock_similarity_service::get_similar_stocks_with_kline_by_algo(
         conn,
         &params.ts_code,
         days,
@@ -32,5 +32,5 @@ pub async fn get_stock_similarity(
         params.algo.as_deref(),
     )
     .await?;
-    WebResponse::new(items).into_result()
+    WebResponse::new(resp).into_result()
 }

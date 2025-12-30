@@ -1,8 +1,8 @@
-import type { ApiResponse, StockSimilarityItem } from '@/types'
+import type { ApiResponse, StockSimilarityResponse } from '@/types'
 import { API_BASE_URL } from './config'
 
 export const stockSimilarityApi = {
-  getSimilarity: async (params: { ts_code: string; days: number; top: number; algo?: string }): Promise<StockSimilarityItem[]> => {
+  getSimilarity: async (params: { ts_code: string; days: number; top: number; algo?: string }): Promise<StockSimilarityResponse> => {
     const query = new URLSearchParams()
     query.set('ts_code', params.ts_code)
     query.set('days', String(params.days))
@@ -22,12 +22,14 @@ export const stockSimilarityApi = {
       throw new Error(`HTTP error! status: ${resp.status}`)
     }
 
-    const raw: ApiResponse<StockSimilarityItem[]> = await resp.json()
+    const raw: ApiResponse<StockSimilarityResponse> = await resp.json()
     if ((raw as any)?.success === false) {
       throw new Error((raw as any)?.data || '获取相似度列表失败')
     }
 
     const payload = (raw as any)?.data
-    return Array.isArray(payload) ? (payload as StockSimilarityItem[]) : []
+    const items = Array.isArray(payload?.items) ? payload.items : []
+    const kline = payload?.kline && typeof payload.kline === 'object' ? payload.kline : {}
+    return { items, kline }
   },
 }

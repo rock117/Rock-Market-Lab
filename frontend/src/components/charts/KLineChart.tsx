@@ -157,6 +157,14 @@ export default function KLineChart({ data, stockName, className }: KLineChartPro
                 stroke="#666"
               />
               <Tooltip content={<CustomTooltip />} />
+
+              {/* K线（OHLC） */}
+              <Bar
+                dataKey="close"
+                shape={<CandlestickBar />}
+                name="K线"
+                isAnimationActive={false}
+              />
               
               {/* 收盘价线 */}
               <Line 

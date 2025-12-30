@@ -40,6 +40,25 @@ pub struct StockSimilarityItem {
     pub pct60: Option<f64>,
 }
 
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct StockSimilarityKLinePoint {
+    pub date: String,
+    pub open: f64,
+    pub high: f64,
+    pub low: f64,
+    pub close: f64,
+    pub pct_chg: f64,
+    pub turnover_rate: f64,
+    pub amount: Option<f64>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StockSimilarityResp {
+    pub items: Vec<StockSimilarityItem>,
+    pub kline: HashMap<String, Vec<StockSimilarityKLinePoint>>,
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SimilarityAlgo {
     ZScoreCosine,
@@ -577,4 +596,104 @@ pub async fn get_similar_stocks_by_algo(
     info!("[similarity] done elapsed_ms={} returned={}", t_total.elapsed().as_millis(), scored.len());
 
     Ok(scored)
+}
+
+pub async fn get_similar_stocks_with_kline_by_algo(
+    conn: &DatabaseConnection,
+    ts_code: &str,
+    days: usize,
+    top: usize,
+    algo: Option<&str>,
+) -> anyhow::Result<StockSimilarityResp> {
+    let t_total = Instant::now();
+
+    let items = get_similar_stocks_by_algo(conn, ts_code, days, top, algo).await?;
+    if items.is_empty() {
+        return Ok(StockSimilarityResp { items, kline: HashMap::new() });
+    }
+
+    let days = sanitize_days(days);
+    let metrics_days = days.max(61);
+    let end: NaiveDate = Local::now().date_naive();
+    let start_metrics: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
+
+    let codes: Vec<String> = items.iter().map(|x| x.ts_code.clone()).collect();
+    let t_kline_fetch = Instant::now();
+    let metrics_map = stock_price_service::get_stock_prices_batch(&codes, &start_metrics, &end, conn).await?;
+    let metrics_total_rows: usize = metrics_map.values().map(|v| v.len()).sum();
+    info!(
+        "[similarity] kline_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} metrics_days={}",
+        t_kline_fetch.elapsed().as_millis(),
+        codes.len(),
+        metrics_map.len(),
+        metrics_total_rows,
+        start_metrics.format("%Y-%m-%d").to_string(),
+        end.format("%Y-%m-%d").to_string(),
+        metrics_days
+    );
+
+    // daily_basic: turnover_rate by (ts_code, trade_date)
+    let start_s = start_metrics.format("%Y%m%d").to_string();
+    let end_s = end.format("%Y%m%d").to_string();
+
+    let code_condition = codes
+        .iter()
+        .map(|code| ColumnTrait::eq(&stock_daily_basic::Column::TsCode, code.as_str()))
+        .fold(Condition::any(), |acc, condition| acc.add(condition));
+
+    let t_basic = Instant::now();
+    let basic_rows = stock_daily_basic::Entity::find()
+        .filter(code_condition)
+        .filter(stock_daily_basic::Column::TradeDate.gte(start_s))
+        .filter(stock_daily_basic::Column::TradeDate.lte(end_s))
+        .all(conn)
+        .await?;
+    info!(
+        "[similarity] kline_turnover_fetch done elapsed_ms={} rows={}",
+        t_basic.elapsed().as_millis(),
+        basic_rows.len()
+    );
+
+    let mut turnover_by_date: HashMap<String, HashMap<String, f64>> = HashMap::new();
+    for r in basic_rows {
+        let tr = r.turnover_rate.and_then(|d| d.to_f64()).unwrap_or(0.0);
+        turnover_by_date
+            .entry(r.ts_code.clone())
+            .or_insert_with(HashMap::new)
+            .insert(r.trade_date.clone(), tr);
+    }
+
+    let mut kline: HashMap<String, Vec<StockSimilarityKLinePoint>> = HashMap::new();
+    for code in &codes {
+        let rows = metrics_map.get(code).cloned().unwrap_or_default();
+        let tmap = turnover_by_date.get(code);
+
+        let mut points: Vec<StockSimilarityKLinePoint> = Vec::new();
+        // rows 当前是 trade_date desc（批量查询里 order_by_desc trade_date），这里反转为 asc
+        for r in rows.iter().take(metrics_days).rev() {
+            let date = match chrono::NaiveDate::parse_from_str(&r.trade_date, "%Y%m%d") {
+                Ok(d) => d.format(common::date::FORMAT_DASH).to_string(),
+                Err(_) => continue,
+            };
+            let turnover_rate = tmap
+                .and_then(|m| m.get(&r.trade_date))
+                .copied()
+                .unwrap_or(0.0);
+
+            points.push(StockSimilarityKLinePoint {
+                date,
+                open: r.open.to_f64().unwrap_or(0.0),
+                high: r.high.to_f64().unwrap_or(0.0),
+                low: r.low.to_f64().unwrap_or(0.0),
+                close: r.close.to_f64().unwrap_or(0.0),
+                pct_chg: r.pct_chg.and_then(|d| d.to_f64()).unwrap_or(0.0),
+                turnover_rate,
+                amount: r.amount.to_f64(),
+            });
+        }
+        kline.insert(code.clone(), points);
+    }
+
+    info!("[similarity] with_kline done elapsed_ms={} returned_items={} returned_kline={}", t_total.elapsed().as_millis(), items.len(), kline.len());
+    Ok(StockSimilarityResp { items, kline })
 }

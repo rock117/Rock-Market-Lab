@@ -5,9 +5,10 @@ import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { stockDetailApi, stockSimilarityApi } from '@/services/api'
-import type { StockSimilarityItem } from '@/types'
+import type { StockSimilarityResponse } from '@/types'
 import { debounce, formatNumber } from '@/lib/utils'
 import { Search } from 'lucide-react'
+import KLineChart from '@/components/charts/KLineChart'
 
 interface StockSearchResult {
   ts_code: string
@@ -27,6 +28,8 @@ export default function StockSimilarity() {
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
   const [showSearchResults, setShowSearchResults] = useState(false)
+
+  const [viewMode, setViewMode] = useState<'table' | 'chart'>('table')
 
   const { data: searchData } = useQuery({
     queryKey: ['search-stocks', searchKeyword],
@@ -68,7 +71,7 @@ export default function StockSimilarity() {
   const safeDays = Math.max(5, Math.min(250, Number(days) || 60))
   const safeTop = Math.max(1, Math.min(200, Number(top) || 50))
 
-  const { data: similarityList = [], isLoading, error } = useQuery<StockSimilarityItem[]>({
+  const { data: similarityResp, isLoading, error } = useQuery<StockSimilarityResponse>({
     queryKey: ['stock-similarity', selected?.ts_code || '', safeDays, safeTop, algo],
     queryFn: () =>
       stockSimilarityApi.getSimilarity({
@@ -80,6 +83,9 @@ export default function StockSimilarity() {
     enabled: !!selected?.ts_code,
     staleTime: 2 * 60 * 1000,
   })
+
+  const similarityList = similarityResp?.items ?? []
+  const klineMap = similarityResp?.kline ?? {}
 
   const onSelect = (s: StockSearchResult) => {
     setSelected(s)
@@ -197,6 +203,70 @@ export default function StockSimilarity() {
           <CardDescription>相似度范围 [-1, 1]，越接近 1 越相似</CardDescription>
         </CardHeader>
         <CardContent>
+          <div className="mb-4 flex items-center gap-2">
+            <button
+              className={`rounded-md border px-3 py-2 text-sm ${viewMode === 'table' ? 'bg-muted font-medium' : ''}`}
+              onClick={() => setViewMode('table')}
+              type="button"
+            >
+              表格
+            </button>
+            <button
+              className={`rounded-md border px-3 py-2 text-sm ${viewMode === 'chart' ? 'bg-muted font-medium' : ''}`}
+              onClick={() => setViewMode('chart')}
+              type="button"
+            >
+              图表(K线)
+            </button>
+          </div>
+
+          {viewMode === 'chart' ? (
+            <div className="space-y-6">
+              {isLoading ? (
+                <div className="text-center text-muted-foreground">加载中...</div>
+              ) : !selected?.ts_code ? (
+                <div className="text-center text-muted-foreground">请选择股票</div>
+              ) : similarityList.length === 0 ? (
+                <div className="text-center text-muted-foreground">暂无数据</div>
+              ) : (
+                similarityList.map((it) => {
+                  const pts = klineMap[it.ts_code] ?? []
+                  const chartData = pts.map(p => {
+                    const open = Number(p.open)
+                    const close = Number(p.close)
+                    return {
+                      trade_date: p.date,
+                      open: Number.isFinite(open) ? open : 0,
+                      high: Number.isFinite(p.high) ? p.high : 0,
+                      low: Number.isFinite(p.low) ? p.low : 0,
+                      close: Number.isFinite(close) ? close : 0,
+                      volume: 0,
+                      amount: Number(p.amount ?? 0),
+                      turnover_rate: Number(p.turnover_rate ?? 0),
+                      pct_chg: Number(p.pct_chg ?? 0),
+                      change: Number.isFinite(open) && Number.isFinite(close) ? Number((close - open).toFixed(2)) : 0,
+                    }
+                  })
+
+                  return (
+                    <Card key={it.ts_code} className={it.ts_code === selected?.ts_code ? 'border-primary' : undefined}>
+                      <CardHeader>
+                        <CardTitle className="text-base">
+                          {it.name || it.ts_code} ({it.ts_code})
+                        </CardTitle>
+                        <CardDescription>
+                          相似度：{formatNumber(it.similarity, 2)}
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <KLineChart data={chartData} stockName={it.name || it.ts_code} />
+                      </CardContent>
+                    </Card>
+                  )
+                })
+              )}
+            </div>
+          ) : (
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -254,6 +324,7 @@ export default function StockSimilarity() {
               </TableBody>
             </Table>
           </div>
+          )}
         </CardContent>
       </Card>
     </div>

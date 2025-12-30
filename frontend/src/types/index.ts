@@ -110,6 +110,22 @@ export interface StockSimilarityItem {
   pct60?: number | null
 }
 
+export interface StockSimilarityKLinePoint {
+  date: string
+  open: number
+  high: number
+  low: number
+  close: number
+  pct_chg: number
+  turnover_rate: number
+  amount?: number | null
+}
+
+export interface StockSimilarityResponse {
+  items: StockSimilarityItem[]
+  kline: Record<string, StockSimilarityKLinePoint[]>
+}
+
 // 美股相关类型定义
 export interface UsStock {
   tsCode: string; // 股票代码
