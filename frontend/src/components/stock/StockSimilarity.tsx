@@ -115,7 +115,10 @@ export default function StockSimilarity() {
   }, [codesPickerOpen])
 
   useEffect(() => {
-    const codes = similarityList.map((x) => x.ts_code)
+    const codes = similarityList
+      .slice()
+      .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
+      .map((x) => x.ts_code)
     setVisibleCodes((prev) => {
       if (codes.length === 0) return null
       if (prev == null) return null
@@ -265,7 +268,10 @@ export default function StockSimilarity() {
                 <div className="text-center text-muted-foreground">暂无数据</div>
               ) : (
                 (() => {
-                  const codes = similarityList.map(x => x.ts_code)
+                  const codes = similarityList
+                    .slice()
+                    .sort((a, b) => (b.similarity ?? 0) - (a.similarity ?? 0))
+                    .map((x) => x.ts_code)
                   const visibleSet = new Set(visibleCodes == null ? codes : visibleCodes)
                   const dateSet = new Set<string>()
                   for (const code of codes) {
@@ -314,8 +320,12 @@ export default function StockSimilarity() {
                   })
 
                   const nameByCode: Record<string, string> = {}
+                  const similarityByCode: Record<string, number> = {}
                   for (const it of similarityList) {
                     nameByCode[it.ts_code] = it.name || it.ts_code
+                    if (typeof it.similarity === 'number' && Number.isFinite(it.similarity)) {
+                      similarityByCode[it.ts_code] = it.similarity
+                    }
                   }
 
                   const colors = ['#2563eb', '#ef4444', '#22c55e', '#f59e0b', '#8b5cf6', '#14b8a6', '#ec4899', '#64748b']
@@ -416,6 +426,7 @@ export default function StockSimilarity() {
                                     {codes.map((code, idx) => {
                                       const isChecked = visibleSetLocal.has(code)
                                       const isSel = code === selected?.ts_code
+                                      const sim = similarityByCode[code]
                                       return (
                                         <button
                                           key={code}
@@ -431,6 +442,9 @@ export default function StockSimilarity() {
                                           </span>
                                           <span className="flex-1 truncate">{nameByCode[code] || code}</span>
                                           <span className="text-xs text-muted-foreground">{code}</span>
+                                          <span className="text-xs tabular-nums text-muted-foreground">
+                                            {sim == null ? '-' : formatNumber(sim, 2)}
+                                          </span>
                                         </button>
                                       )
                                     })}
