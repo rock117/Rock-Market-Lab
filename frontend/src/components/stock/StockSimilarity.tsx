@@ -25,6 +25,7 @@ interface StockSearchResult {
 }
 
 type SimilarityAlgoKey = 'zscore_cosine' | 'pearson' | 'best_lag_cosine'
+type SimilarityFreqKey = 'day' | 'week' | 'month'
 
 export default function StockSimilarity() {
   const [selected, setSelected] = useState<StockSearchResult | null>(null)
@@ -37,6 +38,7 @@ export default function StockSimilarity() {
   const [days, setDays] = useState(60)
   const [top, setTop] = useState(20)
   const [algo, setAlgo] = useState<SimilarityAlgoKey>('zscore_cosine')
+  const [freq, setFreq] = useState<SimilarityFreqKey>('day')
 
   const [searchKeyword, setSearchKeyword] = useState('')
   const [searchResults, setSearchResults] = useState<StockSearchResult[]>([])
@@ -84,14 +86,17 @@ export default function StockSimilarity() {
   const safeDays = Math.max(5, Math.min(250, Number(days) || 60))
   const safeTop = Math.max(1, Math.min(200, Number(top) || 50))
 
+  const freqLabel = freq === 'week' ? '周' : freq === 'month' ? '月' : '天'
+
   const { data: similarityResp, isLoading, error } = useQuery<StockSimilarityResponse>({
-    queryKey: ['stock-similarity', selected?.ts_code || '', safeDays, safeTop, algo],
+    queryKey: ['stock-similarity', selected?.ts_code || '', safeDays, safeTop, algo, freq],
     queryFn: () =>
       stockSimilarityApi.getSimilarity({
         ts_code: selected?.ts_code || '',
         days: safeDays,
         top: safeTop,
         algo,
+        freq,
       }),
     enabled: !!selected?.ts_code,
     staleTime: 2 * 60 * 1000,
@@ -203,14 +208,25 @@ export default function StockSimilarity() {
 
             <div>
               <label className="mb-2 block text-sm font-medium">过去 N 天</label>
-              <input
-                type="number"
-                value={days}
-                min={5}
-                max={250}
-                onChange={(e) => setDays(Number(e.target.value))}
-                className="w-full rounded-md border px-3 py-2 text-sm"
-              />
+              <div className="flex items-center gap-2">
+                <input
+                  type="number"
+                  value={days}
+                  min={5}
+                  max={250}
+                  onChange={(e) => setDays(Number(e.target.value))}
+                  className="w-full rounded-md border px-3 py-2 text-sm"
+                />
+                <select
+                  value={freq}
+                  onChange={(e) => setFreq(e.target.value as SimilarityFreqKey)}
+                  className="w-24 rounded-md border px-3 py-2 text-sm"
+                >
+                  <option value={'day'}>日</option>
+                  <option value={'week'}>周</option>
+                  <option value={'month'}>月</option>
+                </select>
+              </div>
             </div>
 
             <div>
@@ -228,7 +244,7 @@ export default function StockSimilarity() {
           </div>
 
           <div className="mt-4 text-sm text-muted-foreground">
-            {selected?.ts_code ? `当前查询：${selected.ts_code}，近${safeDays}天，Top ${safeTop}` : '请选择股票'}
+            {selected?.ts_code ? `当前查询：${selected.ts_code}，近${safeDays}${freqLabel}，Top ${safeTop}` : '请选择股票'}
           </div>
 
           {error ? <div className="mt-4 text-sm text-destructive">{String((error as any)?.message || error)}</div> : null}

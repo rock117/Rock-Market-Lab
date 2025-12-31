@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::time::Instant;
 
-use chrono::{Duration, Local, NaiveDate};
+use chrono::{Datelike, Duration, Local, NaiveDate};
 use entity::sea_orm::DatabaseConnection;
 use entity::stock;
 use rust_decimal::prelude::ToPrimitive;
@@ -64,6 +64,75 @@ pub enum SimilarityAlgo {
     ZScoreCosine,
     PearsonReturns,
     BestLagCosine,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SimilarityFreq {
+    Day,
+    Week,
+    Month,
+}
+
+fn parse_freq(freq: Option<&str>) -> SimilarityFreq {
+    match freq.unwrap_or("").trim().to_lowercase().as_str() {
+        "week" | "w" | "weekly" => SimilarityFreq::Week,
+        "month" | "m" | "monthly" => SimilarityFreq::Month,
+        _ => SimilarityFreq::Day,
+    }
+}
+
+fn sample_rows_by_freq_desc(
+    rows_desc: &[entity::stock_daily::Model],
+    freq: SimilarityFreq,
+    take: usize,
+) -> Vec<entity::stock_daily::Model> {
+    if take == 0 || rows_desc.is_empty() {
+        return vec![];
+    }
+
+    match freq {
+        SimilarityFreq::Day => rows_desc.iter().take(take).cloned().collect(),
+        SimilarityFreq::Week => {
+            let mut out: Vec<entity::stock_daily::Model> = Vec::with_capacity(take);
+            let mut last_key: Option<(i32, u32)> = None;
+            for r in rows_desc.iter() {
+                let d = match chrono::NaiveDate::parse_from_str(&r.trade_date, "%Y%m%d") {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let key = (d.iso_week().year(), d.iso_week().week());
+                if last_key == Some(key) {
+                    continue;
+                }
+                last_key = Some(key);
+                out.push(r.clone());
+                if out.len() >= take {
+                    break;
+                }
+            }
+            out
+        }
+        SimilarityFreq::Month => {
+            let mut out: Vec<entity::stock_daily::Model> = Vec::with_capacity(take);
+            let mut last_key: Option<(i32, u32)> = None;
+            for r in rows_desc.iter() {
+                let d = match chrono::NaiveDate::parse_from_str(&r.trade_date, "%Y%m%d") {
+                    Ok(v) => v,
+                    Err(_) => continue,
+                };
+                let key = (d.year(), d.month());
+                if last_key == Some(key) {
+                    continue;
+                }
+                last_key = Some(key);
+                out.push(r.clone());
+                if out.len() >= take {
+                    break;
+                }
+            }
+            out
+        }
+    }
 }
 
 fn parse_algo(algo: Option<&str>) -> SimilarityAlgo {
@@ -299,7 +368,7 @@ pub async fn get_similar_stocks(
     days: usize,
     top: usize,
 ) -> anyhow::Result<Vec<StockSimilarityItem>> {
-    get_similar_stocks_by_algo(conn, ts_code, days, top, None).await
+    get_similar_stocks_by_algo(conn, ts_code, days, top, None, None).await
 }
 
 pub async fn get_similar_stocks_by_algo(
@@ -308,6 +377,7 @@ pub async fn get_similar_stocks_by_algo(
     days: usize,
     top: usize,
     algo: Option<&str>,
+    freq: Option<&str>,
 ) -> anyhow::Result<Vec<StockSimilarityItem>> {
     let t_total = Instant::now();
     // 对外主入口：计算与 ts_code 最相似的 top 支股票。
@@ -318,8 +388,9 @@ pub async fn get_similar_stocks_by_algo(
     let days = sanitize_days(days);
     let top = sanitize_top(top);
     let algo = parse_algo(algo);
+    let freq = parse_freq(freq);
 
-    info!("[similarity] start ts_code={} days={} top={} algo={:?}", ts_code, days, top, algo);
+    info!("[similarity] start ts_code={} days={} top={} algo={:?} freq={:?}", ts_code, days, top, algo, freq);
 
     // Get all stocks (for name mapping + candidate list)
     let t_stocks = Instant::now();
@@ -338,13 +409,17 @@ pub async fn get_similar_stocks_by_algo(
     }
 
     // 两阶段：
-    // 1) 相似度计算：只需要 days 窗口
-    // 2) 展示指标：需要至少 61 个交易日 close（含当日）计算 60 日涨跌幅
-    let metrics_days = days.max(61);
+    // 1) 相似度计算：按 freq 的“周期”（day/week/month）取最近 days 个采样点
+    // 2) 展示指标：按“前端选择的频率 + 长度(days)”计算（严格在所选时间范围内）
+    let metrics_take = days;
     let end: NaiveDate = Local::now().date_naive();
 
     // phase1: 相似度窗口
-    let start_sim: NaiveDate = end - Duration::days((days as i64) * 3);
+    let start_sim: NaiveDate = match freq {
+        SimilarityFreq::Day => end - Duration::days((days as i64) * 3),
+        SimilarityFreq::Week => end - Duration::days((days as i64) * 7 * 3),
+        SimilarityFreq::Month => end - Duration::days((days as i64) * 31 * 3),
+    };
 
     // 批量拉取所有股票在区间内的日线（一次性查询，避免 N+1）。
     let t_phase1_fetch = Instant::now();
@@ -362,9 +437,9 @@ pub async fn get_similar_stocks_by_algo(
 
     // Extract target close series (phase1)
     let target_rows_sim = prices_map.remove(ts_code).unwrap_or_default();
+    let target_rows_sim = sample_rows_by_freq_desc(&target_rows_sim, freq, days);
     let target_closes_desc_days: Vec<f64> = target_rows_sim
         .iter()
-        .take(days)
         .map(|r| r.close.to_f64().unwrap_or(0.0))
         .collect();
 
@@ -393,9 +468,9 @@ pub async fn get_similar_stocks_by_algo(
         if code == ts_code {
             continue;
         }
-        let closes_desc: Vec<f64> = rows
+        let rows_s = sample_rows_by_freq_desc(&rows, freq, days);
+        let closes_desc: Vec<f64> = rows_s
             .iter()
-            .take(days)
             .map(|r| r.close.to_f64().unwrap_or(0.0))
             .collect();
 
@@ -468,7 +543,12 @@ pub async fn get_similar_stocks_by_algo(
     info!("[similarity] sort_truncate done elapsed_ms={} top_returned={}", t_sort.elapsed().as_millis(), scored.len());
 
     // phase2: 仅对目标股票 + top 候选补齐展示字段
-    let start_metrics: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
+    // 指标严格按 freq 的采样序列计算，因此需要拉取覆盖最近 metrics_take 个周期的日线（带缓冲）。
+    let start_metrics: NaiveDate = match freq {
+        SimilarityFreq::Day => end - Duration::days((metrics_take as i64) * 3),
+        SimilarityFreq::Week => end - Duration::days((metrics_take as i64) * 7 * 3),
+        SimilarityFreq::Month => end - Duration::days((metrics_take as i64) * 31 * 3),
+    };
     let mut metric_codes: Vec<String> = scored.iter().map(|x| x.ts_code.clone()).collect();
     metric_codes.push(ts_code.to_string());
 
@@ -476,28 +556,48 @@ pub async fn get_similar_stocks_by_algo(
     let metrics_map = stock_price_service::get_stock_prices_batch(&metric_codes, &start_metrics, &end, conn).await?;
     let phase2_total_rows: usize = metrics_map.values().map(|v| v.len()).sum();
     info!(
-        "[similarity] phase2_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} metrics_days={}",
+        "[similarity] phase2_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} metrics_take={} freq={:?}",
         t_phase2_fetch.elapsed().as_millis(),
         metric_codes.len(),
         metrics_map.len(),
         phase2_total_rows,
         start_metrics.format("%Y-%m-%d").to_string(),
         end.format("%Y-%m-%d").to_string(),
-        metrics_days
+        days,
+        freq
     );
 
     let calc_metrics = |rows: &Vec<entity::stock_daily::Model>| -> (Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>, Option<f64>) {
         if rows.is_empty() {
             return (None, None, None, None, None, None);
         }
-        let closes_desc: Vec<f64> = rows
+
+        // rows 是 trade_date desc；按 freq 采样得到最近 metrics_take 个“周期点”（仍然 desc）。
+        let sampled_desc = sample_rows_by_freq_desc(rows, freq, metrics_take);
+        if sampled_desc.is_empty() {
+            return (None, None, None, None, None, None);
+        }
+
+        let closes_desc: Vec<f64> = sampled_desc
             .iter()
-            .take(metrics_days)
             .map(|r| r.close.to_f64().unwrap_or(0.0))
             .collect();
 
         let current_price = closes_desc.first().copied();
-        let pct_chg = rows.first().and_then(|r| r.pct_chg.and_then(|d| d.to_f64()));
+
+        // pct_chg：按所选 freq 的“相邻采样点”计算（例如：周频=环比上一周）。
+        let pct_chg = if closes_desc.len() >= 2 {
+            let latest = closes_desc[0];
+            let prev = closes_desc[1];
+            if prev == 0.0 {
+                None
+            } else {
+                let v = (latest / prev - 1.0) * 100.0;
+                if v.is_finite() { Some(v) } else { None }
+            }
+        } else {
+            None
+        };
 
         let calc_pct_n = |n: usize| -> Option<f64> {
             if closes_desc.len() <= n {
@@ -604,32 +704,41 @@ pub async fn get_similar_stocks_with_kline_by_algo(
     days: usize,
     top: usize,
     algo: Option<&str>,
+    freq: Option<&str>,
 ) -> anyhow::Result<StockSimilarityResp> {
     let t_total = Instant::now();
 
-    let items = get_similar_stocks_by_algo(conn, ts_code, days, top, algo).await?;
+    let items = get_similar_stocks_by_algo(conn, ts_code, days, top, algo, freq).await?;
     if items.is_empty() {
         return Ok(StockSimilarityResp { items, kline: HashMap::new() });
     }
 
+    let freq = parse_freq(freq);
+
     let days = sanitize_days(days);
-    let metrics_days = days.max(61);
     let end: NaiveDate = Local::now().date_naive();
-    let start_metrics: NaiveDate = end - Duration::days((metrics_days as i64) * 3);
+    // KLine 返回序列：按 freq 的“周期”取最近 days 个点。
+    let kline_take = days;
+    let start_metrics: NaiveDate = match freq {
+        SimilarityFreq::Day => end - Duration::days((kline_take as i64) * 3),
+        SimilarityFreq::Week => end - Duration::days((kline_take as i64) * 7 * 3),
+        SimilarityFreq::Month => end - Duration::days((kline_take as i64) * 31 * 3),
+    };
 
     let codes: Vec<String> = items.iter().map(|x| x.ts_code.clone()).collect();
     let t_kline_fetch = Instant::now();
     let metrics_map = stock_price_service::get_stock_prices_batch(&codes, &start_metrics, &end, conn).await?;
     let metrics_total_rows: usize = metrics_map.values().map(|v| v.len()).sum();
     info!(
-        "[similarity] kline_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} metrics_days={}",
+        "[similarity] kline_fetch done elapsed_ms={} codes={} groups={} rows={} start={} end={} kline_take={} freq={:?}",
         t_kline_fetch.elapsed().as_millis(),
         codes.len(),
         metrics_map.len(),
         metrics_total_rows,
         start_metrics.format("%Y-%m-%d").to_string(),
         end.format("%Y-%m-%d").to_string(),
-        metrics_days
+        kline_take,
+        freq
     );
 
     // daily_basic: turnover_rate by (ts_code, trade_date)
@@ -669,8 +778,9 @@ pub async fn get_similar_stocks_with_kline_by_algo(
         let tmap = turnover_by_date.get(code);
 
         let mut points: Vec<StockSimilarityKLinePoint> = Vec::new();
-        // rows 当前是 trade_date desc（批量查询里 order_by_desc trade_date），这里反转为 asc
-        for r in rows.iter().take(metrics_days).rev() {
+        let sampled_desc = sample_rows_by_freq_desc(&rows, freq, kline_take);
+        // sampled_desc 是 trade_date desc，这里反转为 asc
+        for r in sampled_desc.iter().rev() {
             let date = match chrono::NaiveDate::parse_from_str(&r.trade_date, "%Y%m%d") {
                 Ok(d) => d.format(common::date::FORMAT_DASH).to_string(),
                 Err(_) => continue,

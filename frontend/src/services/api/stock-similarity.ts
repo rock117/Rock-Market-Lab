@@ -2,13 +2,22 @@ import type { ApiResponse, StockSimilarityResponse } from '@/types'
 import { API_BASE_URL } from './config'
 
 export const stockSimilarityApi = {
-  getSimilarity: async (params: { ts_code: string; days: number; top: number; algo?: string }): Promise<StockSimilarityResponse> => {
+  getSimilarity: async (params: {
+    ts_code: string
+    days: number
+    top: number
+    algo?: string
+    freq?: 'day' | 'week' | 'month'
+  }): Promise<StockSimilarityResponse> => {
     const query = new URLSearchParams()
     query.set('ts_code', params.ts_code)
     query.set('days', String(params.days))
     query.set('top', String(params.top))
     if (params.algo != null) {
       query.set('algo', params.algo)
+    }
+    if (params.freq != null) {
+      query.set('freq', params.freq)
     }
 
     const resp = await fetch(`${API_BASE_URL}/api/stocks/similarity?${query.toString()}`, {

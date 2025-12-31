@@ -12,6 +12,7 @@ pub struct StockSimilarityParams {
     pub days: Option<usize>,
     pub top: Option<usize>,
     pub algo: Option<String>,
+    pub freq: Option<String>,
 }
 
 #[get("/api/stocks/similarity?<params..>")]
@@ -30,6 +31,7 @@ pub async fn get_stock_similarity(
         days,
         top,
         params.algo.as_deref(),
+        params.freq.as_deref(),
     )
     .await?;
     WebResponse::new(resp).into_result()
