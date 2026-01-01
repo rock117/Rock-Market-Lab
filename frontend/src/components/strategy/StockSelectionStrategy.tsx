@@ -37,7 +37,8 @@ const STRATEGY_TYPES = [
   { value: 'quality_value', label: '优质价值策略', description: '寻找优质且被低估的股票' },
   { value: 'turnover_ma_bullish', label: '换手率均线多头策略', description: '基于换手率和均线的多头策略' },
   { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
-  { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' }
+  { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
+  { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' }
 ]
 
 // 默认参数示例
@@ -63,6 +64,15 @@ const DEFAULT_PARAMS: Record<string, any> = {
     exit_period: 10,
     atr_period: 20,
     risk_per_trade: 0.02
+  },
+  ma_convergence: {
+    ma_types: ["MA5", "MA10", "MA20"],
+    convergence_threshold: 0.05,
+    min_convergence_days: 3,
+    decline_check_period: 20,
+    min_decline_pct: 0.10,
+    time_frame: "daily",
+    max_convergence_days: 20
   }
 }
 
@@ -266,24 +276,24 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>股票代码</TableHead>
-                    <TableHead>股票名称</TableHead>
-                    <TableHead>当前价格</TableHead>
-                    <TableHead>涨跌幅</TableHead>
-                    <TableHead>核心概念</TableHead>
-                    <TableHead>信号强度</TableHead>
-                    <TableHead className="min-w-[300px]">分析结果</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[100px]">股票代码</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[120px]">股票名称</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[120px]">当前价格</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[100px]">涨跌幅</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[200px]">核心概念</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[120px]">信号强度</TableHead>
+                    <TableHead className="whitespace-nowrap min-w-[350px]">分析结果</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {strategyResult.map((item: any, index: number) => (
                     <TableRow key={item.ts_code || index}>
-                      <TableCell className="font-medium font-mono">{item.ts_code}</TableCell>
-                      <TableCell>{item.stock_name}</TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="font-medium font-mono whitespace-nowrap min-w-[100px]">{item.ts_code}</TableCell>
+                      <TableCell className="whitespace-nowrap min-w-[120px]">{item.stock_name}</TableCell>
+                      <TableCell className="text-right whitespace-nowrap min-w-[120px]">
                         ¥{formatNumber(item.strategy_result?.current_price || 0, 2)}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap min-w-[100px]">
                         <span className={`font-medium ${
                           (item.strategy_result?.pct_chg || 0) > 0 ? 'text-red-600' :
                           (item.strategy_result?.pct_chg || 0) < 0 ? 'text-green-600' :
@@ -293,13 +303,13 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                           {formatNumber(item.strategy_result?.pct_chg || 0, 2)}%
                         </span>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="text-sm whitespace-nowrap min-w-[200px]">
                         {item.concepts || 'N/A'}
                       </TableCell>
-                      <TableCell className="text-right">
+                      <TableCell className="text-right whitespace-nowrap min-w-[120px]">
                         <div className="flex items-center gap-2">
                           <div className="flex-1 bg-gray-200 rounded-full h-2 min-w-[60px]">
-                            <div 
+                            <div
                               className={`h-2 rounded-full ${
                                 item.strategy_result?.signal_strength >= 100 ? 'bg-green-600' :
                                 item.strategy_result?.signal_strength >= 80 ? 'bg-blue-600' :
@@ -313,7 +323,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell className="text-sm">
+                      <TableCell className="text-sm whitespace-nowrap min-w-[350px]">
                         {item.strategy_result?.analysis_description || 'N/A'}
                       </TableCell>
                     </TableRow>

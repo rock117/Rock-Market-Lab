@@ -18,6 +18,7 @@ pub mod strong_close_strategy;
 pub mod quality_value_strategy;
 pub mod turnover_ma_bullish_strategy;
 pub mod low_shadow_strategy;
+pub mod ma_convergence_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -144,5 +145,12 @@ pub use low_shadow_strategy::{
     LowShadowStrategy,
     LowShadowConfig,
     LowShadowResult,
+};
+
+// 重新导出均线粘合策略相关类型
+pub use ma_convergence_strategy::{
+    MaConvergenceStrategy,
+    MaConvergenceConfig,
+    MaConvergenceResult,
 };
 

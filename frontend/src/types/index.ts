@@ -403,7 +403,8 @@ export type StrategyType =
   | 'strong_close'
   | 'quality_value'
   | 'turnover_ma_bullish'
-  | 'low_shadow';
+  | 'low_shadow'
+  | 'ma_convergence';
 
 export type StrategySignal = 'BUY' | 'SELL' | 'HOLD';
 

@@ -28,6 +28,7 @@ use crate::strategy::{
     QualityValueStrategy, QualityValueConfig,
     TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
     LowShadowStrategy, LowShadowConfig,
+    MaConvergenceStrategy, MaConvergenceConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -225,7 +226,52 @@ impl StockPickerService {
                     _ => bail!("低位下影线策略不支持预设 '{}', 可用预设: standard, conservative, aggressive", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow", strategy_type)
+            "ma_convergence" => execute_strategy!(MaConvergenceConfig, MaConvergenceStrategy, |preset: &str| {
+                Ok(match preset {
+                    "daily_standard" => MaConvergenceConfig {
+                        ma_types: vec!["MA5".to_string(), "MA10".to_string(), "MA20".to_string()],
+                        convergence_threshold: 0.05,
+                        min_convergence_days: 3,
+                        decline_check_period: 20,
+                        min_decline_pct: 0.10,
+                        time_frame: "daily".to_string(),
+                        max_convergence_days: 20,
+                        ..Default::default()
+                    },
+                    "daily_conservative" => MaConvergenceConfig {
+                        ma_types: vec!["MA5".to_string(), "MA10".to_string(), "MA20".to_string(), "MA60".to_string()],
+                        convergence_threshold: 0.04,
+                        min_convergence_days: 5,
+                        decline_check_period: 30,
+                        min_decline_pct: 0.15,
+                        time_frame: "daily".to_string(),
+                        max_convergence_days: 15,
+                        ..Default::default()
+                    },
+                    "daily_aggressive" => MaConvergenceConfig {
+                        ma_types: vec!["MA5".to_string(), "MA10".to_string()],
+                        convergence_threshold: 0.08,
+                        min_convergence_days: 2,
+                        decline_check_period: 15,
+                        min_decline_pct: 0.08,
+                        time_frame: "daily".to_string(),
+                        max_convergence_days: 25,
+                        ..Default::default()
+                    },
+                    "weekly_standard" => MaConvergenceConfig {
+                        ma_types: vec!["MA5".to_string(), "MA10".to_string(), "MA20".to_string()],
+                        convergence_threshold: 0.06,
+                        min_convergence_days: 2,
+                        decline_check_period: 10,
+                        min_decline_pct: 0.12,
+                        time_frame: "weekly".to_string(),
+                        max_convergence_days: 10,
+                        ..Default::default()
+                    },
+                    _ => bail!("均线粘合策略不支持预设 '{}', 可用预设: daily_standard, daily_conservative, daily_aggressive, weekly_standard", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, ma_convergence", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;

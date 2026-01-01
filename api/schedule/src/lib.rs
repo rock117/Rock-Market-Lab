@@ -165,7 +165,7 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     
     // jobs.extend(security_list);
-    jobs.extend(dailys);
+    // jobs.extend(dailys);
     // jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);

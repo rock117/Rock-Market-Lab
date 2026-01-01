@@ -366,6 +366,8 @@ pub enum StrategyResult {
     TurnoverMaBullish(super::turnover_ma_bullish_strategy::TurnoverMaBullishResult),
     /// 低位下影线策略结果
     LowShadow(super::low_shadow_strategy::LowShadowResult),
+    /// 均线粘合策略结果
+    MaConvergence(super::ma_convergence_strategy::MaConvergenceResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -386,6 +388,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => &r.stock_code,
             StrategyResult::TurnoverMaBullish(r) => &r.stock_code,
             StrategyResult::LowShadow(r) => &r.stock_code,
+            StrategyResult::MaConvergence(r) => &r.stock_code,
         }
     }
     
@@ -407,6 +410,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => r.analysis_date,
             StrategyResult::TurnoverMaBullish(r) => r.analysis_date,
             StrategyResult::LowShadow(r) => r.analysis_date,
+            StrategyResult::MaConvergence(r) => r.analysis_date,
         }
     }
     
@@ -428,6 +432,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => r.current_price,
             StrategyResult::TurnoverMaBullish(r) => r.current_price,
             StrategyResult::LowShadow(r) => r.current_price,
+            StrategyResult::MaConvergence(r) => r.current_price,
         }
     }
     
@@ -449,6 +454,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => r.strategy_signal.clone(),
             StrategyResult::TurnoverMaBullish(r) => r.strategy_signal.clone(),
             StrategyResult::LowShadow(r) => r.strategy_signal.clone(),
+            StrategyResult::MaConvergence(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -470,6 +476,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => r.signal_strength,
             StrategyResult::TurnoverMaBullish(r) => r.signal_strength,
             StrategyResult::LowShadow(r) => r.signal_strength,
+            StrategyResult::MaConvergence(r) => r.signal_strength,
         }
     }
     
@@ -491,6 +498,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => &r.analysis_description,
             StrategyResult::TurnoverMaBullish(r) => &r.analysis_description,
             StrategyResult::LowShadow(r) => &r.analysis_description,
+            StrategyResult::MaConvergence(r) => &r.analysis_description,
         }
     }
     
@@ -512,6 +520,7 @@ impl StrategyResult {
             StrategyResult::QualityValue(r) => r.risk_level,
             StrategyResult::TurnoverMaBullish(r) => r.risk_level,
             StrategyResult::LowShadow(r) => r.risk_level,
+            StrategyResult::MaConvergence(r) => r.risk_level,
         }
     }
 }

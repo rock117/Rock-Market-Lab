@@ -6,30 +6,47 @@ import { delay } from './config'
 export const strategyApi = {
   // 运行策略
   runStrategy: async (strategyType: StrategyType, parameters: Record<string, any>) => {
-    const response = await fetch('/api/stocks/pick', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        strategy: strategyType,
-        settings: parameters
+    // 创建超时控制器（2分钟）
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => {
+      controller.abort()
+    }, 120000) // 120秒 = 2分钟
+
+    try {
+      const response = await fetch('/api/stocks/pick', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          strategy: strategyType,
+          settings: parameters
+        }),
+        signal: controller.signal
       })
-    })
-    
-    const result = await response.json()
-    
-    // 检查业务逻辑错误
-    if (!result.success) {
-      throw new Error(result.data || '策略运行失败')
+
+      clearTimeout(timeoutId)
+
+      const result = await response.json()
+
+      // 检查业务逻辑错误
+      if (!result.success) {
+        throw new Error(result.data || '策略运行失败')
+      }
+
+      // 检查HTTP错误
+      if (!response.ok) {
+        throw new Error('策略运行失败')
+      }
+
+      return result
+    } catch (error: any) {
+      clearTimeout(timeoutId)
+      if (error.name === 'AbortError') {
+        throw new Error('请求超时，请稍后重试')
+      }
+      throw error
     }
-    
-    // 检查HTTP错误
-    if (!response.ok) {
-      throw new Error('策略运行失败')
-    }
-    
-    return result
   },
 
   // 获取策略列表
