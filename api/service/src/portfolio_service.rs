@@ -54,7 +54,7 @@ pub struct HoldingResponse {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 pub struct AddHoldingRequest {
-    pub exchange_id: String,
+    pub exchange_id: Option<String>,
     pub symbol: String,
     pub desc: Option<String>,
 }
@@ -213,8 +213,12 @@ pub async fn add_holding(
     portfolio_id: i32,
     mut req: AddHoldingRequest,
 ) -> Result<HoldingResponse> {
-    info!("Adding holding to portfolio {}: {:?}/{:?}", 
-        portfolio_id, req.exchange_id, req.symbol);
+    info!(
+        "Adding holding to portfolio {}: exchange_id={:?} symbol={}",
+        portfolio_id,
+        req.exchange_id,
+        req.symbol
+    );
     
     let portfolio = portfolio::Entity::find_by_id(portfolio_id)
         .one(conn)
@@ -222,20 +226,32 @@ pub async fn add_holding(
         .context("Failed to fetch portfolio")?
         .ok_or_else(|| anyhow::anyhow!("Portfolio not found: {}", portfolio_id))?;
     
-    let holding_model = holding::ActiveModel {
-        exchange_id: Set(req.exchange_id.clone()),
-        symbol: Set(req.symbol.clone()),
-        portfolio_id: Set(portfolio.id),
-        ..Default::default()
+    let is_cn = req.symbol.contains(".");
+    let exchange_id = if is_cn {
+        "cn".to_string()
+    } else {
+        req.exchange_id
+            .clone()
+            .map(|s| s.trim().to_string())
+            .filter(|s| !s.is_empty())
+            .ok_or_else(|| anyhow!("exchange_id is required for US stocks"))?
     };
 
     // find by exchange_id and symbol
-    let stock = if req.symbol.contains(".") {
-        stock::Entity::find_by_id(&req.symbol).one(conn).await?.map(|stock| StockDto::CnStock(stock)).ok_or_else(|| anyhow!("no stock found by {}", req.symbol))?
+    let stock = if is_cn {
+        stock::Entity::find_by_id(&req.symbol)
+            .one(conn)
+            .await?
+            .map(StockDto::CnStock)
+            .ok_or_else(|| anyhow!("no stock found by {}", req.symbol))?
     } else {
-        us_stock::Entity::find_by_id((req.exchange_id.clone(), req.symbol.clone())).one(conn).await?.map(|stock| StockDto::UsStock(stock)).ok_or_else(|| anyhow!("no stock found by {} {}", req.exchange_id, req.symbol))?
+        us_stock::Entity::find_by_id((exchange_id.clone(), req.symbol.clone()))
+            .one(conn)
+            .await?
+            .map(StockDto::UsStock)
+            .ok_or_else(|| anyhow!("no stock found by {} {}", exchange_id, req.symbol))?
     };
-    let exchange_id = if req.symbol.contains(".") { "cn".to_string() } else { req.exchange_id.clone() };
+
     let holding_model = holding::ActiveModel {
         exchange_id: Set(exchange_id),
         symbol: Set(req.symbol.clone()),

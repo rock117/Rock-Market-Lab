@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { portfolioApi } from '@/services/api'
+import { portfolioApi, stockDetailApi, usStockApi } from '@/services/api'
 import { Portfolio, PortfolioStock } from '@/types'
 import { formatDate } from '@/lib/utils'
 import { Plus, Trash2, Edit2, FolderOpen, X, Search, Save, Tag } from 'lucide-react'
@@ -39,9 +39,14 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   // 添加股票相关状态
   const [isAddingStock, setIsAddingStock] = useState(false)
   const [searchKeyword, setSearchKeyword] = useState('')
+  const [showSearchResults, setShowSearchResults] = useState(false)
+  const [searchResults, setSearchResults] = useState<
+    Array<{ market: 'cn' | 'us'; symbol: string; name: string; exchange_id?: string }>
+  >([])
   const [selectedTags, setSelectedTags] = useState<string[]>([])
   const [showTagDropdown, setShowTagDropdown] = useState(false)
   const tagDropdownRef = useRef<HTMLDivElement>(null)
+  const searchDropdownRef = useRef<HTMLDivElement>(null)
   const [newStock, setNewStock] = useState({
     symbol: '',
     exchange_id: '',
@@ -54,13 +59,71 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       if (tagDropdownRef.current && !tagDropdownRef.current.contains(event.target as Node)) {
         setShowTagDropdown(false)
       }
+      if (searchDropdownRef.current && !searchDropdownRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false)
+      }
     }
 
     if (showTagDropdown) {
       document.addEventListener('mousedown', handleClickOutside)
       return () => document.removeEventListener('mousedown', handleClickOutside)
     }
-  }, [showTagDropdown])
+    if (showSearchResults) {
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showTagDropdown, showSearchResults])
+
+  const searchStocks = async (keyword: string) => {
+    const q = keyword.trim()
+    if (!q) {
+      setSearchResults([])
+      setShowSearchResults(false)
+      return
+    }
+
+    try {
+      const [cn, us] = await Promise.all([
+        stockDetailApi.searchStocks(q),
+        usStockApi.getUsStocks({ page: 1, page_size: 20, keyword: q })
+      ])
+
+      const cnRows = (cn?.stocks ?? []).map((r: any) => ({
+        market: 'cn' as const,
+        symbol: r.ts_code,
+        name: r.name,
+      }))
+
+      const usRows = (us?.items ?? []).map((r: any) => ({
+        market: 'us' as const,
+        symbol: r.tsCode || r.symbol,
+        name: r.name,
+        exchange_id: r.exchangeId || r.exchange,
+      }))
+
+      const merged = [...cnRows, ...usRows]
+        .filter(r => r.symbol && r.name)
+        .slice(0, 30)
+
+      setSearchResults(merged)
+      setShowSearchResults(true)
+    } catch (e) {
+      console.error('searchStocks failed', e)
+      setSearchResults([])
+      setShowSearchResults(false)
+      showToast('搜索股票失败', 'error')
+    }
+  }
+
+  const handlePickStock = (item: { market: 'cn' | 'us'; symbol: string; name: string; exchange_id?: string }) => {
+    setNewStock(prev => ({
+      ...prev,
+      symbol: item.symbol,
+      exchange_id: item.market === 'us' ? (item.exchange_id || '') : ''
+    }))
+    setSearchKeyword(`${item.symbol} ${item.name}`)
+    setShowSearchResults(false)
+  }
   
   // 编辑股票描述相关状态
   const [editingStockId, setEditingStockId] = useState<string | null>(null)
@@ -525,23 +588,69 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                 <div className="mb-4 p-4 border rounded-lg bg-muted/50">
                   <div className="space-y-3">
                     <div>
-                      <label className="text-sm font-medium">股票代码</label>
-                      <Input
-                        placeholder="例如：AAPL 或 000001.SZ"
-                        value={newStock.symbol}
-                        onChange={(e) => setNewStock({ ...newStock, symbol: e.target.value })}
-                      />
+                      <label className="text-sm font-medium">股票搜索</label>
+                      <div className="relative" ref={searchDropdownRef}>
+                        <div className="flex items-center gap-2">
+                          <div className="relative flex-1">
+                            <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+                            <Input
+                              placeholder="搜索A股/美股：代码/名称"
+                              value={searchKeyword}
+                              onChange={(e) => {
+                                const v = e.target.value
+                                setSearchKeyword(v)
+                                searchStocks(v)
+                              }}
+                              onFocus={() => {
+                                if (searchResults.length > 0) setShowSearchResults(true)
+                              }}
+                              className="pl-9"
+                              autoComplete="off"
+                            />
+                          </div>
+                          {searchKeyword && (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSearchKeyword('')
+                                setSearchResults([])
+                                setShowSearchResults(false)
+                                setNewStock(prev => ({ ...prev, symbol: '', exchange_id: '' }))
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+
+                        {showSearchResults && searchResults.length > 0 && (
+                          <div className="absolute top-full left-0 right-0 mt-1 border rounded-md bg-background shadow-lg z-10 max-h-64 overflow-y-auto">
+                            {searchResults.map((r) => (
+                              <button
+                                key={`${r.market}-${r.symbol}-${r.exchange_id || ''}`}
+                                type="button"
+                                onClick={() => handlePickStock(r)}
+                                className="w-full px-3 py-2 text-left hover:bg-muted transition-colors flex items-center justify-between gap-3"
+                              >
+                                <div className="min-w-0">
+                                  <div className="text-sm font-medium truncate">{r.symbol} {r.name}</div>
+                                  <div className="text-xs text-muted-foreground">
+                                    {r.market === 'us' ? `美股 ${r.exchange_id || ''}` : 'A股'}
+                                  </div>
+                                </div>
+                                <div className="text-xs text-muted-foreground whitespace-nowrap">
+                                  选择
+                                </div>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
                       <p className="text-xs text-muted-foreground mt-1">
                         股票名称将自动从后端获取
                       </p>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium">交易所ID（可选）</label>
-                      <Input
-                        placeholder="例如：SZ"
-                        value={newStock.exchange_id}
-                        onChange={(e) => setNewStock({ ...newStock, exchange_id: e.target.value })}
-                      />
                     </div>
                     <div>
                       <label className="text-sm font-medium flex items-center gap-2">

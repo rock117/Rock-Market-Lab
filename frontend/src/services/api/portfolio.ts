@@ -210,16 +210,21 @@ export const portfolioApi = {
 
   // 添加股票到组合
   addStock: async (portfolioId: string, stock: Omit<PortfolioStock, 'id' | 'added_date' | 'portfolio_id' | 'name'>): Promise<Portfolio> => {
+    const payload: { symbol: string; exchange_id?: string; desc?: string } = {
+      symbol: stock.symbol,
+      desc: stock.desc,
+    }
+
+    if (stock.exchange_id) {
+      payload.exchange_id = stock.exchange_id
+    }
+
     const response = await fetch(`${API_BASE_URL}/api/portfolios/${portfolioId}/holdings`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        symbol: stock.symbol,
-        exchange_id: stock.exchange_id,
-        desc: stock.desc,
-      }),
+      body: JSON.stringify(payload),
     })
     
     if (!response.ok) {
