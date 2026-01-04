@@ -388,7 +388,7 @@ export interface TrendAnalysis {
 }
 
 // 策略相关类型定义
-export type StrategyType = 
+export type StrategyType =
   | 'price_volume_candlestick'
   | 'bottom_volume_surge'
   | 'long_term_bottom_reversal'
@@ -404,7 +404,8 @@ export type StrategyType =
   | 'quality_value'
   | 'turnover_ma_bullish'
   | 'low_shadow'
-  | 'ma_convergence';
+  | 'ma_convergence'
+  | 'consecutive_bullish';
 
 export type StrategySignal = 'BUY' | 'SELL' | 'HOLD';
 

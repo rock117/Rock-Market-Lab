@@ -19,6 +19,7 @@ pub mod quality_value_strategy;
 pub mod turnover_ma_bullish_strategy;
 pub mod low_shadow_strategy;
 pub mod ma_convergence_strategy;
+pub mod consecutive_bullish_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -152,5 +153,12 @@ pub use ma_convergence_strategy::{
     MaConvergenceStrategy,
     MaConvergenceConfig,
     MaConvergenceResult,
+};
+
+// 重新导出日/周/月连阳策略相关类型
+pub use consecutive_bullish_strategy::{
+    ConsecutiveBullishStrategy,
+    ConsecutiveBullishConfig,
+    ConsecutiveBullishResult,
 };
 

@@ -29,6 +29,7 @@ use crate::strategy::{
     TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
     LowShadowStrategy, LowShadowConfig,
     MaConvergenceStrategy, MaConvergenceConfig,
+    ConsecutiveBullishStrategy, ConsecutiveBullishConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -271,7 +272,48 @@ impl StockPickerService {
                     _ => bail!("均线粘合策略不支持预设 '{}', 可用预设: daily_standard, daily_conservative, daily_aggressive, weekly_standard", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, ma_convergence", strategy_type)
+            "consecutive_bullish" => execute_strategy!(ConsecutiveBullishConfig, ConsecutiveBullishStrategy, |preset: &str| {
+                Ok(match preset {
+                    "daily_standard" => ConsecutiveBullishConfig {
+                        time_period: "daily".to_string(),
+                        min_consecutive_days: 3,
+                        min_rise_pct: 0.0,
+                        require_volume_surge: false,
+                        volume_surge_ratio: 1.2,
+                        analysis_period: 20,
+                        ..Default::default()
+                    },
+                    "daily_aggressive" => ConsecutiveBullishConfig {
+                        time_period: "daily".to_string(),
+                        min_consecutive_days: 5,
+                        min_rise_pct: 0.01,
+                        require_volume_surge: true,
+                        volume_surge_ratio: 1.3,
+                        analysis_period: 20,
+                        ..Default::default()
+                    },
+                    "weekly_standard" => ConsecutiveBullishConfig {
+                        time_period: "weekly".to_string(),
+                        min_consecutive_days: 3,
+                        min_rise_pct: 0.0,
+                        require_volume_surge: false,
+                        volume_surge_ratio: 1.2,
+                        analysis_period: 10,
+                        ..Default::default()
+                    },
+                    "monthly_standard" => ConsecutiveBullishConfig {
+                        time_period: "monthly".to_string(),
+                        min_consecutive_days: 3,
+                        min_rise_pct: 0.0,
+                        require_volume_surge: false,
+                        volume_surge_ratio: 1.2,
+                        analysis_period: 6,
+                        ..Default::default()
+                    },
+                    _ => bail!("日/周/月连阳策略不支持预设 '{}', 可用预设: daily_standard, daily_aggressive, weekly_standard, monthly_standard", preset),
+                })
+            }),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, ma_convergence, consecutive_bullish", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;

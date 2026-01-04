@@ -6,11 +6,13 @@ import { delay } from './config'
 export const strategyApi = {
   // 运行策略
   runStrategy: async (strategyType: StrategyType, parameters: Record<string, any>) => {
-    // 创建超时控制器（2分钟）
+    // 创建超时控制器（2分钟 = 120秒）
+    // 策略分析可能需要较长时间，特别是对大量股票进行复杂分析时
     const controller = new AbortController()
     const timeoutId = setTimeout(() => {
+      console.warn('策略运行超时，自动中止请求')
       controller.abort()
-    }, 120000) // 120秒 = 2分钟
+    }, 120000) // 120000毫秒 = 2分钟
 
     try {
       const response = await fetch('/api/stocks/pick', {

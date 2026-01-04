@@ -8,6 +8,13 @@ const nextConfig = {
       },
     ]
   },
+  // 配置超时时间（毫秒）
+  // 策略运行可能需要较长时间，特别是分析大量股票时
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
 }
 
 module.exports = nextConfig

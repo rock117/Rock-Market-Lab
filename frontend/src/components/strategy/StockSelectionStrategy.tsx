@@ -38,7 +38,8 @@ const STRATEGY_TYPES = [
   { value: 'turnover_ma_bullish', label: '换手率均线多头策略', description: '基于换手率和均线的多头策略' },
   { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
   { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
-  { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' }
+  { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' },
+  { value: 'consecutive_bullish', label: '日/周/月连阳策略', description: '识别连续阳线形态，捕捉上升趋势的持续信号' }
 ]
 
 // 默认参数示例
@@ -73,6 +74,14 @@ const DEFAULT_PARAMS: Record<string, any> = {
     min_decline_pct: 0.10,
     time_frame: "daily",
     max_convergence_days: 20
+  },
+  consecutive_bullish: {
+    time_period: "daily",
+    min_consecutive_days: 3,
+    min_rise_pct: 0.0,
+    require_volume_surge: false,
+    volume_surge_ratio: 1.2,
+    analysis_period: 20
   }
 }
 
