@@ -554,14 +554,44 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
           )}
         </CardHeader>
         <CardContent>
-          {!selectedPortfolio ? (
+          {isLoadingPortfolio ? (
+            <div className="rounded-md border overflow-x-auto">
+              <Table className={showQuoteCols ? 'min-w-[1200px]' : 'min-w-[760px]'}>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[120px]">股票代码</TableHead>
+                    <TableHead className="w-[300px]">股票名称</TableHead>
+                    {showQuoteCols && (
+                      <>
+                        <TableHead className="w-[110px] text-right">当前价</TableHead>
+                        <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
+                        <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
+                      </>
+                    )}
+                    <TableHead className="w-[200px]">标签</TableHead>
+                    <TableHead>描述</TableHead>
+                    <TableHead className="w-[100px] text-right">操作</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  <TableRow>
+                    <TableCell
+                      colSpan={showQuoteCols ? 11 : 5}
+                      className="text-center py-8 text-muted-foreground"
+                    >
+                      加载中...
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
+            </div>
+          ) : !selectedPortfolio ? (
             <div className="text-center py-12 text-muted-foreground">
               <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>请从左侧选择或创建一个投资组合</p>
-            </div>
-          ) : isLoadingPortfolio ? (
-            <div className="py-12 text-center text-muted-foreground">
-              加载中...
             </div>
           ) : isEditing ? (
             <div className="space-y-4">
@@ -769,34 +799,39 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
               )}
 
               {/* 成分股列表 */}
-              {selectedPortfolio.stocks.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <p>暂无成分股，点击"添加股票"开始构建组合</p>
-                </div>
-              ) : (
-                <div className="rounded-md border overflow-x-auto">
-                  <Table className={showQuoteCols ? 'min-w-[1200px]' : 'min-w-[760px]'}>
-                    <TableHeader>
+              <div className="rounded-md border overflow-x-auto">
+                <Table className={showQuoteCols ? 'min-w-[1200px]' : 'min-w-[760px]'}>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[120px]">股票代码</TableHead>
+                      <TableHead className="w-[300px]">股票名称</TableHead>
+                      {showQuoteCols && (
+                        <>
+                          <TableHead className="w-[110px] text-right">当前价</TableHead>
+                          <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
+                          <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
+                          <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
+                          <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
+                          <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
+                        </>
+                      )}
+                      <TableHead className="w-[200px]">标签</TableHead>
+                      <TableHead>描述</TableHead>
+                      <TableHead className="w-[100px] text-right">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {selectedPortfolio.stocks.length === 0 ? (
                       <TableRow>
-                        <TableHead className="w-[120px]">股票代码</TableHead>
-                        <TableHead className="w-[300px]">股票名称</TableHead>
-                        {showQuoteCols && (
-                          <>
-                            <TableHead className="w-[110px] text-right">当前价</TableHead>
-                            <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
-                            <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
-                            <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
-                            <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
-                            <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
-                          </>
-                        )}
-                        <TableHead className="w-[200px]">标签</TableHead>
-                        <TableHead>描述</TableHead>
-                        <TableHead className="w-[100px] text-right">操作</TableHead>
+                        <TableCell
+                          colSpan={showQuoteCols ? 11 : 5}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          暂无成分股，点击"添加股票"开始构建组合
+                        </TableCell>
                       </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedPortfolio.stocks.map((stock) => (
+                    ) : (
+                      selectedPortfolio.stocks.map((stock) => (
                         <TableRow key={stock.id}>
                           <TableCell className="font-mono font-medium">
                             {stock.symbol}
@@ -873,11 +908,11 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             </Button>
                           </TableCell>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-              )}
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
             </>
           )}
         </CardContent>
