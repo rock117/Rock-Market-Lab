@@ -187,7 +187,7 @@ fn init_log_context() -> anyhow::Result<()> {
     );
 
     // 使用本地时区（系统时区）
-    let timer = ChronoLocal::rfc_3339();
+    let timer = ChronoLocal::new("%Y-%m-%dT%H:%M:%S%.6f%:z".to_string());
 
     let filter = EnvFilter::from_default_env().add_directive(LevelFilter::INFO.into());
     let subscriber = Registry::default()
