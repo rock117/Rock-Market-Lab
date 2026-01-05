@@ -13,6 +13,23 @@ import { formatDate } from '@/lib/utils'
 import { Plus, Trash2, Edit2, FolderOpen, X, Search, Save, Tag } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
+function renderPctCell(v: number | null | undefined) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) {
+    return <span className="text-sm text-muted-foreground">--</span>
+  }
+  const n = Number(v)
+  const cls = n > 0 ? 'text-bear' : 'text-bull'
+  return <span className={`text-sm font-medium ${cls}`}>{n.toFixed(2)}%</span>
+}
+
+function renderPriceCell(v: number | null | undefined) {
+  if (v === null || v === undefined || Number.isNaN(Number(v))) {
+    return <span className="text-sm text-muted-foreground">--</span>
+  }
+  const n = Number(v)
+  return <span className="text-sm font-medium">{n.toFixed(2)}</span>
+}
+
 // 假数据：标签列表
 const MOCK_TAGS = [
   { id: '1', name: '蓝筹股', color: 'bg-blue-100 text-blue-800' },
@@ -31,6 +48,7 @@ interface PortfolioManagerProps {
 
 export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [selectedPortfolio, setSelectedPortfolio] = useState<Portfolio | null>(null)
+  const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
   const [newPortfolioName, setNewPortfolioName] = useState('')
@@ -345,6 +363,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   // 加载完整的投资组合数据（包含持仓列表）
   const handleSelectPortfolio = async (portfolio: Portfolio) => {
     console.log('🔍 点击投资组合:', portfolio.id)
+    setIsLoadingPortfolio(true)
     try {
       const fullPortfolio = await portfolioApi.getPortfolio(portfolio.id)
       if (fullPortfolio) {
@@ -355,6 +374,8 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
     } catch (error) {
       console.error('❌ 加载投资组合失败:', error)
       showToast('获取投资组合详情失败', 'error')
+    } finally {
+      setIsLoadingPortfolio(false)
     }
   }
 
@@ -498,7 +519,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                     size="sm"
                     variant="outline"
                     onClick={startEditingPortfolio}
-                    disabled={isEditing}
+                    disabled={isEditing || isLoadingPortfolio}
                   >
                     <Edit2 className="h-4 w-4 mr-1" />
                     编辑
@@ -507,6 +528,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                     size="sm"
                     variant="destructive"
                     onClick={() => handleDeletePortfolio(selectedPortfolio.id, selectedPortfolio.name)}
+                    disabled={isLoadingPortfolio}
                   >
                     <Trash2 className="h-4 w-4 mr-1" />
                     删除
@@ -535,6 +557,10 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
             <div className="text-center py-12 text-muted-foreground">
               <FolderOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>请从左侧选择或创建一个投资组合</p>
+            </div>
+          ) : isLoadingPortfolio ? (
+            <div className="py-12 text-center text-muted-foreground">
+              加载中...
             </div>
           ) : isEditing ? (
             <div className="space-y-4">
@@ -576,7 +602,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
               <div className="mb-4">
                 <Button
                   onClick={() => setIsAddingStock(true)}
-                  disabled={isAddingStock}
+                  disabled={isAddingStock || isLoadingPortfolio}
                 >
                   <Plus className="h-4 w-4 mr-1" />
                   添加股票
@@ -736,13 +762,18 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                   <p>暂无成分股，点击"添加股票"开始构建组合</p>
                 </div>
               ) : (
-                <div className="rounded-md border">
-                  <Table>
+                <div className="rounded-md border overflow-x-auto">
+                  <Table className="min-w-[1200px]">
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">股票代码</TableHead>
                         <TableHead className="w-[300px]">股票名称</TableHead>
-                        <TableHead className="w-[100px]">交易所</TableHead>
+                        <TableHead className="w-[110px] text-right">当前价</TableHead>
+                        <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
+                        <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
+                        <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
                         <TableHead className="w-[120px]">添加日期</TableHead>
                         <TableHead className="w-[200px]">标签</TableHead>
                         <TableHead>描述</TableHead>
@@ -756,11 +787,12 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             {stock.symbol}
                           </TableCell>
                           <TableCell>{stock.name}</TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {stock.exchange_id || 'N/A'}
-                            </span>
-                          </TableCell>
+                          <TableCell className="text-right">{renderPriceCell((stock as any).current_price)}</TableCell>
+                          <TableCell className="text-right">{renderPctCell((stock as any).pct_chg)}</TableCell>
+                          <TableCell className="text-right">{renderPctCell((stock as any).pct5)}</TableCell>
+                          <TableCell className="text-right">{renderPctCell((stock as any).pct10)}</TableCell>
+                          <TableCell className="text-right">{renderPctCell((stock as any).pct20)}</TableCell>
+                          <TableCell className="text-right">{renderPctCell((stock as any).pct60)}</TableCell>
                           <TableCell>
                             <span className="text-sm text-muted-foreground">
                               {formatDate(stock.added_date)}

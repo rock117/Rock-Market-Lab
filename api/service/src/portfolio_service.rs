@@ -2,12 +2,14 @@ use anyhow::{Result, Context, bail, anyhow};
 use futures::future::err;
 use entity::sea_orm::{
     DatabaseConnection, EntityTrait, ActiveModelTrait, Set, 
-    TransactionTrait, QueryFilter, ColumnTrait
+    TransactionTrait, QueryFilter, ColumnTrait, QueryOrder, QuerySelect
 };
-use entity::{portfolio, holding, us_stock, stock};
+use entity::{portfolio, holding, us_stock, stock, stock_daily};
 use serde::{Deserialize, Serialize};
 use tracing::{info, error};
 use entity::sea_orm::sea_query::ExprTrait;
+use entity::sea_orm::prelude::Decimal;
+use std::collections::HashMap;
 
 enum StockDto {
     UsStock(us_stock::Model),
@@ -50,6 +52,33 @@ pub struct HoldingResponse {
     pub name: Option<String>,
     pub portfolio_id: i32,
     pub desc: Option<String>,
+
+    pub current_price: Option<f64>,
+
+    pub pct_chg: Option<f64>,
+    pub pct5: Option<f64>,
+    pub pct10: Option<f64>,
+    pub pct20: Option<f64>,
+    pub pct60: Option<f64>,
+}
+
+fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<f64> {
+    // closes_desc: [today, yesterday, ...] (desc)
+    if days < 2 {
+        return None;
+    }
+    if closes_desc.len() < days {
+        return None;
+    }
+
+    let today = *closes_desc.get(0)?;
+    let past = *closes_desc.get(days - 1)?;
+    if past.is_zero() {
+        return None;
+    }
+
+    let pct = (today - past) / past * Decimal::from(100i64);
+    pct.to_string().parse::<f64>().ok()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -271,6 +300,12 @@ pub async fn add_holding(
         name: stock.name(),
         portfolio_id: result.portfolio_id,
         desc: result.desc,
+        current_price: None,
+        pct_chg: None,
+        pct5: None,
+        pct10: None,
+        pct20: None,
+        pct60: None,
     })
 }
 
@@ -291,16 +326,102 @@ pub async fn get_holdings(
         .all(conn)
         .await
         .context("Failed to fetch holdings")?;
-    
-    let results = holdings.into_iter().map(|h| HoldingResponse {
-        id: h.id,
-        exchange_id: h.exchange_id,
-        symbol: h.symbol,
-        name: h.name,
-        portfolio_id: h.portfolio_id,
-        desc: h.desc,
-    }).collect();
-    
+
+    let cn_symbols: Vec<String> = holdings
+        .iter()
+        .filter(|h| h.exchange_id == "cn")
+        .map(|h| h.symbol.clone())
+        .collect();
+
+    let mut latest_price_map: HashMap<String, Option<f64>> = HashMap::new();
+    let mut latest_pct_map: HashMap<String, Option<f64>> = HashMap::new();
+    let mut closes_desc_map: HashMap<String, Vec<Decimal>> = HashMap::new();
+
+    if !cn_symbols.is_empty() {
+        let latest_trade_date: Option<String> = stock_daily::Entity::find()
+            .select_only()
+            .column(stock_daily::Column::TradeDate)
+            .order_by_desc(stock_daily::Column::TradeDate)
+            .limit(1)
+            .into_tuple::<String>()
+            .one(conn)
+            .await?;
+
+        if let Some(latest_trade_date) = latest_trade_date {
+            let latest_dailies = stock_daily::Entity::find()
+                .filter(ColumnTrait::eq(&stock_daily::Column::TradeDate, latest_trade_date.clone()))
+                .filter(stock_daily::Column::TsCode.is_in(cn_symbols.clone()))
+                .all(conn)
+                .await?;
+
+            for d in latest_dailies {
+                let close_v = d.close.to_string().parse::<f64>().ok();
+                latest_price_map.insert(d.ts_code.clone(), close_v);
+                let v = d
+                    .pct_chg
+                    .and_then(|x| x.to_string().parse::<f64>().ok());
+                latest_pct_map.insert(d.ts_code.clone(), v);
+            }
+
+            let last_60_dates: Vec<String> = stock_daily::Entity::find()
+                .select_only()
+                .column(stock_daily::Column::TradeDate)
+                .distinct()
+                .order_by_desc(stock_daily::Column::TradeDate)
+                .limit(65)
+                .into_tuple::<String>()
+                .all(conn)
+                .await?;
+
+            if !last_60_dates.is_empty() {
+                let rows = stock_daily::Entity::find()
+                    .filter(stock_daily::Column::TradeDate.is_in(last_60_dates))
+                    .filter(stock_daily::Column::TsCode.is_in(cn_symbols.clone()))
+                    .order_by_desc(stock_daily::Column::TradeDate)
+                    .all(conn)
+                    .await?;
+
+                for r in rows {
+                    closes_desc_map.entry(r.ts_code.clone()).or_default().push(r.close);
+                }
+            }
+        }
+    }
+
+    let results = holdings
+        .into_iter()
+        .map(|h| {
+            let (current_price, pct_chg, pct5, pct10, pct20, pct60) = if h.exchange_id == "cn" {
+                let closes_desc = closes_desc_map.get(&h.symbol).map(|v| v.as_slice()).unwrap_or(&[]);
+                (
+                    latest_price_map.get(&h.symbol).cloned().flatten(),
+                    latest_pct_map.get(&h.symbol).cloned().flatten(),
+                    calc_period_pct_chg(closes_desc, 5),
+                    calc_period_pct_chg(closes_desc, 10),
+                    calc_period_pct_chg(closes_desc, 20),
+                    calc_period_pct_chg(closes_desc, 60),
+                )
+            } else {
+                (None, None, None, None, None, None)
+            };
+
+            HoldingResponse {
+                id: h.id,
+                exchange_id: h.exchange_id,
+                symbol: h.symbol,
+                name: h.name,
+                portfolio_id: h.portfolio_id,
+                desc: h.desc,
+                current_price,
+                pct_chg,
+                pct5,
+                pct10,
+                pct20,
+                pct60,
+            }
+        })
+        .collect();
+
     Ok(results)
 }
 
@@ -337,6 +458,12 @@ pub async fn update_holding_desc(
         name: updated.name,
         portfolio_id: updated.portfolio_id,
         desc: updated.desc,
+        current_price: None,
+        pct_chg: None,
+        pct5: None,
+        pct10: None,
+        pct20: None,
+        pct60: None,
     })
 }
 

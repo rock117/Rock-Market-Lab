@@ -9,6 +9,14 @@ export interface ApiHolding {
   portfolio_id: number; // 投资组合ID
   desc?: string; // 描述/备注
   added_date?: string; // 添加日期
+
+  current_price?: number | null
+
+  pct_chg?: number | null
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
 }
 
 // 后端API返回的投资组合格式（列表接口）
@@ -41,6 +49,14 @@ export interface PortfolioStock {
   desc?: string; // 描述/备注
   added_date: string; // 添加日期
   tags?: string[]; // 标签ID列表
+
+  current_price?: number | null
+
+  pct_chg?: number | null
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
 }
 
 // 前端使用的投资组合格式（保持向后兼容）

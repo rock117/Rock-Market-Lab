@@ -17,7 +17,13 @@ function transformApiHolding(apiHolding: ApiHolding): PortfolioStock {
     exchange_id: apiHolding.exchange_id,
     portfolio_id: apiHolding.portfolio_id.toString(),
     desc: apiHolding.desc,
-    added_date: apiHolding.added_date || new Date().toISOString()
+    added_date: apiHolding.added_date || new Date().toISOString(),
+    current_price: apiHolding.current_price ?? null,
+    pct_chg: apiHolding.pct_chg ?? null,
+    pct5: apiHolding.pct5 ?? null,
+    pct10: apiHolding.pct10 ?? null,
+    pct20: apiHolding.pct20 ?? null,
+    pct60: apiHolding.pct60 ?? null,
   }
 }
 
