@@ -51,6 +51,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [isLoadingPortfolio, setIsLoadingPortfolio] = useState(false)
   const [isCreating, setIsCreating] = useState(false)
   const [isEditing, setIsEditing] = useState(false)
+  const [showQuoteCols, setShowQuoteCols] = useState(true)
   const [newPortfolioName, setNewPortfolioName] = useState('')
   const [newPortfolioDesc, setNewPortfolioDesc] = useState('')
   
@@ -600,13 +601,24 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
             <>
               {/* 添加股票按钮 */}
               <div className="mb-4">
-                <Button
-                  onClick={() => setIsAddingStock(true)}
-                  disabled={isAddingStock || isLoadingPortfolio}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  添加股票
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => setIsAddingStock(true)}
+                    disabled={isAddingStock || isLoadingPortfolio}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    添加股票
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => setShowQuoteCols((v) => !v)}
+                    disabled={isLoadingPortfolio}
+                  >
+                    {showQuoteCols ? '隐藏行情列' : '显示行情列'}
+                  </Button>
+                </div>
               </div>
 
               {/* 添加股票表单 */}
@@ -763,18 +775,21 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                 </div>
               ) : (
                 <div className="rounded-md border overflow-x-auto">
-                  <Table className="min-w-[1200px]">
+                  <Table className={showQuoteCols ? 'min-w-[1200px]' : 'min-w-[760px]'}>
                     <TableHeader>
                       <TableRow>
                         <TableHead className="w-[120px]">股票代码</TableHead>
                         <TableHead className="w-[300px]">股票名称</TableHead>
-                        <TableHead className="w-[110px] text-right">当前价</TableHead>
-                        <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
-                        <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
-                        <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
-                        <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
-                        <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
-                        <TableHead className="w-[120px]">添加日期</TableHead>
+                        {showQuoteCols && (
+                          <>
+                            <TableHead className="w-[110px] text-right">当前价</TableHead>
+                            <TableHead className="w-[110px] text-right">涨跌幅</TableHead>
+                            <TableHead className="w-[110px] text-right">5日涨幅</TableHead>
+                            <TableHead className="w-[110px] text-right">10日涨幅</TableHead>
+                            <TableHead className="w-[110px] text-right">20日涨幅</TableHead>
+                            <TableHead className="w-[110px] text-right">60日涨幅</TableHead>
+                          </>
+                        )}
                         <TableHead className="w-[200px]">标签</TableHead>
                         <TableHead>描述</TableHead>
                         <TableHead className="w-[100px] text-right">操作</TableHead>
@@ -787,17 +802,16 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                             {stock.symbol}
                           </TableCell>
                           <TableCell>{stock.name}</TableCell>
-                          <TableCell className="text-right">{renderPriceCell((stock as any).current_price)}</TableCell>
-                          <TableCell className="text-right">{renderPctCell((stock as any).pct_chg)}</TableCell>
-                          <TableCell className="text-right">{renderPctCell((stock as any).pct5)}</TableCell>
-                          <TableCell className="text-right">{renderPctCell((stock as any).pct10)}</TableCell>
-                          <TableCell className="text-right">{renderPctCell((stock as any).pct20)}</TableCell>
-                          <TableCell className="text-right">{renderPctCell((stock as any).pct60)}</TableCell>
-                          <TableCell>
-                            <span className="text-sm text-muted-foreground">
-                              {formatDate(stock.added_date)}
-                            </span>
-                          </TableCell>
+                          {showQuoteCols && (
+                            <>
+                              <TableCell className="text-right">{renderPriceCell((stock as any).current_price)}</TableCell>
+                              <TableCell className="text-right">{renderPctCell((stock as any).pct_chg)}</TableCell>
+                              <TableCell className="text-right">{renderPctCell((stock as any).pct5)}</TableCell>
+                              <TableCell className="text-right">{renderPctCell((stock as any).pct10)}</TableCell>
+                              <TableCell className="text-right">{renderPctCell((stock as any).pct20)}</TableCell>
+                              <TableCell className="text-right">{renderPctCell((stock as any).pct60)}</TableCell>
+                            </>
+                          )}
                           <TableCell>
                             <div className="flex flex-wrap gap-1">
                               {(stock as any).tags && (stock as any).tags.length > 0 ? (
