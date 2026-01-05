@@ -59,13 +59,24 @@ impl Fairing for RequestLogger {
     async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
         let started = req.local_cache(|| Instant::now());
         let elapsed_ms = started.elapsed().as_millis();
-        info!(
-            "[response] {} {} status={} elapsed_ms={}",
-            req.method(),
-            req.uri(),
-            resp.status(),
-            elapsed_ms
-        );
+        let code = resp.status().code;
+        if code == 200 {
+            info!(
+                "[response] {} {} status={} elapsed_ms={}",
+                req.method(),
+                req.uri(),
+                resp.status(),
+                elapsed_ms
+            );
+        } else {
+            warn!(
+                "[response] {} {} status={} elapsed_ms={}",
+                req.method(),
+                req.uri(),
+                resp.status(),
+                elapsed_ms
+            );
+        }
     }
 }
 
