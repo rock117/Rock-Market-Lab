@@ -347,11 +347,16 @@ impl ConsecutiveBullishStrategy {
         let mut aggregated = Vec::new();
         let mut current_period_data: Vec<&SecurityData> = Vec::new();
         let mut current_period_key: Option<(i32, u32)> = None;
+        let mut prev_period_close: Option<f64> = None;
+        let mut invalid_trade_date_count: usize = 0;
         
         for item in &sorted_data {
             let date = match NaiveDate::parse_from_str(&item.trade_date, "%Y%m%d") {
                 Ok(d) => d,
-                Err(_) => continue,
+                Err(_) => {
+                    invalid_trade_date_count += 1;
+                    continue;
+                }
             };
             
             let period_key = if self.config.time_period == "weekly" || self.config.time_period == "week" {
@@ -368,7 +373,8 @@ impl ConsecutiveBullishStrategy {
                 current_period_data.push(item);
             } else {
                 // 新周期，聚合上一周期数据
-                if let Some(agg) = self.aggregate_period_data(&current_period_data) {
+                if let Some(agg) = self.aggregate_period_data(&current_period_data, prev_period_close) {
+                    prev_period_close = Some(agg.close);
                     aggregated.push(agg);
                 }
                 current_period_key = Some(period_key);
@@ -378,15 +384,27 @@ impl ConsecutiveBullishStrategy {
         }
         
         // 聚合最后一个周期
-        if let Some(agg) = self.aggregate_period_data(&current_period_data) {
+        if let Some(agg) = self.aggregate_period_data(&current_period_data, prev_period_close) {
             aggregated.push(agg);
         }
-        
+
+        if invalid_trade_date_count > 0 {
+            info!(
+                "[consecutive_bullish] aggregate_to_period skipped invalid trade_date rows={} time_period={}",
+                invalid_trade_date_count,
+                self.config.time_period
+            );
+        }
+
         aggregated
     }
     
     /// 聚合一个周期的数据（周线/月线）
-    fn aggregate_period_data(&self, data: &[&SecurityData]) -> Option<SecurityData> {
+    fn aggregate_period_data(
+        &self,
+        data: &[&SecurityData],
+        prev_period_close: Option<f64>,
+    ) -> Option<SecurityData> {
         if data.is_empty() {
             return None;
         }
@@ -405,12 +423,20 @@ impl ConsecutiveBullishStrategy {
         let low = sorted.iter().map(|d| d.low).fold(f64::INFINITY, f64::min);
         let volume = sorted.iter().map(|d| d.volume).sum();
         let amount = sorted.iter().map(|d| d.amount).sum();
-        
-        // 计算涨跌幅
-        let pct_change = if open > 0.0 {
-            (close - open) / open
+
+        // 周/月涨跌幅按“上一周期收盘 -> 本周期收盘”计算（更贴近日线 pct_chg）
+        // 若缺少上一周期收盘，则回退到该周期第一天的 pre_close（如果有）。
+        let period_pre_close = prev_period_close.or_else(|| first.pre_close);
+        let (change, pct_change) = if let Some(pre_close) = period_pre_close {
+            if pre_close > 0.0 {
+                let chg = close - pre_close;
+                let pct = chg / pre_close * 100.0;
+                (Some(chg), Some(pct))
+            } else {
+                (None, None)
+            }
         } else {
-            0.0
+            (None, None)
         };
         
         Some(SecurityData {
@@ -420,12 +446,12 @@ impl ConsecutiveBullishStrategy {
             high,
             low,
             close,
-            pre_close: last.pre_close,
-            change: last.change,
+            pre_close: period_pre_close,
+            change,
             volume,
             amount,
             turnover_rate: last.turnover_rate,
-            pct_change: Some(pct_change * 100.0),
+            pct_change,
             time_frame: last.time_frame.clone(),
             security_type: last.security_type.clone(),
             financial_data: last.financial_data.clone(),
@@ -764,7 +790,7 @@ mod tests {
     
     #[test]
     fn test_weekly_aggregation() {
-        let strategy = ConsecutiveBullishStrategy::weekly_standard();
+        let mut strategy = ConsecutiveBullishStrategy::weekly_standard();
         
         let mut data = Vec::new();
         // 创建4周的数据
