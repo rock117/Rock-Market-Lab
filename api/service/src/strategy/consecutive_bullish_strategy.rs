@@ -33,7 +33,7 @@
 //! - 需要关注后续的阴线确认趋势反转
 
 use anyhow::Result;
-use chrono::{NaiveDate, Datelike, Weekday};
+use chrono::{NaiveDate, Datelike};
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info};
 
@@ -63,7 +63,7 @@ impl TimePeriod {
         match self {
             TimePeriod::Daily => {
                 // 日线：每天都是不同周期
-                date1 != date2
+                date1 == date2
             }
             TimePeriod::Weekly => {
                 // 周线：判断是否同一周
@@ -129,7 +129,7 @@ impl StrategyConfigTrait for ConsecutiveBullishConfig {
     }
     
     fn validate(&self) -> Result<()> {
-        if !["daily", "weekly", "monthly"].contains(&self.time_period.as_str()) {
+        if !["daily", "weekly", "week", "monthly", "month"].contains(&self.time_period.as_str()) {
             anyhow::bail!("时间周期必须是 'daily', 'weekly' 或 'monthly'");
         }
         
@@ -137,7 +137,7 @@ impl StrategyConfigTrait for ConsecutiveBullishConfig {
             anyhow::bail!("最小连阳数量应在2-10之间");
         }
         
-        if self.min_rise_pct < 0.0 || self.min_rise_pct > 0.20 {
+        if self.min_rise_pct < 0.0 || self.min_rise_pct > 20.0 {
             anyhow::bail!("单根阳线最小涨幅应在0%-20%之间");
         }
         
@@ -262,7 +262,7 @@ impl ConsecutiveBullishStrategy {
             config: ConsecutiveBullishConfig {
                 time_period: "daily".to_string(),
                 min_consecutive_days: 5,
-                min_rise_pct: 0.01,
+                min_rise_pct: 1.0,
                 require_volume_surge: true,
                 volume_surge_ratio: 1.3,
                 analysis_period: 20,
@@ -320,11 +320,17 @@ impl ConsecutiveBullishStrategy {
         if data.is_empty() || self.config.analysis_period == 0 {
             return 0.0;
         }
-        
-        let start = end_index.saturating_sub(self.config.analysis_period);
-        let sum: f64 = data[start..=end_index].iter().map(|d| d.volume).sum();
-        let count = end_index - start + 1;
-        
+
+        // 计算均量时不包含当前K线，避免把“放量”稀释掉
+        if end_index == 0 {
+            return 0.0;
+        }
+
+        let end = end_index - 1;
+        let start = end.saturating_sub(self.config.analysis_period.saturating_sub(1));
+        let sum: f64 = data[start..=end].iter().map(|d| d.volume).sum();
+        let count = end - start + 1;
+
         sum / count as f64
     }
     
@@ -348,7 +354,7 @@ impl ConsecutiveBullishStrategy {
                 Err(_) => continue,
             };
             
-            let period_key = if self.config.time_period == "weekly" {
+            let period_key = if self.config.time_period == "weekly" || self.config.time_period == "week" {
                 let iso_week = date.iso_week();
                 (iso_week.year(), iso_week.week())
             } else { // monthly
@@ -495,7 +501,7 @@ impl ConsecutiveBullishStrategy {
         score += consecutive_score;
         
         // 平均涨幅评分（30分）
-        let rise_score = (avg_rise_pct / 0.10).min(1.0) * 30.0;
+        let rise_score = (avg_rise_pct / 10.0).min(1.0) * 30.0;
         score += rise_score;
         
         // 成交量评分（20分）
@@ -550,7 +556,7 @@ impl ConsecutiveBullishStrategy {
             let first_close = bullish_candles.first().unwrap().close;
             let last_close = bullish_candles.last().unwrap().close;
             if first_close > 0.0 {
-                (last_close - first_close) / first_close
+                (last_close - first_close) / first_close * 100.0
             } else {
                 0.0
             }
@@ -608,8 +614,8 @@ impl ConsecutiveBullishStrategy {
         let analysis_description = if meets_min_consecutive {
             let period_name = match self.config.time_period.as_str() {
                 "daily" => "日",
-                "weekly" => "周",
-                "monthly" => "月",
+                "weekly" | "week" => "周",
+                "monthly" | "month" => "月",
                 _ => "",
             };
             
@@ -618,11 +624,11 @@ impl ConsecutiveBullishStrategy {
                 period_name,
                 consecutive_days,
                 if self.config.min_rise_pct > 0.0 {
-                    format!("（单根涨幅≥{:.1}%）", self.config.min_rise_pct * 100.0)
+                    format!("（单根涨幅≥{:.1}%）", self.config.min_rise_pct)
                 } else {
                     String::new()
                 },
-                total_rise_pct * 100.0
+                total_rise_pct
             )
         } else {
             format!(
@@ -637,7 +643,7 @@ impl ConsecutiveBullishStrategy {
             symbol,
             self.config.time_period,
             consecutive_days,
-            total_rise_pct * 100.0,
+            total_rise_pct,
             strategy_signal
         );
         
@@ -652,8 +658,8 @@ impl ConsecutiveBullishStrategy {
             risk_level,
             time_period: match self.config.time_period.as_str() {
                 "daily" => "日线".to_string(),
-                "weekly" => "周线".to_string(),
-                "monthly" => "月线".to_string(),
+                "weekly" | "week" => "周线".to_string(),
+                "monthly" | "month" => "月线".to_string(),
                 _ => self.config.time_period.clone(),
             },
             consecutive_days,
