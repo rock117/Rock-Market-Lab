@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 use std::env;
 use std::fs::OpenOptions;
+use std::time::Instant;
 
 use std::time::Duration;
 
@@ -11,6 +12,8 @@ use entity::sea_orm::{ConnectOptions, Database, DatabaseConnection};
 use http::header::HeaderName;
 use rocket::{launch, routes, get};
 use rocket::catchers;
+use rocket::fairing::{Fairing, Info, Kind};
+use rocket::{Request, Response};
 
 use tower::{timeout::TimeoutLayer, ServiceBuilder};
 use tower_http::propagate_header::PropagateHeaderLayer;
@@ -21,7 +24,7 @@ use tracing::level_filters::LevelFilter;
 use tracing::{info, warn};
 use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
-use tracing_subscriber::{fmt, EnvFilter, Layer, Registry};
+use tracing_subscriber::{fmt, EnvFilter, Registry};
 use tracing_subscriber::fmt::writer::MakeWriterExt;
 use tracing_subscriber::fmt::time::ChronoLocal;
 
@@ -36,6 +39,35 @@ mod response;
 mod request;
 mod error_handlers;
 mod result;
+
+pub struct RequestLogger;
+
+#[rocket::async_trait]
+impl Fairing for RequestLogger {
+    fn info(&self) -> Info {
+        Info {
+            name: "Request Logger",
+            kind: Kind::Request | Kind::Response,
+        }
+    }
+
+    async fn on_request(&self, req: &mut Request<'_>, _data: &mut rocket::Data<'_>) {
+        req.local_cache(|| Instant::now());
+        info!("[request] {} {}", req.method(), req.uri());
+    }
+
+    async fn on_response<'r>(&self, req: &'r Request<'_>, resp: &mut Response<'r>) {
+        let started = req.local_cache(|| Instant::now());
+        let elapsed_ms = started.elapsed().as_millis();
+        info!(
+            "[response] {} {} status={} elapsed_ms={}",
+            req.method(),
+            req.uri(),
+            resp.status(),
+            elapsed_ms
+        );
+    }
+}
 
 #[tokio::main]
 async fn main1() -> anyhow::Result<()> {
@@ -89,6 +121,7 @@ async fn rocket() -> _ {
             .expect("Failed to start schedule");
     });
     rocket::build()
+        .attach(RequestLogger)
         .manage(conn)
         .mount("/", routes![
             stock_price_limitup_controller::stock_price_limitup,
