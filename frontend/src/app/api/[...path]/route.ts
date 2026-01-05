@@ -6,7 +6,8 @@ type Params = { path?: string[] }
 
 async function proxy(req: Request, { params }: { params: Params }) {
   const path = (params.path || []).join('/')
-  const targetUrl = `http://localhost:8000/api/${path}`
+  const incomingUrl = new URL(req.url)
+  const targetUrl = `http://localhost:8000/api/${path}${incomingUrl.search}`
 
   const controller = new AbortController()
   const timeoutId = setTimeout(() => controller.abort(), 120000)
