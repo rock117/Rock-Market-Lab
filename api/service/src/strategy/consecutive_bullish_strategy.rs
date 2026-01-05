@@ -604,6 +604,40 @@ impl ConsecutiveBullishStrategy {
         
         // 判断是否满足最小连阳要求
         let meets_min_consecutive = consecutive_days >= self.config.min_consecutive_days;
+
+        if meets_min_consecutive
+            && (self.config.time_period == "weekly"
+                || self.config.time_period == "week"
+                || self.config.time_period == "monthly"
+                || self.config.time_period == "month")
+        {
+            let closes = bullish_candles
+                .iter()
+                .map(|c| format!("{}:{:.2}", c.date.format("%Y-%m-%d"), c.close))
+                .collect::<Vec<_>>()
+                .join(", ");
+
+            let details = bullish_candles
+                .iter()
+                .map(|c| {
+                    format!(
+                        "{} c={:.2} pct={:.2}%",
+                        c.date.format("%Y-%m-%d"),
+                        c.close,
+                        c.pct_chg
+                    )
+                })
+                .collect::<Vec<_>>()
+                .join(" | ");
+            info!(
+                "[consecutive_bullish] ts_code={} {} {}连阳 closes=[{}] details=[{}]",
+                symbol,
+                self.config.time_period,
+                consecutive_days,
+                closes,
+                details
+            );
+        }
         
         // 生成策略信号
         let (strategy_signal, signal_strength, risk_level) = if meets_min_consecutive {
