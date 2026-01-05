@@ -20,6 +20,7 @@ pub struct Model {
     pub portfolio_id: i32,
     pub name: Option<String>,
     pub desc: Option<String>,
+    pub order: i32,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
@@ -30,6 +31,7 @@ pub enum Column {
     PortfolioId,
     Name,
     Desc,
+    Order,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -57,6 +59,7 @@ impl ColumnTrait for Column {
             Self::PortfolioId => ColumnType::Integer.def(),
             Self::Name => ColumnType::String(StringLen::N(50u32)).def().null(),
             Self::Desc => ColumnType::String(StringLen::N(200u32)).def().null(),
+            Self::Order => ColumnType::Integer.def(),
         }
     }
 }

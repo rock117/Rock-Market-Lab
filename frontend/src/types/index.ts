@@ -10,6 +10,8 @@ export interface ApiHolding {
   desc?: string; // 描述/备注
   added_date?: string; // 添加日期
 
+  order?: number
+
   current_price?: number | null
 
   pct_chg?: number | null
@@ -49,6 +51,8 @@ export interface PortfolioStock {
   desc?: string; // 描述/备注
   added_date: string; // 添加日期
   tags?: string[]; // 标签ID列表
+
+  order?: number
 
   current_price?: number | null
 

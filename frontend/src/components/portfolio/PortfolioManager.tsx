@@ -69,7 +69,8 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
   const [newStock, setNewStock] = useState({
     symbol: '',
     exchange_id: '',
-    desc: ''
+    desc: '',
+    order: ''
   })
 
   // 点击外部关闭标签下拉框
@@ -220,11 +221,17 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
       queryClient.invalidateQueries({ queryKey: ['portfolios'] })
       setSelectedPortfolio(updatedPortfolio)
       setIsAddingStock(false)
-      setNewStock({ symbol: '', exchange_id: '', desc: '' })
+      setNewStock({ symbol: '', exchange_id: '', desc: '', order: '' })
       setSearchKeyword('')
+      setSelectedTags([])
+      setShowSearchResults(false)
+      setShowTagDropdown(false)
       showToast('股票已添加到组合', 'success')
     },
     onError: (error: Error) => {
+      setShowSearchResults(false)
+      setShowTagDropdown(false)
+      setIsAddingStock(true)
       showToast(error.message, 'error')
     }
   })
@@ -293,10 +300,15 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
 
   const handleAddStock = () => {
     if (!selectedPortfolio) return
+    if (addStockMutation.isPending) return
     if (!newStock.symbol.trim()) {
       showToast('请输入股票代码', 'warning')
       return
     }
+    setShowSearchResults(false)
+    setShowTagDropdown(false)
+    // 提交后立即隐藏添加股票区域，在持仓表格中显示“添加中...”
+    setIsAddingStock(false)
     addStockMutation.mutate({
       portfolioId: selectedPortfolio.id,
       stock: {
@@ -305,6 +317,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
         exchange_id: newStock.exchange_id || undefined,
         portfolio_id: selectedPortfolio.id,
         desc: newStock.desc || undefined,
+        order: newStock.order.trim() ? Number(newStock.order) : undefined,
         tags: selectedTags.length > 0 ? selectedTags : undefined
       } as any
     })
@@ -320,7 +333,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
 
   const handleCancelAddStock = () => {
     setIsAddingStock(false)
-    setNewStock({ symbol: '', exchange_id: '', desc: '' })
+    setNewStock({ symbol: '', exchange_id: '', desc: '', order: '' })
     setSelectedTags([])
     setShowTagDropdown(false)
   }
@@ -634,7 +647,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                 <div className="flex items-center gap-2">
                   <Button
                     onClick={() => setIsAddingStock(true)}
-                    disabled={isAddingStock || isLoadingPortfolio}
+                    disabled={isAddingStock || isLoadingPortfolio || addStockMutation.isPending}
                   >
                     <Plus className="h-4 w-4 mr-1" />
                     添加股票
@@ -674,6 +687,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                               }}
                               className="pl-9"
                               autoComplete="off"
+                              disabled={addStockMutation.isPending}
                             />
                           </div>
                           {searchKeyword && (
@@ -687,6 +701,7 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                                 setShowSearchResults(false)
                                 setNewStock(prev => ({ ...prev, symbol: '', exchange_id: '' }))
                               }}
+                              disabled={addStockMutation.isPending}
                             >
                               <X className="h-4 w-4" />
                             </Button>
@@ -768,12 +783,40 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                       </div>
                     </div>
                     <div>
+                      <label className="text-sm font-medium">排序（order，越小越靠前，可选）</label>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        placeholder="例如：1"
+                        value={newStock.order}
+                        onChange={(e) => {
+                          const raw = e.target.value
+                          if (!raw) {
+                            setNewStock(prev => ({ ...prev, order: '' }))
+                            return
+                          }
+
+                          const n = Number(raw)
+                          if (Number.isNaN(n)) return
+
+                          setNewStock(prev => ({ ...prev, order: String(Math.max(0, Math.trunc(n))) }))
+                        }}
+                        disabled={addStockMutation.isPending}
+                      />
+                      <p className="text-xs text-muted-foreground mt-1">
+                        不填则默认排到最后（系统自动分配）
+                      </p>
+                    </div>
+
+                    <div>
                       <label className="text-sm font-medium">描述（可选）</label>
                       <Textarea
                         placeholder="添加描述信息..."
                         value={newStock.desc}
                         onChange={(e) => setNewStock({ ...newStock, desc: e.target.value })}
                         rows={2}
+                        disabled={addStockMutation.isPending}
                       />
                     </div>
                     <div className="flex gap-2">
@@ -783,12 +826,13 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                         disabled={addStockMutation.isPending}
                       >
                         <Save className="h-4 w-4 mr-1" />
-                        添加
+                        {addStockMutation.isPending ? '添加中...' : '添加'}
                       </Button>
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={handleCancelAddStock}
+                        disabled={addStockMutation.isPending}
                       >
                         <X className="h-4 w-4 mr-1" />
                         取消
@@ -821,7 +865,16 @@ export default function PortfolioManager({ className }: PortfolioManagerProps) {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {selectedPortfolio.stocks.length === 0 ? (
+                    {addStockMutation.isPending ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={showQuoteCols ? 11 : 5}
+                          className="text-center py-8 text-muted-foreground"
+                        >
+                          添加中...
+                        </TableCell>
+                      </TableRow>
+                    ) : selectedPortfolio.stocks.length === 0 ? (
                       <TableRow>
                         <TableCell
                           colSpan={showQuoteCols ? 11 : 5}

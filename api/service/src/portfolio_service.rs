@@ -53,6 +53,8 @@ pub struct HoldingResponse {
     pub portfolio_id: i32,
     pub desc: Option<String>,
 
+    pub order: i32,
+
     pub current_price: Option<f64>,
 
     pub pct_chg: Option<f64>,
@@ -86,6 +88,7 @@ pub struct AddHoldingRequest {
     pub exchange_id: Option<String>,
     pub symbol: String,
     pub desc: Option<String>,
+    pub order: Option<i32>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -161,6 +164,8 @@ pub async fn get_portfolio(
     
     let holdings = holding::Entity::find()
         .filter(holding::Column::PortfolioId.eq(portfolio_id))
+        .order_by_asc(holding::Column::Order)
+        .order_by_asc(holding::Column::Id)
         .all(conn)
         .await
         .context("Failed to fetch holdings")?;
@@ -281,12 +286,29 @@ pub async fn add_holding(
             .ok_or_else(|| anyhow!("no stock found by {} {}", exchange_id, req.symbol))?
     };
 
+    let order_value: i32 = if let Some(v) = req.order {
+        v
+    } else {
+        let max_order: Option<i32> = holding::Entity::find()
+            .select_only()
+            .column(holding::Column::Order)
+            .filter(holding::Column::PortfolioId.eq(portfolio_id))
+            .order_by_desc(holding::Column::Order)
+            .limit(1)
+            .into_tuple::<i32>()
+            .one(conn)
+            .await?;
+
+        max_order.unwrap_or(0).saturating_add(1)
+    };
+
     let holding_model = holding::ActiveModel {
         exchange_id: Set(exchange_id),
         symbol: Set(req.symbol.clone()),
         portfolio_id: Set(portfolio.id),
         name: Set(stock.name().clone()),
         desc: Set(req.desc.clone()),
+        order: Set(order_value),
         ..Default::default()
     };
 
@@ -300,6 +322,8 @@ pub async fn add_holding(
         name: stock.name(),
         portfolio_id: result.portfolio_id,
         desc: result.desc,
+
+        order: result.order,
         current_price: None,
         pct_chg: None,
         pct5: None,
@@ -412,6 +436,8 @@ pub async fn get_holdings(
                 name: h.name,
                 portfolio_id: h.portfolio_id,
                 desc: h.desc,
+
+                order: h.order,
                 current_price,
                 pct_chg,
                 pct5,
@@ -458,6 +484,8 @@ pub async fn update_holding_desc(
         name: updated.name,
         portfolio_id: updated.portfolio_id,
         desc: updated.desc,
+
+        order: updated.order,
         current_price: None,
         pct_chg: None,
         pct5: None,
