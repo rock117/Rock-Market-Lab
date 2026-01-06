@@ -93,26 +93,42 @@ export const portfolioApi = {
   getPortfolio: async (id: string): Promise<Portfolio | null> => {
     try {
       console.log('📊 正在获取投资组合详情:', id)
-
-      const response = await fetch(`${API_BASE_URL}/api/portfolios/${id}`, {
+      
+      // 1. 先获取投资组合基本信息（从列表中找到）
+      const portfolios = await portfolioApi.getPortfolios()
+      const portfolioInfo = portfolios.find(p => p.id === id)
+      
+      if (!portfolioInfo) {
+        console.error('❌ 投资组合不存在:', id)
+        return null
+      }
+      
+      // 2. 获取持仓列表
+      console.log('📊 正在获取持仓列表:', id)
+      const holdingsResponse = await fetch(`${API_BASE_URL}/api/portfolios/${id}/holdings`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
         },
       })
       
-      if (!response.ok) {
-        throw new Error(`HTTP错误! 状态码: ${response.status}`)
+      if (!holdingsResponse.ok) {
+        throw new Error(`HTTP错误! 状态码: ${holdingsResponse.status}`)
       }
       
-      const apiResponse: { data: ApiPortfolioDetail; success: boolean } = await response.json()
-      console.log('📊 投资组合详情数据:', apiResponse)
-
-      if (!apiResponse.success) {
-        throw new Error('获取投资组合详情失败')
+      const holdingsApiResponse: { data: ApiHolding[]; success: boolean } = await holdingsResponse.json()
+      console.log('📊 持仓列表数据:', holdingsApiResponse)
+      
+      if (!holdingsApiResponse.success) {
+        throw new Error('获取持仓列表失败')
       }
       
-      const portfolio = transformApiPortfolioDetail(apiResponse.data)
+      // 3. 合并数据
+      const portfolio: Portfolio = {
+        ...portfolioInfo,
+        stocks: holdingsApiResponse.data.map(transformApiHolding)
+      }
+      
       console.log('📊 完整的投资组合数据:', portfolio)
       return portfolio
     } catch (error) {
