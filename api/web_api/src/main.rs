@@ -127,9 +127,9 @@ async fn rocket() -> _ {
    // tracing_subscriber::fmt::init();
 
     let conn = get_db_conn().await;
-    // let task_manager: TaskManager = schedule::create_task_manager(conn.clone())
-    //     .await
-    //     .unwrap_or_else(|e| panic!("Failed to init task manager: {:?}", e));
+    let task_manager: TaskManager = schedule::create_task_manager(conn.clone())
+        .await
+        .unwrap_or_else(|e| panic!("Failed to init task manager: {:?}", e));
     let conn_schedule = conn.clone();
     info!("start schedule");
     tokio::spawn(async move {
@@ -140,7 +140,7 @@ async fn rocket() -> _ {
     rocket::build()
         .attach(RequestLogger)
         .manage(conn)
-       // .manage(task_manager)
+        .manage(task_manager)
         .mount("/", routes![
             stock_price_limitup_controller::stock_price_limitup,
             macd_stastic_controller::macd_stastic,
