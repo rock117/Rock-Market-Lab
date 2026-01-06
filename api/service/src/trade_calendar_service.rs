@@ -16,11 +16,12 @@ pub async fn get_trade_calendar(day_num: u64, conn: &DatabaseConnection) -> anyh
     let now = Local::now().date_naive().format("%Y%m%d").to_string();
     let mut dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
         .filter(trade_calendar::Column::CalDate.lte(&now))
-        .filter(trade_calendar::Column::IsOpen.eq(1))
+        .filter(ColumnTrait::eq(&trade_calendar::Column::IsOpen, 1))
         .order_by_desc(trade_calendar::Column::CalDate)
         .paginate(conn, day_num)
         .fetch_page(0)
         .await?;
+
     if is_today_updated() {
         Ok(dates)
     } else {
@@ -43,7 +44,7 @@ pub async fn get_current_trade_calendar(conn: &DatabaseConnection) -> anyhow::Re
     let now = Local::now().date_naive().format("%Y%m%d").to_string();
     let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
         .filter(trade_calendar::Column::CalDate.lte(&now))
-        .filter(trade_calendar::Column::IsOpen.eq(1))
+        .filter(ColumnTrait::eq(&trade_calendar::Column::IsOpen, 1))
         .order_by_desc(trade_calendar::Column::CalDate)
         .all(conn)
         .await?;
@@ -54,7 +55,7 @@ pub async fn get_year_begin_trade_calendar(conn: &DatabaseConnection) -> anyhow:
     let year_begin = NaiveDate::from_ymd_opt(Local::now().year(), 1, 1).unwrap().format("%Y%m%d").to_string();
     let dates: Vec<trade_calendar::Model> = trade_calendar::Entity::find()
         .filter(trade_calendar::Column::CalDate.gte(&year_begin))
-        .filter(trade_calendar::Column::IsOpen.eq(1))
+        .filter(ColumnTrait::eq(&trade_calendar::Column::IsOpen, 1))
         .order_by_asc(trade_calendar::Column::CalDate)
         .paginate(conn, 1)
         .fetch_page(0)

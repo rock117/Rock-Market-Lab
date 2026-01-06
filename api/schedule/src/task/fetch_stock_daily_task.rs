@@ -39,7 +39,23 @@ impl FetchStockDailyTask {
                 let list_date = NaiveDate::parse_from_str(list_date, "%Y%m%d")?;
                 let dailys = tushare::daily(Some(&stock.ts_code), &list_date, &date).await?;
                 for daily in &dailys {
-                    let _ = stock_daily::ActiveModel {..daily.clone().into() }.insert(&self.0).await;
+                     let active_model = entity::stock_daily::ActiveModel { ..daily.clone().into() };
+                // ts_code  ann_date f_ann_date  end_date report_type comp_type
+                    let pks = [
+                        entity::stock_daily::Column::TsCode,
+                        entity::stock_daily::Column::TradeDate,
+                    ];
+                    let update_columns = get_entity_update_columns::<entity::stock_daily::Entity>(&pks);
+                    let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+                        .update_columns(update_columns)
+                        .to_owned();
+
+                    if let Err(e) = entity::stock_daily::Entity::insert(active_model)
+                        .on_conflict(on_conflict)
+                        .exec(&tx)
+                        .await {
+                        error!("insert stock_daily failed, ts_code: {}, error: {:?}", stock.ts_code, e);
+                    }
                 }
             }
             curr += 1;
@@ -86,6 +102,7 @@ impl Task for FetchStockDailyTask {
 
     async fn run(&self) -> anyhow::Result<()> {
         let dates = super::get_calendar_dates(DAYS_AGO, &self.0).await?;
+        info!("fetch    all s   tock_daily tasks run..., start = {}, end = {}", dates[0], dates[dates.len() - 1]);
         for date in &dates {
             let res = self.fetch_data_by_date(date).await;
             if let Err(e) = res {

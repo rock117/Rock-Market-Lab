@@ -30,6 +30,7 @@ use tracing_subscriber::fmt::time::ChronoLocal;
 
 use controller::*;
 use controller::security::stock;
+use schedule::TaskManager;
 
 mod resource;
 mod template;
@@ -109,6 +110,8 @@ fn init_panic_hook() {
 
         if let Some(msg) = panic_info.payload().downcast_ref::<&str>() {
             eprintln!("[PANIC] message: {}", msg);
+        } else if let Some(msg) = panic_info.payload().downcast_ref::<String>() {
+            eprintln!("[PANIC] message: {}", msg);
         } else {
             eprintln!("[PANIC] unknown panic payload");
         }
@@ -124,6 +127,9 @@ async fn rocket() -> _ {
    // tracing_subscriber::fmt::init();
 
     let conn = get_db_conn().await;
+    // let task_manager: TaskManager = schedule::create_task_manager(conn.clone())
+    //     .await
+    //     .unwrap_or_else(|e| panic!("Failed to init task manager: {:?}", e));
     let conn_schedule = conn.clone();
     info!("start schedule");
     tokio::spawn(async move {
@@ -134,6 +140,7 @@ async fn rocket() -> _ {
     rocket::build()
         .attach(RequestLogger)
         .manage(conn)
+       // .manage(task_manager)
         .mount("/", routes![
             stock_price_limitup_controller::stock_price_limitup,
             macd_stastic_controller::macd_stastic,
@@ -173,6 +180,12 @@ async fn rocket() -> _ {
             etf_controller::search_etfs,
 
             a_stock_controller::get_a_stocks,
+
+            // task_manager_controller::list_tasks,
+            // task_manager_controller::run_task,
+            // task_manager_controller::pause_task,
+            // task_manager_controller::resume_task,
+            // task_manager_controller::stop_task,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

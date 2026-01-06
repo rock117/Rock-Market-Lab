@@ -21,7 +21,7 @@ pub struct Model {
     pub pretrade_date: Option<String>,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     Exchange,
     CalDate,

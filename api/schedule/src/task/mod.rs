@@ -71,7 +71,7 @@ async fn get_calendar_dates(days_num_before_today: u64, conn: &DatabaseConnectio
             Condition::all()
                 .add(trade_calendar::Column::CalDate.lte(end))
                 .add(trade_calendar::Column::CalDate.gte(start))
-                .add(trade_calendar::Column::IsOpen.eq(1))
+                .add(ColumnTrait::eq(&trade_calendar::Column::IsOpen, 1))
         )
         .order_by_desc(trade_calendar::Column::CalDate)
         .all(conn)

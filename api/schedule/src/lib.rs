@@ -39,7 +39,15 @@ use crate::task::us::fetch_us_company_info_task::FetchUsCompanyInfoTask;
 use crate::task::fetch_basic_org_info_task::FetchBasicOrgInfoTask;
 use crate::task::fetch_eng_translate_task::FetchEngTranslateTask;
 
+mod task_manager;
+pub use task_manager::{TaskListItem, TaskManager, TaskStateView, TaskInfo};
+
 mod task;
+
+pub async fn create_task_manager(conn: DatabaseConnection) -> anyhow::Result<TaskManager> {
+    let tasks = get_schedule_jobs(conn.clone());
+    TaskManager::new(conn, tasks).await
+}
 
 pub async fn start_schedule(conn: DatabaseConnection) -> Result<(), Box<dyn Error>> {
     let tasks = get_schedule_jobs(conn);
@@ -164,9 +172,9 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
       //  Arc::new(FetchUsCompanyInfoTask::new(conn.clone())),
     ];
     
-    jobs.extend(security_list);
+   // jobs.extend(security_list);
     jobs.extend(dailys);
-    jobs.extend(others);
+  //  jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);

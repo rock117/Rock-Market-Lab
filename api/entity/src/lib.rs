@@ -51,4 +51,7 @@ pub mod portfolio;
 
 pub mod holding;
 
+pub mod task_run;
+pub mod task_state;
+
 pub use sea_orm;
