@@ -21,6 +21,29 @@ export interface ApiHolding {
   pct60?: number | null
 }
 
+// 任务管理 API 类型
+export interface ApiTaskInfo {
+  name: string
+  schedule?: string | null
+}
+
+export interface ApiTaskStateView {
+  task_name: string
+  status: string
+  paused: boolean
+  stopped: boolean
+  last_started_at?: string | null
+  last_ended_at?: string | null
+  last_success_count: number
+  last_fail_count: number
+  updated_at?: string | null
+}
+
+export interface ApiTaskListItem {
+  info: ApiTaskInfo
+  state: ApiTaskStateView
+}
+
 // 后端API返回的投资组合格式（列表接口）
 export interface ApiPortfolio {
   id: number; // 组合ID

@@ -12,6 +12,7 @@ import StockMarginTrading from '@/components/margin-trading/StockMarginTrading'
 import StreakStats from '@/components/analysis/StreakStats'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
+import TaskManager from '@/components/task-manager/TaskManager'
 import EtfModule from '@/components/etf/EtfModule'
 import AStockList from '@/components/stock/AStockList'
 import StockSimilarity from '@/components/stock/StockSimilarity'
@@ -35,7 +36,8 @@ import {
   Calculator,
   ChevronDown,
   ChevronRight,
-  ArrowUpDown
+  ArrowUpDown,
+  ListChecks
 } from 'lucide-react'
 
 // 模块定义
@@ -175,6 +177,15 @@ const modules = [
     status: 'active'
   },
   {
+    id: 'task-manager',
+    name: '任务管理',
+    description: '定时任务状态与控制',
+    icon: ListChecks,
+    color: 'text-sky-500',
+    category: 'portfolio',
+    status: 'active'
+  },
+  {
     id: 'risk-analysis',
     name: '风险分析',
     description: 'VaR、最大回撤',
@@ -236,6 +247,8 @@ export default function HomePage() {
         return <StockSelectionStrategy />
       case 'portfolio-manager':
         return <PortfolioManager />
+      case 'task-manager':
+        return <TaskManager />
       case 'etf':
         return <EtfModule />
       default:
