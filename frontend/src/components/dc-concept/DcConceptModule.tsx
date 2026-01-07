@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Select, SelectItem } from '@/components/ui/select'
 import { dcConceptApi } from '@/services/api/dc-concept'
-import type { ApiDcIndex, ApiDcMember } from '@/types'
+import type { ApiDcIndex, ApiDcMemberEnriched } from '@/types'
 
 type SelectedConcept = {
   ts_code: string
@@ -49,6 +49,12 @@ function formatPercent(v: any) {
   return `${n.toFixed(2)}%`
 }
 
+function percentClass(v: any) {
+  const n = toNumber(v)
+  if (n === null) return 'text-muted-foreground font-mono text-xs'
+  return n > 0 ? 'text-red-600 font-mono text-xs' : 'text-green-600 font-mono text-xs'
+}
+
 export default function DcConceptModule() {
   const [selected, setSelected] = useState<SelectedConcept | null>(null)
   const [keyword, setKeyword] = useState('')
@@ -66,6 +72,11 @@ export default function DcConceptModule() {
   >('trade_date')
   const [conceptSortDir, setConceptSortDir] = useState<'asc' | 'desc'>('desc')
 
+  const [memberSortKey, setMemberSortKey] = useState<
+    'name' | 'con_code' | 'pct_chg_day' | 'pct_chg_latest' | 'pct5' | 'pct10' | 'pct20' | 'pct60'
+  >('pct_chg_day')
+  const [memberSortDir, setMemberSortDir] = useState<'asc' | 'desc'>('desc')
+
   const tradeDatesQuery = useQuery({
     queryKey: ['dc_index_trade_dates'],
     queryFn: () => dcConceptApi.listTradeDates(),
@@ -80,12 +91,12 @@ export default function DcConceptModule() {
 
   const membersQuery = useQuery({
     queryKey: ['dc_members', selected?.ts_code, selected?.trade_date],
-    queryFn: () => dcConceptApi.listMembers(selected!.ts_code, selected!.trade_date),
+    queryFn: () => dcConceptApi.listMembersEnriched(selected!.ts_code, selected!.trade_date),
     enabled: selected !== null,
   })
 
   const concepts = (conceptsQuery.data || []) as ApiDcIndex[]
-  const members = (membersQuery.data || []) as ApiDcMember[]
+  const members = (membersQuery.data || []) as ApiDcMemberEnriched[]
 
   const tradeDates = (tradeDatesQuery.data || []) as string[]
 
@@ -181,10 +192,48 @@ export default function DcConceptModule() {
     return sortedConcepts.slice(start, start + conceptPageSize)
   }, [conceptPage, conceptPageSize, sortedConcepts])
 
+  const sortedMembers = useMemo(() => {
+    const dir = memberSortDir === 'asc' ? 1 : -1
+    const getValue = (m: ApiDcMemberEnriched) => {
+      switch (memberSortKey) {
+        case 'name':
+          return normalizeText(m.name)
+        case 'con_code':
+          return normalizeText(m.con_code)
+        case 'pct_chg_day':
+          return toNumber(m.pct_chg_day)
+        case 'pct_chg_latest':
+          return toNumber(m.pct_chg_latest)
+        case 'pct5':
+          return toNumber(m.pct5)
+        case 'pct10':
+          return toNumber(m.pct10)
+        case 'pct20':
+          return toNumber(m.pct20)
+        case 'pct60':
+          return toNumber(m.pct60)
+        default:
+          return null
+      }
+    }
+
+    const arr = [...members]
+    arr.sort((a, b) => {
+      const av = getValue(a)
+      const bv = getValue(b)
+      if (av === null && bv === null) return 0
+      if (av === null) return 1
+      if (bv === null) return -1
+      if (typeof av === 'number' && typeof bv === 'number') return (av - bv) * dir
+      return String(av).localeCompare(String(bv)) * dir
+    })
+    return arr
+  }, [memberSortDir, memberSortKey, members])
+
   const pagedMembers = useMemo(() => {
     const start = (memberPage - 1) * memberPageSize
-    return members.slice(start, start + memberPageSize)
-  }, [memberPage, memberPageSize, members])
+    return sortedMembers.slice(start, start + memberPageSize)
+  }, [memberPage, memberPageSize, sortedMembers])
 
   useEffect(() => {
     setConceptPage(1)
@@ -205,6 +254,10 @@ export default function DcConceptModule() {
   useEffect(() => {
     setMemberPage(1)
   }, [memberPageSize])
+
+  useEffect(() => {
+    setMemberPage(1)
+  }, [memberSortDir, memberSortKey])
 
   useEffect(() => {
     setConceptPage((p) => Math.min(Math.max(1, p), conceptTotalPages))
@@ -655,24 +708,9 @@ export default function DcConceptModule() {
             <>
               <div className="flex items-center justify-between gap-2 mb-3">
                 <div className="text-sm text-muted-foreground">
-                  ts_code: <span className="font-mono">{selected.ts_code}</span>
+                  板块代码: <span className="font-mono">{selected.ts_code}</span>
                   <span className="mx-2">|</span>
-                  trade_date: <span className="font-mono">{selected.trade_date}</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" onClick={() => membersQuery.refetch()} disabled={membersQuery.isFetching}>
-                    刷新
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelected(null)
-                      setKeyword('')
-                      setConceptPage(1)
-                    }}
-                  >
-                    返回概念列表
-                  </Button>
+                  交易日期: <span className="font-mono">{formatTradeDate(selected.trade_date)}</span>
                 </div>
               </div>
 
@@ -683,20 +721,194 @@ export default function DcConceptModule() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>股票名称</TableHead>
-                        <TableHead>con_code</TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'name') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('name')
+                                setMemberSortDir('asc')
+                              }
+                            }}
+                          >
+                            股票名称
+                            {memberSortKey === 'name' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'con_code') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('con_code')
+                                setMemberSortDir('asc')
+                              }
+                            }}
+                          >
+                            股票代码
+                            {memberSortKey === 'con_code' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct_chg_day') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct_chg_day')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            当日涨跌幅
+                            {memberSortKey === 'pct_chg_day' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct_chg_latest') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct_chg_latest')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            最新涨跌幅
+                            {memberSortKey === 'pct_chg_latest' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct5') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct5')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            5日涨跌幅
+                            {memberSortKey === 'pct5' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct10') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct10')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            10日涨跌幅
+                            {memberSortKey === 'pct10' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct20') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct20')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            20日涨跌幅
+                            {memberSortKey === 'pct20' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
+                        <TableHead>
+                          <button
+                            className="flex items-center gap-1"
+                            onClick={() => {
+                              if (memberSortKey === 'pct60') {
+                                setMemberSortDir((d) => (d === 'asc' ? 'desc' : 'asc'))
+                              } else {
+                                setMemberSortKey('pct60')
+                                setMemberSortDir('desc')
+                              }
+                            }}
+                          >
+                            60日涨跌幅
+                            {memberSortKey === 'pct60' ? (
+                              memberSortDir === 'asc' ? (
+                                <ArrowUp className="h-3.5 w-3.5" />
+                              ) : (
+                                <ArrowDown className="h-3.5 w-3.5" />
+                              )
+                            ) : null}
+                          </button>
+                        </TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {membersQuery.isLoading ? (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             加载中...
                           </TableCell>
                         </TableRow>
                       ) : members.length === 0 ? (
                         <TableRow>
-                          <TableCell colSpan={2} className="text-center py-8 text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                             暂无成分股
                           </TableCell>
                         </TableRow>
@@ -707,6 +919,12 @@ export default function DcConceptModule() {
                             <TableCell>
                               <Badge variant="secondary" className="font-mono text-xs">{m.con_code}</Badge>
                             </TableCell>
+                            <TableCell className={percentClass(m.pct_chg_day)}>{formatPercent(m.pct_chg_day)}</TableCell>
+                            <TableCell className={percentClass(m.pct_chg_latest)}>{formatPercent(m.pct_chg_latest)}</TableCell>
+                            <TableCell className={percentClass(m.pct5)}>{formatPercent(m.pct5)}</TableCell>
+                            <TableCell className={percentClass(m.pct10)}>{formatPercent(m.pct10)}</TableCell>
+                            <TableCell className={percentClass(m.pct20)}>{formatPercent(m.pct20)}</TableCell>
+                            <TableCell className={percentClass(m.pct60)}>{formatPercent(m.pct60)}</TableCell>
                           </TableRow>
                         ))
                       )}

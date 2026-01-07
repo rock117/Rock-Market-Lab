@@ -1,8 +1,12 @@
 use anyhow::{Context, Result};
 
+use std::collections::HashMap;
+
 use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use entity::sea_orm::sea_query::Expr;
-use entity::{dc_index, dc_member};
+use entity::{dc_index, dc_member, stock_daily};
+use rust_decimal::Decimal;
+use serde::{Deserialize, Serialize};
 
 pub async fn list_dc_index_latest(conn: &DatabaseConnection) -> Result<Vec<dc_index::Model>> {
     let pairs: Vec<(String, String)> = dc_index::Entity::find()
@@ -44,6 +48,149 @@ pub async fn list_dc_index_trade_dates(conn: &DatabaseConnection) -> Result<Vec<
         .context("Failed to query distinct dc_index.trade_date")?;
 
     Ok(rows)
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub struct DcMemberEnriched {
+    pub ts_code: String,
+    pub trade_date: String,
+    pub con_code: String,
+    pub name: Option<String>,
+
+    pub pct_chg_day: Option<f64>,
+    pub pct_chg_latest: Option<f64>,
+
+    pub pct5: Option<f64>,
+    pub pct10: Option<f64>,
+    pub pct20: Option<f64>,
+    pub pct60: Option<f64>,
+}
+
+pub async fn list_dc_members_enriched_by_concept(
+    conn: &DatabaseConnection,
+    ts_code: &str,
+    trade_date: &str,
+) -> Result<Vec<DcMemberEnriched>> {
+    // MySQL compatible approach: for each member stock, use correlated subqueries against stock_daily.
+    // pctN computed by latest_close vs close at N trading days ago (LIMIT 1 OFFSET N).
+
+    fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<f64> {
+        if days < 2 {
+            return None;
+        }
+        if closes_desc.len() < days {
+            return None;
+        }
+
+        let today = *closes_desc.get(0)?;
+        let past = *closes_desc.get(days - 1)?;
+        if past.is_zero() {
+            return None;
+        }
+
+        let pct = (today - past) / past * Decimal::from(100i64);
+        pct.to_string().parse::<f64>().ok()
+    }
+
+    let members: Vec<dc_member::Model> = dc_member::Entity::find()
+        .filter(ColumnTrait::eq(&dc_member::Column::TsCode, ts_code.to_string()))
+        .filter(ColumnTrait::eq(&dc_member::Column::TradeDate, trade_date.to_string()))
+        .order_by_asc(dc_member::Column::ConCode)
+        .all(conn)
+        .await
+        .context("Failed to fetch dc_member rows")?;
+
+    if members.is_empty() {
+        return Ok(vec![]);
+    }
+
+    let cn_symbols: Vec<String> = members.iter().map(|m| m.con_code.clone()).collect();
+
+    let mut pct_day_map: HashMap<String, Option<f64>> = HashMap::new();
+    let mut pct_latest_map: HashMap<String, Option<f64>> = HashMap::new();
+    let mut closes_desc_map: HashMap<String, Vec<Decimal>> = HashMap::new();
+
+    let daily_rows = stock_daily::Entity::find()
+        .filter(ColumnTrait::eq(&stock_daily::Column::TradeDate, trade_date.to_string()))
+        .filter(stock_daily::Column::TsCode.is_in(cn_symbols.clone()))
+        .all(conn)
+        .await
+        .context("Failed to fetch stock_daily rows for selected trade_date")?;
+    for d in daily_rows {
+        let v = d.pct_chg.and_then(|x| x.to_string().parse::<f64>().ok());
+        pct_day_map.insert(d.ts_code.clone(), v);
+    }
+
+    let latest_trade_date: Option<String> = stock_daily::Entity::find()
+        .select_only()
+        .column(stock_daily::Column::TradeDate)
+        .order_by_desc(stock_daily::Column::TradeDate)
+        .limit(1)
+        .into_tuple::<String>()
+        .one(conn)
+        .await
+        .context("Failed to fetch latest stock_daily.trade_date")?;
+
+    if let Some(latest_trade_date) = latest_trade_date {
+        let latest_dailies = stock_daily::Entity::find()
+            .filter(ColumnTrait::eq(&stock_daily::Column::TradeDate, latest_trade_date.clone()))
+            .filter(stock_daily::Column::TsCode.is_in(cn_symbols.clone()))
+            .all(conn)
+            .await
+            .context("Failed to fetch latest stock_daily rows")?;
+
+        for d in latest_dailies {
+            let v = d.pct_chg.and_then(|x| x.to_string().parse::<f64>().ok());
+            pct_latest_map.insert(d.ts_code.clone(), v);
+        }
+
+        let last_60_dates: Vec<String> = stock_daily::Entity::find()
+            .select_only()
+            .column(stock_daily::Column::TradeDate)
+            .distinct()
+            .order_by_desc(stock_daily::Column::TradeDate)
+            .limit(65)
+            .into_tuple::<String>()
+            .all(conn)
+            .await
+            .context("Failed to fetch last trade_dates for pctN")?;
+
+        if !last_60_dates.is_empty() {
+            let rows = stock_daily::Entity::find()
+                .filter(stock_daily::Column::TradeDate.is_in(last_60_dates))
+                .filter(stock_daily::Column::TsCode.is_in(cn_symbols.clone()))
+                .order_by_desc(stock_daily::Column::TradeDate)
+                .all(conn)
+                .await
+                .context("Failed to fetch stock_daily rows for pctN")?;
+
+            for r in rows {
+                closes_desc_map.entry(r.ts_code.clone()).or_default().push(r.close);
+            }
+        }
+    }
+
+    let results = members
+        .into_iter()
+        .map(|m| {
+            let closes_desc = closes_desc_map.get(&m.con_code).map(|v| v.as_slice()).unwrap_or(&[]);
+
+            DcMemberEnriched {
+                ts_code: m.ts_code,
+                trade_date: m.trade_date,
+                con_code: m.con_code.clone(),
+                name: m.name,
+                pct_chg_day: pct_day_map.get(&m.con_code).cloned().flatten(),
+                pct_chg_latest: pct_latest_map.get(&m.con_code).cloned().flatten(),
+                pct5: calc_period_pct_chg(closes_desc, 5),
+                pct10: calc_period_pct_chg(closes_desc, 10),
+                pct20: calc_period_pct_chg(closes_desc, 20),
+                pct60: calc_period_pct_chg(closes_desc, 60),
+            }
+        })
+        .collect();
+
+    Ok(results)
 }
 
 pub async fn list_dc_index_by_trade_dates(

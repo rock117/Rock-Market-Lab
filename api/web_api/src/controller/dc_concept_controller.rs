@@ -50,3 +50,14 @@ pub async fn list_dc_members_handler(
     let rows = service::dc_service::list_dc_members_by_concept(conn, ts_code, trade_date).await?;
     WebResponse::new(rows).into_result()
 }
+
+#[get("/api/dc_index/<ts_code>/members_enriched?<trade_date>")]
+pub async fn list_dc_members_enriched_handler(
+    ts_code: &str,
+    trade_date: &str,
+    conn: &State<DatabaseConnection>,
+) -> Result<WebResponse<Vec<service::dc_service::DcMemberEnriched>>> {
+    let conn = conn as &DatabaseConnection;
+    let rows = service::dc_service::list_dc_members_enriched_by_concept(conn, ts_code, trade_date).await?;
+    WebResponse::new(rows).into_result()
+}

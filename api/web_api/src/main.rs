@@ -185,6 +185,7 @@ async fn rocket() -> _ {
             dc_concept_controller::list_dc_index_trade_dates_handler,
             dc_concept_controller::query_dc_index_handler,
             dc_concept_controller::list_dc_members_handler,
+            dc_concept_controller::list_dc_members_enriched_handler,
 
             task_manager_controller::list_tasks,
             task_manager_controller::run_task,

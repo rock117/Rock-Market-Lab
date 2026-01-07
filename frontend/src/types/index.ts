@@ -66,6 +66,21 @@ export interface ApiDcMember {
   name?: string | null
 }
 
+export interface ApiDcMemberEnriched {
+  ts_code: string
+  trade_date: string
+  con_code: string
+  name?: string | null
+
+  pct_chg_day?: number | null
+  pct_chg_latest?: number | null
+
+  pct5?: number | null
+  pct10?: number | null
+  pct20?: number | null
+  pct60?: number | null
+}
+
 // 后端API返回的投资组合格式（列表接口）
 export interface ApiPortfolio {
   id: number; // 组合ID
