@@ -44,6 +44,28 @@ export interface ApiTaskListItem {
   state: ApiTaskStateView
 }
 
+// 概念板块（东方财富）API 类型
+export interface ApiDcIndex {
+  ts_code: string
+  trade_date: string
+  name?: string | null
+  leading?: string | null
+  leading_code?: string | null
+  pct_change?: string | number | null
+  leading_pct?: string | number | null
+  total_mv?: string | number | null
+  turnover_rate?: string | number | null
+  up_num?: number | null
+  down_num?: number | null
+}
+
+export interface ApiDcMember {
+  ts_code: string
+  trade_date: string
+  con_code: string
+  name?: string | null
+}
+
 // 后端API返回的投资组合格式（列表接口）
 export interface ApiPortfolio {
   id: number; // 组合ID

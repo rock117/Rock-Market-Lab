@@ -13,6 +13,7 @@ import StreakStats from '@/components/analysis/StreakStats'
 import StockSelectionStrategy from '@/components/strategy/StockSelectionStrategy'
 import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import TaskManager from '@/components/task-manager/TaskManager'
+import DcConceptModule from '@/components/dc-concept/DcConceptModule'
 import EtfModule from '@/components/etf/EtfModule'
 import AStockList from '@/components/stock/AStockList'
 import StockSimilarity from '@/components/stock/StockSimilarity'
@@ -37,7 +38,8 @@ import {
   ChevronDown,
   ChevronRight,
   ArrowUpDown,
-  ListChecks
+  ListChecks,
+  Layers
 } from 'lucide-react'
 
 // 模块定义
@@ -186,6 +188,15 @@ const modules = [
     status: 'active'
   },
   {
+    id: 'dc-concepts',
+    name: '概念板块',
+    description: '概念列表与成分股',
+    icon: Layers,
+    color: 'text-indigo-500',
+    category: 'market',
+    status: 'active'
+  },
+  {
     id: 'risk-analysis',
     name: '风险分析',
     description: 'VaR、最大回撤',
@@ -249,6 +260,8 @@ export default function HomePage() {
         return <PortfolioManager />
       case 'task-manager':
         return <TaskManager />
+      case 'dc-concepts':
+        return <DcConceptModule />
       case 'etf':
         return <EtfModule />
       default:
