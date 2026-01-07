@@ -7,6 +7,8 @@ use entity::sea_orm::prelude::Decimal;
 use entity::stock;
 use std::collections::HashMap;
 use num_traits::ToPrimitive;
+
+use crate::pct_chg::PeriodPctChg;
 #[derive(Debug, Clone, serde::Serialize)]
 pub struct EtfOverview {
     pub ts_code: String,
@@ -32,21 +34,6 @@ pub struct EtfOverview {
     pub pct10: Option<f64>,
     pub pct20: Option<f64>,
     pub pct60: Option<f64>,
-}
-
-fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<Decimal> {
-    if days < 2 {
-        return None;
-    }
-    if closes_desc.len() < days {
-        return None;
-    }
-    let today = closes_desc.get(0).copied()?;
-    let past = closes_desc.get(days - 1).copied()?;
-    if past.is_zero() {
-        return None;
-    }
-    Some((today - past) / past * Decimal::from(100i64))
 }
 
 pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<EtfOverview>> {
@@ -143,6 +130,8 @@ pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<EtfOv
                 None => (None, None, None, None),
             };
             let closes_desc = closes_map.get(&ts_code).map(|v| v.as_slice()).unwrap_or(&[]);
+            let pct = PeriodPctChg::from_closes_desc(closes_desc);
+            let (pct5, pct10, pct20, pct60) = pct.to_f64_tuple();
             EtfOverview {
                 ts_code: r.ts_code,
                 csname: r.csname,
@@ -162,10 +151,10 @@ pub async fn get_etf_list(conn: &DatabaseConnection) -> anyhow::Result<Vec<EtfOv
                 vol: vol.and_then(|v| v.to_f64()),
                 amount: amount.and_then(|v| v.to_f64()),
                 pct_chg: pct_chg.and_then(|v| v.to_f64()),
-                pct5: calc_period_pct_chg(closes_desc, 5).and_then(|v| v.to_f64()),
-                pct10: calc_period_pct_chg(closes_desc, 10).and_then(|v| v.to_f64()),
-                pct20: calc_period_pct_chg(closes_desc, 20).and_then(|v| v.to_f64()),
-                pct60: calc_period_pct_chg(closes_desc, 60).and_then(|v| v.to_f64()),
+                pct5,
+                pct10,
+                pct20,
+                pct60,
             }
         })
         .collect();

@@ -11,6 +11,8 @@ use entity::sea_orm::sea_query::ExprTrait;
 use entity::sea_orm::prelude::Decimal;
 use std::collections::HashMap;
 
+use crate::pct_chg::PeriodPctChg;
+
 enum StockDto {
     UsStock(us_stock::Model),
     CnStock(stock::Model)
@@ -62,25 +64,6 @@ pub struct HoldingResponse {
     pub pct10: Option<f64>,
     pub pct20: Option<f64>,
     pub pct60: Option<f64>,
-}
-
-fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<f64> {
-    // closes_desc: [today, yesterday, ...] (desc)
-    if days < 2 {
-        return None;
-    }
-    if closes_desc.len() < days {
-        return None;
-    }
-
-    let today = *closes_desc.get(0)?;
-    let past = *closes_desc.get(days - 1)?;
-    if past.is_zero() {
-        return None;
-    }
-
-    let pct = (today - past) / past * Decimal::from(100i64);
-    pct.to_string().parse::<f64>().ok()
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -417,13 +400,15 @@ pub async fn get_holdings(
         .map(|h| {
             let (current_price, pct_chg, pct5, pct10, pct20, pct60) = if h.exchange_id == "cn" {
                 let closes_desc = closes_desc_map.get(&h.symbol).map(|v| v.as_slice()).unwrap_or(&[]);
+                let pct = PeriodPctChg::from_closes_desc(closes_desc);
+                let (pct5, pct10, pct20, pct60) = pct.to_f64_tuple();
                 (
                     latest_price_map.get(&h.symbol).cloned().flatten(),
                     latest_pct_map.get(&h.symbol).cloned().flatten(),
-                    calc_period_pct_chg(closes_desc, 5),
-                    calc_period_pct_chg(closes_desc, 10),
-                    calc_period_pct_chg(closes_desc, 20),
-                    calc_period_pct_chg(closes_desc, 60),
+                    pct5,
+                    pct10,
+                    pct20,
+                    pct60,
                 )
             } else {
                 (None, None, None, None, None, None)

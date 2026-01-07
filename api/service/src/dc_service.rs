@@ -4,9 +4,11 @@ use std::collections::HashMap;
 
 use entity::sea_orm::{ColumnTrait, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect};
 use entity::sea_orm::sea_query::Expr;
+use entity::sea_orm::prelude::Decimal;
 use entity::{dc_index, dc_member, stock_daily};
-use rust_decimal::Decimal;
 use serde::{Deserialize, Serialize};
+
+use crate::pct_chg::PeriodPctChg;
 
 pub async fn list_dc_index_latest(conn: &DatabaseConnection) -> Result<Vec<dc_index::Model>> {
     let pairs: Vec<(String, String)> = dc_index::Entity::find()
@@ -73,24 +75,6 @@ pub async fn list_dc_members_enriched_by_concept(
 ) -> Result<Vec<DcMemberEnriched>> {
     // MySQL compatible approach: for each member stock, use correlated subqueries against stock_daily.
     // pctN computed by latest_close vs close at N trading days ago (LIMIT 1 OFFSET N).
-
-    fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<f64> {
-        if days < 2 {
-            return None;
-        }
-        if closes_desc.len() < days {
-            return None;
-        }
-
-        let today = *closes_desc.get(0)?;
-        let past = *closes_desc.get(days - 1)?;
-        if past.is_zero() {
-            return None;
-        }
-
-        let pct = (today - past) / past * Decimal::from(100i64);
-        pct.to_string().parse::<f64>().ok()
-    }
 
     let members: Vec<dc_member::Model> = dc_member::Entity::find()
         .filter(ColumnTrait::eq(&dc_member::Column::TsCode, ts_code.to_string()))
@@ -174,6 +158,8 @@ pub async fn list_dc_members_enriched_by_concept(
         .into_iter()
         .map(|m| {
             let closes_desc = closes_desc_map.get(&m.con_code).map(|v| v.as_slice()).unwrap_or(&[]);
+            let pct = PeriodPctChg::from_closes_desc(closes_desc);
+            let (pct5, pct10, pct20, pct60) = pct.to_f64_tuple();
 
             DcMemberEnriched {
                 ts_code: m.ts_code,
@@ -182,10 +168,10 @@ pub async fn list_dc_members_enriched_by_concept(
                 name: m.name,
                 pct_chg_day: pct_day_map.get(&m.con_code).cloned().flatten(),
                 pct_chg_latest: pct_latest_map.get(&m.con_code).cloned().flatten(),
-                pct5: calc_period_pct_chg(closes_desc, 5),
-                pct10: calc_period_pct_chg(closes_desc, 10),
-                pct20: calc_period_pct_chg(closes_desc, 20),
-                pct60: calc_period_pct_chg(closes_desc, 60),
+                pct5,
+                pct10,
+                pct20,
+                pct60,
             }
         })
         .collect();

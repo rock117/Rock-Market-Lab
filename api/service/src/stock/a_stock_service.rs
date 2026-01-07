@@ -9,6 +9,8 @@ use entity::cn_security_info;
 use entity::sea_orm::prelude::Decimal;
 use serde::Serialize;
 
+use crate::pct_chg::PeriodPctChg;
+
 #[derive(Debug, Clone, Serialize)]
 pub struct AStockOverview {
     pub ts_code: String,
@@ -25,23 +27,6 @@ pub struct AStockOverview {
     pub pe: Option<Decimal>,
     pub dv_ratio: Option<Decimal>,
     pub total_mv: Option<Decimal>,
-}
-
-fn calc_period_pct_chg(closes_desc: &[Decimal], days: usize) -> Option<Decimal> {
-    // closes_desc: [today, yesterday, ...] (desc)
-    // days: window size including today, e.g. days=5 means [day1..day5] => (day5-day1)/day1
-    if days < 2 {
-        return None;
-    }
-    if closes_desc.len() < days {
-        return None;
-    }
-    let today = closes_desc.get(0).copied()?;
-    let past = closes_desc.get(days - 1).copied()?;
-    if past.is_zero() {
-        return None;
-    }
-    Some((today - past) / past * Decimal::from(100i64))
 }
 
 pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<AStockOverview>> {
@@ -146,6 +131,7 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
         };
 
         let closes_desc = closes_map.get(&ts_code).map(|v| v.as_slice()).unwrap_or(&[]);
+        let pct = PeriodPctChg::from_closes_desc(closes_desc);
 
         items.push(AStockOverview {
             ts_code: ts_code.clone(),
@@ -154,10 +140,10 @@ pub async fn get_all_a_stocks(conn: &DatabaseConnection) -> anyhow::Result<Vec<A
             list_date: s.list_date,
             close,
             pct_chg,
-            pct5: calc_period_pct_chg(closes_desc, 5),
-            pct10: calc_period_pct_chg(closes_desc, 10),
-            pct20: calc_period_pct_chg(closes_desc, 20),
-            pct60: calc_period_pct_chg(closes_desc, 60),
+            pct5: pct.pct5,
+            pct10: pct.pct10,
+            pct20: pct.pct20,
+            pct60: pct.pct60,
             concepts: concepts_map.get(&ts_code).cloned().flatten(),
             pe,
             dv_ratio,
