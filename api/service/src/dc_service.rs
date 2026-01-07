@@ -25,10 +25,44 @@ pub async fn list_dc_index_latest(conn: &DatabaseConnection) -> Result<Vec<dc_in
         {
             out.push(row);
         }
+
     }
 
     out.sort_by(|a, b| a.ts_code.cmp(&b.ts_code));
     Ok(out)
+}
+
+pub async fn list_dc_index_trade_dates(conn: &DatabaseConnection) -> Result<Vec<String>> {
+    let rows: Vec<String> = dc_index::Entity::find()
+        .select_only()
+        .column(dc_index::Column::TradeDate)
+        .group_by(dc_index::Column::TradeDate)
+        .order_by_desc(dc_index::Column::TradeDate)
+        .into_tuple::<String>()
+        .all(conn)
+        .await
+        .context("Failed to query distinct dc_index.trade_date")?;
+
+    Ok(rows)
+}
+
+pub async fn list_dc_index_by_trade_dates(
+    conn: &DatabaseConnection,
+    trade_dates: &[String],
+) -> Result<Vec<dc_index::Model>> {
+    let mut q = dc_index::Entity::find().order_by_desc(dc_index::Column::TradeDate);
+
+    if !trade_dates.is_empty() {
+        q = q.filter(dc_index::Column::TradeDate.is_in(trade_dates.to_vec()));
+    }
+
+    let rows = q
+        .order_by_asc(dc_index::Column::TsCode)
+        .all(conn)
+        .await
+        .context("Failed to fetch dc_index rows by trade_dates")?;
+
+    Ok(rows)
 }
 
 pub async fn list_dc_members_by_concept(

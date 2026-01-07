@@ -182,6 +182,8 @@ async fn rocket() -> _ {
             a_stock_controller::get_a_stocks,
 
             dc_concept_controller::list_dc_index_latest_handler,
+            dc_concept_controller::list_dc_index_trade_dates_handler,
+            dc_concept_controller::query_dc_index_handler,
             dc_concept_controller::list_dc_members_handler,
 
             task_manager_controller::list_tasks,

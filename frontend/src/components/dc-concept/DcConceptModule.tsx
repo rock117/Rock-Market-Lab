@@ -52,6 +52,10 @@ function formatPercent(v: any) {
 export default function DcConceptModule() {
   const [selected, setSelected] = useState<SelectedConcept | null>(null)
   const [keyword, setKeyword] = useState('')
+  const [tradeDateOpen, setTradeDateOpen] = useState(false)
+  const [tradeDateKeyword, setTradeDateKeyword] = useState('')
+  const [selectedTradeDates, setSelectedTradeDates] = useState<string[]>([])
+  const [tradeDateTouched, setTradeDateTouched] = useState(false)
   const [conceptPage, setConceptPage] = useState(1)
   const [memberPage, setMemberPage] = useState(1)
   const [conceptPageSize, setConceptPageSize] = useState(20)
@@ -62,9 +66,15 @@ export default function DcConceptModule() {
   >('trade_date')
   const [conceptSortDir, setConceptSortDir] = useState<'asc' | 'desc'>('desc')
 
+  const tradeDatesQuery = useQuery({
+    queryKey: ['dc_index_trade_dates'],
+    queryFn: () => dcConceptApi.listTradeDates(),
+    enabled: selected === null,
+  })
+
   const conceptsQuery = useQuery({
-    queryKey: ['dc_index_latest'],
-    queryFn: () => dcConceptApi.listConcepts(),
+    queryKey: ['dc_index_query', selectedTradeDates.join('|')],
+    queryFn: () => dcConceptApi.queryConcepts(selectedTradeDates),
     enabled: selected === null,
   })
 
@@ -76,6 +86,24 @@ export default function DcConceptModule() {
 
   const concepts = (conceptsQuery.data || []) as ApiDcIndex[]
   const members = (membersQuery.data || []) as ApiDcMember[]
+
+  const tradeDates = (tradeDatesQuery.data || []) as string[]
+
+  useEffect(() => {
+    if (selected !== null) return
+    if (tradeDateTouched) return
+    if (selectedTradeDates.length > 0) return
+    if (tradeDates.length === 0) return
+    setSelectedTradeDates([tradeDates[0]])
+  }, [selected, selectedTradeDates.length, tradeDateTouched, tradeDates])
+
+  const filteredTradeDates = useMemo(() => {
+    const q = normalizeText(tradeDateKeyword).toLowerCase()
+    if (!q) return tradeDates
+    return tradeDates.filter((d) => normalizeText(d).toLowerCase().includes(q))
+  }, [tradeDates, tradeDateKeyword])
+
+  const isAllTradeDates = selectedTradeDates.length === 0
 
   const filteredConcepts = useMemo(() => {
     const q = normalizeText(keyword).toLowerCase()
@@ -164,6 +192,10 @@ export default function DcConceptModule() {
 
   useEffect(() => {
     setConceptPage(1)
+  }, [selectedTradeDates])
+
+  useEffect(() => {
+    setConceptPage(1)
   }, [conceptSortDir, conceptSortKey])
 
   useEffect(() => {
@@ -212,15 +244,99 @@ export default function DcConceptModule() {
         <CardContent>
           {selected === null ? (
             <>
-              <div className="flex items-center gap-2 mb-3">
-                <Input
-                  placeholder="搜索概念（名称/ts_code）"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                />
-                <Button variant="outline" onClick={() => conceptsQuery.refetch()} disabled={conceptsQuery.isFetching}>
-                  刷新
-                </Button>
+              <div className="flex flex-wrap items-center gap-2 mb-3">
+                <div className="w-[240px] flex-none">
+                  <Input
+                    placeholder="搜索概念（名称/ts_code）"
+                    value={keyword}
+                    onChange={(e) => setKeyword(e.target.value)}
+                    className="!w-[240px]"
+                  />
+                </div>
+
+                <div className="relative">
+                  <Button
+                    variant="outline"
+                    onClick={() => setTradeDateOpen((v) => !v)}
+                    disabled={tradeDatesQuery.isFetching}
+                  >
+                    日期：
+                    {isAllTradeDates
+                      ? '全部'
+                      : selectedTradeDates.length === 1
+                        ? formatTradeDate(selectedTradeDates[0])
+                        : `${selectedTradeDates.length} 项`}
+                  </Button>
+
+                  {tradeDateOpen ? (
+                    <div className="absolute left-0 top-full z-50 mt-2 w-[320px] rounded-md border bg-background shadow-md">
+                      <div className="p-2 space-y-2">
+                        <Input
+                          placeholder="搜索日期"
+                          value={tradeDateKeyword}
+                          onChange={(e) => setTradeDateKeyword(e.target.value)}
+                        />
+
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <Button
+                              size="sm"
+                              variant={isAllTradeDates ? 'default' : 'outline'}
+                              onClick={() => {
+                                setTradeDateTouched(true)
+                                setSelectedTradeDates([])
+                              }}
+                            >
+                              全部日期
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setTradeDateTouched(true)
+                                setSelectedTradeDates(filteredTradeDates)
+                              }}
+                              disabled={filteredTradeDates.length === 0}
+                            >
+                              全选
+                            </Button>
+                          </div>
+                          <Button size="sm" variant="outline" onClick={() => setTradeDateOpen(false)}>
+                            确定
+                          </Button>
+                        </div>
+
+                        <div className="max-h-72 overflow-auto rounded border p-2 space-y-1">
+                          {tradeDatesQuery.isLoading ? (
+                            <div className="text-sm text-muted-foreground">加载中...</div>
+                          ) : filteredTradeDates.length === 0 ? (
+                            <div className="text-sm text-muted-foreground">无匹配日期</div>
+                          ) : (
+                            filteredTradeDates.map((d) => {
+                              const checked = selectedTradeDates.includes(d)
+                              return (
+                                <label key={d} className="flex items-center gap-2 text-sm">
+                                  <input
+                                    type="checkbox"
+                                    checked={checked}
+                                    onChange={(e) => {
+                                      setTradeDateTouched(true)
+                                      const next = e.target.checked
+                                        ? [...selectedTradeDates, d]
+                                        : selectedTradeDates.filter((x) => x !== d)
+                                      setSelectedTradeDates(next)
+                                    }}
+                                  />
+                                  <span className="font-mono">{formatTradeDate(d)}</span>
+                                </label>
+                              )
+                            })
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {conceptsQuery.error ? (
