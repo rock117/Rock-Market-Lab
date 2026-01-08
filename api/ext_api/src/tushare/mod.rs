@@ -45,6 +45,7 @@ pub use stk_holdertrade::*;
 pub use dc_index::*;
 pub use dc_member::*;
 pub use block_trade::*;
+pub use hm_detail::*;
 
 mod balancesheet;
 mod cashflow;
@@ -80,6 +81,7 @@ mod stk_holdertrade;
 mod dc_index;
 mod dc_member;
 mod block_trade;
+mod hm_detail;
 
 static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
     common::config::AppConfig::new()
