@@ -41,6 +41,7 @@ use crate::task::fetch_eng_translate_task::FetchEngTranslateTask;
 
 mod task_manager;
 pub use task_manager::{TaskListItem, TaskManager, TaskStateView, TaskInfo};
+use crate::task::fetch_hm_detail_task::FetchHmDetailTask;
 
 mod task;
 
@@ -154,13 +155,14 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let others: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
-          Arc::new(FetchEtfTask::new(conn.clone())),
-          Arc::new(FetchFundPortfolioTask::new(conn.clone())),
+        Arc::new(FetchHmDetailTask::new(conn.clone())),
+          // Arc::new(FetchEtfTask::new(conn.clone())),
+          // Arc::new(FetchFundPortfolioTask::new(conn.clone())),
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
         //  Arc::new(FetchDcIndexTask::new(conn.clone())),
        // Arc::new(FetchDcMemberTask::new(conn.clone())),
        //  Arc::new(FetchBlockTradeTask::new(conn.clone())),
-       Arc::new(FetchBasicOrgInfoTask::new(conn.clone())),
+       // Arc::new(FetchBasicOrgInfoTask::new(conn.clone())),
        //  Arc::new(FetchEngTranslateTask::new(conn.clone())),
         // Arc::new(FetchUsBasicTask::new(conn.clone())),
         //  Arc::new(FetchMarginTask::new(conn.clone())),
@@ -171,13 +173,14 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
 
     let us: Vec<Arc<dyn crate::task::Task >> = vec![
       //  Arc::new(FetchUsStockTask::new(conn.clone())),
-      Arc::new(FetchUsDailyTask::new(conn.clone())),
+    //  Arc::new(FetchUsDailyTask::new(conn.clone())),
       //  Arc::new(FetchUsCompanyInfoTask::new(conn.clone())),
+
     ];
     
-   jobs.extend(security_list);
-    jobs.extend(dailys);
-  //  jobs.extend(others);
+   // jobs.extend(security_list);
+   //  jobs.extend(dailys);
+   jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);
