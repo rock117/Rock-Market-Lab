@@ -82,6 +82,7 @@ mod dc_index;
 mod dc_member;
 mod block_trade;
 mod hm_detail;
+mod limit_list_d;
 
 static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
     common::config::AppConfig::new()
