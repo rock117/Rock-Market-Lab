@@ -73,7 +73,8 @@ const DEFAULT_PARAMS: Record<string, any> = {
     decline_check_period: 20,
     min_decline_pct: 0.10,
     time_frame: "daily",
-    max_convergence_days: 20
+    max_convergence_days: 20,
+    recent_turnover_rate_threshold: 5
   },
   consecutive_bullish: {
     time_period: "daily",

@@ -101,6 +101,8 @@ pub struct MaConvergenceConfig {
     
     /// 最大粘合持续时间（天数，超过此时间可能失效）
     pub max_convergence_days: usize,
+
+    pub recent_turnover_rate_threshold: f64,
 }
 
 impl Default for MaConvergenceConfig {
@@ -113,6 +115,8 @@ impl Default for MaConvergenceConfig {
             min_decline_pct: 0.10,        // 至少下跌10%
             time_frame: "daily".to_string(),
             max_convergence_days: 20,     // 最多粘合20天
+
+            recent_turnover_rate_threshold: 0.0,
         }
     }
 }
@@ -176,6 +180,10 @@ impl StrategyConfigTrait for MaConvergenceConfig {
         
         if self.time_frame != "daily" && self.time_frame != "weekly" {
             anyhow::bail!("时间周期必须是 'daily' 或 'weekly'");
+        }
+
+        if self.recent_turnover_rate_threshold < 0.0 || self.recent_turnover_rate_threshold > 100.0 {
+            anyhow::bail!("换手率阈值应在0-100之间");
         }
         
         Ok(())
@@ -552,8 +560,37 @@ impl MaConvergenceStrategy {
                 self.config.min_decline_pct * 100.0
             ));
         }
+
+        // 3. 检查最近5天换手率（至少2天大于阈值）
+        if self.config.recent_turnover_rate_threshold > 0.0 {
+            let start = latest_index.saturating_sub(4);
+            let mut days_ok = 0usize;
+            for i in start..=latest_index {
+                if sorted_data[i]
+                    .turnover_rate
+                    .unwrap_or(0.0)
+                    > self.config.recent_turnover_rate_threshold
+                {
+                    days_ok += 1;
+                }
+            }
+
+            if days_ok >= 2 {
+                conditions_met.push(format!(
+                    "近5日换手率≥{:.2}%的天数{}（要求≥2）",
+                    self.config.recent_turnover_rate_threshold,
+                    days_ok
+                ));
+            } else {
+                conditions_failed.push(format!(
+                    "近5日换手率≥{:.2}%的天数不足（{}天，要求≥2天）",
+                    self.config.recent_turnover_rate_threshold,
+                    days_ok
+                ));
+            }
+        }
         
-        // 3. 检查粘合持续时间上限
+        // 4. 检查粘合持续时间上限
         if convergence_days <= self.config.max_convergence_days {
             conditions_met.push("粘合时间在有效范围内".to_string());
         } else {
