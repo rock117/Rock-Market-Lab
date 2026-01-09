@@ -17,6 +17,8 @@ import DcConceptModule from '@/components/dc-concept/DcConceptModule'
 import EtfModule from '@/components/etf/EtfModule'
 import AStockList from '@/components/stock/AStockList'
 import StockSimilarity from '@/components/stock/StockSimilarity'
+import XueqiuArticles from '@/components/xueqiu/XueqiuArticles'
+import XueqiuCrawler from '@/components/xueqiu/XueqiuCrawler'
 import { 
   TrendingUp, 
   Globe, 
@@ -39,7 +41,8 @@ import {
   ChevronRight,
   ArrowUpDown,
   ListChecks,
-  Layers
+  Layers,
+  BookOpen
 } from 'lucide-react'
 
 // 模块定义
@@ -197,6 +200,24 @@ const modules = [
     status: 'active'
   },
   {
+    id: 'xueqiu-articles',
+    name: '雪球文章',
+    description: '文章列表（分页）',
+    icon: BookOpen,
+    color: 'text-slate-500',
+    category: 'research',
+    status: 'active'
+  },
+  {
+    id: 'xueqiu-crawler',
+    name: '雪球文章爬取',
+    description: '按用户名/股票代码抓取',
+    icon: BookOpen,
+    color: 'text-slate-500',
+    category: 'research',
+    status: 'active'
+  },
+  {
     id: 'risk-analysis',
     name: '风险分析',
     description: 'VaR、最大回撤',
@@ -221,6 +242,7 @@ export default function HomePage() {
   const [activeModule, setActiveModule] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['main', 'market', 'analysis', 'portfolio'])
+  const [expandedModuleGroups, setExpandedModuleGroups] = useState<string[]>(['xueqiu'])
 
   // 切换分类展开状态
   const toggleCategory = (categoryId: string) => {
@@ -228,6 +250,14 @@ export default function HomePage() {
       prev.includes(categoryId) 
         ? prev.filter(id => id !== categoryId)
         : [...prev, categoryId]
+    )
+  }
+
+  const toggleModuleGroup = (groupId: string) => {
+    setExpandedModuleGroups(prev =>
+      prev.includes(groupId)
+        ? prev.filter(id => id !== groupId)
+        : [...prev, groupId]
     )
   }
 
@@ -262,6 +292,10 @@ export default function HomePage() {
         return <TaskManager />
       case 'dc-concepts':
         return <DcConceptModule />
+      case 'xueqiu-articles':
+        return <XueqiuArticles />
+      case 'xueqiu-crawler':
+        return <XueqiuCrawler />
       case 'etf':
         return <EtfModule />
       default:
@@ -317,40 +351,136 @@ export default function HomePage() {
                 {/* 模块列表 */}
                 {(isExpanded || sidebarCollapsed) && (
                   <div className={sidebarCollapsed ? 'space-y-1' : 'ml-4 space-y-1'}>
-                    {categoryModules.map((module) => {
-                      const ModuleIcon = module.icon
-                      const isActive = activeModule === module.id
-                      const isDisabled = module.status === 'coming'
-                      
-                      return (
-                        <button
-                          key={module.id}
-                          onClick={() => !isDisabled && setActiveModule(module.id)}
-                          disabled={isDisabled}
-                          className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
-                            isActive 
-                              ? 'bg-primary text-primary-foreground' 
-                              : isDisabled
-                                ? 'text-muted-foreground cursor-not-allowed opacity-50'
-                                : 'hover:bg-muted'
-                          }`}
-                          title={sidebarCollapsed ? module.name : undefined}
-                        >
-                          <ModuleIcon className={`h-4 w-4 ${module.color}`} />
-                          {!sidebarCollapsed && (
-                            <div className="flex-1 text-left">
-                              <div className="font-medium">{module.name}</div>
-                              {module.description && (
-                                <div className="text-xs opacity-70">{module.description}</div>
-                              )}
-                            </div>
-                          )}
-                          {!sidebarCollapsed && module.status === 'coming' && (
-                            <Badge variant="secondary" className="text-xs">即将上线</Badge>
-                          )}
-                        </button>
-                      )
-                    })}
+                    {category.id === 'research' && !sidebarCollapsed ? (
+                      (() => {
+                        const xueqiuChildren = categoryModules.filter((m) => m.id.startsWith('xueqiu-'))
+                        const otherModules = categoryModules.filter((m) => !m.id.startsWith('xueqiu-'))
+                        const isXueqiuExpanded = expandedModuleGroups.includes('xueqiu')
+
+                        return (
+                          <>
+                            {otherModules.map((module) => {
+                              const ModuleIcon = module.icon
+                              const isActive = activeModule === module.id
+                              const isDisabled = module.status === 'coming'
+
+                              return (
+                                <button
+                                  key={module.id}
+                                  onClick={() => !isDisabled && setActiveModule(module.id)}
+                                  disabled={isDisabled}
+                                  className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
+                                    isActive 
+                                      ? 'bg-primary text-primary-foreground' 
+                                      : isDisabled
+                                        ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                                        : 'hover:bg-muted'
+                                  }`}
+                                >
+                                  <ModuleIcon className={`h-4 w-4 ${module.color}`} />
+                                  <div className="flex-1 text-left">
+                                    <div className="font-medium">{module.name}</div>
+                                    {module.description && (
+                                      <div className="text-xs opacity-70">{module.description}</div>
+                                    )}
+                                  </div>
+                                  {module.status === 'coming' && (
+                                    <Badge variant="secondary" className="text-xs">即将上线</Badge>
+                                  )}
+                                </button>
+                              )
+                            })}
+
+                            {xueqiuChildren.length > 0 && (
+                              <div className="space-y-1">
+                                <button
+                                  onClick={() => toggleModuleGroup('xueqiu')}
+                                  className="w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors hover:bg-muted"
+                                >
+                                  <BookOpen className="h-4 w-4 text-slate-500" />
+                                  <div className="flex-1 text-left">
+                                    <div className="font-medium">雪球</div>
+                                    <div className="text-xs opacity-70">文章 / 爬取</div>
+                                  </div>
+                                  {isXueqiuExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                </button>
+
+                                {isXueqiuExpanded && (
+                                  <div className="ml-4 space-y-1">
+                                    {xueqiuChildren.map((module) => {
+                                      const ModuleIcon = module.icon
+                                      const isActive = activeModule === module.id
+                                      const isDisabled = module.status === 'coming'
+
+                                      return (
+                                        <button
+                                          key={module.id}
+                                          onClick={() => !isDisabled && setActiveModule(module.id)}
+                                          disabled={isDisabled}
+                                          className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
+                                            isActive 
+                                              ? 'bg-primary text-primary-foreground' 
+                                              : isDisabled
+                                                ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                                                : 'hover:bg-muted'
+                                          }`}
+                                        >
+                                          <ModuleIcon className={`h-4 w-4 ${module.color}`} />
+                                          <div className="flex-1 text-left">
+                                            <div className="font-medium">{module.name}</div>
+                                            {module.description && (
+                                              <div className="text-xs opacity-70">{module.description}</div>
+                                            )}
+                                          </div>
+                                          {module.status === 'coming' && (
+                                            <Badge variant="secondary" className="text-xs">即将上线</Badge>
+                                          )}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()
+                    ) : (
+                      categoryModules.map((module) => {
+                        const ModuleIcon = module.icon
+                        const isActive = activeModule === module.id
+                        const isDisabled = module.status === 'coming'
+                        
+                        return (
+                          <button
+                            key={module.id}
+                            onClick={() => !isDisabled && setActiveModule(module.id)}
+                            disabled={isDisabled}
+                            className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
+                              isActive 
+                                ? 'bg-primary text-primary-foreground' 
+                                : isDisabled
+                                  ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                                  : 'hover:bg-muted'
+                            }`}
+                            title={sidebarCollapsed ? module.name : undefined}
+                          >
+                            <ModuleIcon className={`h-4 w-4 ${module.color}`} />
+                            {!sidebarCollapsed && (
+                              <div className="flex-1 text-left">
+                                <div className="font-medium">{module.name}</div>
+                                {module.description && (
+                                  <div className="text-xs opacity-70">{module.description}</div>
+                                )}
+                              </div>
+                            )}
+                            {!sidebarCollapsed && module.status === 'coming' && (
+                              <Badge variant="secondary" className="text-xs">即将上线</Badge>
+                            )}
+                          </button>
+                        )
+                      })
+                    )}
                   </div>
                 )}
               </div>

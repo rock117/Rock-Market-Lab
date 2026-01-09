@@ -1,8 +1,9 @@
 const { chromium } = require('playwright');
 
-const url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=TSLA&type=web&color=w#/hxbd";
+let url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=TSLA&type=web&color=w#/hxbd";
+url = "https://quote.eastmoney.com/us/AAPL.html";
 (async () => {
-  await find_word(url, '1.58万亿');
+  await find_word(url, '3.828万亿');
 })();
 
 
@@ -14,7 +15,7 @@ async function find_word(url, word) {
   // 监听响应
   page.on('response', async response => {
     const url = response.url();
-
+    console.log('URL:', url);
     // 只打印文本类型的响应
     // const contentType = response.headers()['content-type'] || '';
     // const isText = contentType.includes('text/') ||
