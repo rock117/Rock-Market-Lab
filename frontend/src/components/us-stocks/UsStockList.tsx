@@ -89,8 +89,10 @@ const SearchAndFilterBar = React.memo(({
               setSelectedSector(value)
               triggerSearchImmediate({ sector: value })
             }}
+            searchable
+            searchPlaceholder="搜索板块..."
             placeholder="选择板块"
-            className="w-32"
+            className="w-48"
           >
             <SelectItem value="">全部板块</SelectItem>
             {metaData?.sectors.map((sector) => (
@@ -111,8 +113,10 @@ const SearchAndFilterBar = React.memo(({
               setSelectedIndustry(value)
               triggerSearchImmediate({ industry: value })
             }}
+            searchable
+            searchPlaceholder="搜索行业..."
             placeholder="选择行业"
-            className="w-40"
+            className="w-64"
           >
             <SelectItem value="">全部行业</SelectItem>
             {metaData?.industries.map((industry) => (
@@ -509,19 +513,19 @@ function UsStockList({ className }: UsStockListProps) {
                       )}
                     </TableCell>
                     <TableCell>
-                      {stock.businessDescription ? (
+                      {stock.businessDescriptionCn || stock.businessDescription ? (
                         <Tooltip
                           content={
                             [
-                              stock.businessDescription ? `English:\n${stock.businessDescription}` : '',
                               stock.businessDescriptionCn ? `中文:\n${stock.businessDescriptionCn}` : '',
+                              stock.businessDescription ? `English:\n${stock.businessDescription}` : '',
                             ]
                               .filter(Boolean)
                               .join('\n\n')
                           }
                         >
-                          <div className="text-sm text-muted-foreground max-w-[300px] truncate cursor-help">
-                            {stock.businessDescription}
+                          <div className="text-sm text-muted-foreground whitespace-normal break-words">
+                            {stock.businessDescriptionCn || stock.businessDescription}
                           </div>
                         </Tooltip>
                       ) : (

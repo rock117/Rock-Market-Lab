@@ -5,6 +5,8 @@ export interface SelectProps {
   value?: string
   onValueChange?: (value: string) => void
   placeholder?: string
+  searchable?: boolean
+  searchPlaceholder?: string
   children: React.ReactNode
   className?: string
 }
@@ -16,14 +18,21 @@ export interface SelectItemProps {
 }
 
 const Select = React.forwardRef<HTMLDivElement, SelectProps>(
-  ({ value, onValueChange, placeholder, children, className }, ref) => {
+  ({ value, onValueChange, placeholder, searchable, searchPlaceholder, children, className }, ref) => {
     const [isOpen, setIsOpen] = React.useState(false)
     const [selectedValue, setSelectedValue] = React.useState(value || '')
+    const [searchValue, setSearchValue] = React.useState('')
     const selectRef = React.useRef<HTMLDivElement>(null)
 
     React.useEffect(() => {
       setSelectedValue(value || '')
     }, [value])
+
+    React.useEffect(() => {
+      if (!isOpen) {
+        setSearchValue('')
+      }
+    }, [isOpen])
 
     React.useEffect(() => {
       const handleClickOutside = (event: MouseEvent) => {
@@ -62,6 +71,24 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
       return findItemText(children)
     }
 
+    const normalizedSearch = searchValue.trim().toLowerCase()
+    const childrenFiltered = React.useMemo(() => {
+      if (!searchable || !normalizedSearch) {
+        return children
+      }
+
+      return React.Children.toArray(children).filter((child) => {
+        if (!React.isValidElement(child)) {
+          return true
+        }
+
+        const valueStr = String((child.props as any).value ?? '')
+        const labelStr = typeof (child.props as any).children === 'string' ? (child.props as any).children : ''
+        const hay = `${valueStr} ${labelStr}`.toLowerCase()
+        return hay.includes(normalizedSearch)
+      })
+    }, [children, searchable, normalizedSearch])
+
     return (
       <div ref={selectRef} className={`relative ${className || ''}`}>
         <div
@@ -81,7 +108,18 @@ const Select = React.forwardRef<HTMLDivElement, SelectProps>(
         {isOpen && (
           <div className="absolute top-full left-0 right-0 z-50 mt-1 max-h-60 overflow-auto rounded-md border bg-popover shadow-md">
             <div className="p-1">
-              {React.Children.map(children, (child) => {
+              {searchable && (
+                <div className="p-1">
+                  <input
+                    value={searchValue}
+                    onChange={(e) => setSearchValue(e.target.value)}
+                    placeholder={searchPlaceholder || '搜索...'}
+                    className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                    autoComplete="off"
+                  />
+                </div>
+              )}
+              {React.Children.map(childrenFiltered, (child) => {
                 if (React.isValidElement(child)) {
                   return React.cloneElement(child as React.ReactElement<SelectItemProps>, {
                     onClick: () => handleSelect(child.props.value),
