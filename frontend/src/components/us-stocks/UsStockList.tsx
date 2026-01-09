@@ -29,34 +29,43 @@ const SearchAndFilterBar = React.memo(({
   const [selectedSector, setSelectedSector] = useState('')
   const [selectedIndustry, setSelectedIndustry] = useState('')
 
-  const handleSearch = () => {
-    console.log('🔍 执行搜索:', { keyword, selectedSector, selectedIndustry })
-    onSearch({
-      keyword: keyword.trim(),
-      sector: selectedSector,
-      industry: selectedIndustry
-    })
-  }
+  const keywordTimerRef = useRef<number | null>(null)
 
-  const handleClear = () => {
-    setKeyword('')
-    setSelectedSector('')
-    setSelectedIndustry('')
-    onSearch({
-      keyword: '',
-      sector: '',
-      industry: ''
-    })
-  }
+  useEffect(() => {
+    if (keywordTimerRef.current) {
+      window.clearTimeout(keywordTimerRef.current)
+    }
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    handleSearch()
+    keywordTimerRef.current = window.setTimeout(() => {
+      console.log('🔍 自动搜索:', { keyword, selectedSector, selectedIndustry })
+      onSearch({
+        keyword: keyword.trim(),
+        sector: selectedSector,
+        industry: selectedIndustry,
+      })
+    }, 300)
+
+    return () => {
+      if (keywordTimerRef.current) {
+        window.clearTimeout(keywordTimerRef.current)
+      }
+    }
+  }, [keyword, selectedSector, selectedIndustry, onSearch])
+
+  const triggerSearchImmediate = (next: { keyword?: string; sector?: string; industry?: string }) => {
+    if (keywordTimerRef.current) {
+      window.clearTimeout(keywordTimerRef.current)
+    }
+    onSearch({
+      keyword: (next.keyword ?? keyword).trim(),
+      sector: next.sector ?? selectedSector,
+      industry: next.industry ?? selectedIndustry,
+    })
   }
 
   return (
     <div className="mb-6">
-      <form onSubmit={handleSubmit} className="flex items-center gap-3 flex-wrap">
+      <div className="flex items-center gap-3 flex-wrap">
         {/* 搜索框 - 缩小宽度 */}
         <div className="flex items-center gap-2 px-3 py-2 border rounded-md focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent w-64">
           <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
@@ -78,6 +87,7 @@ const SearchAndFilterBar = React.memo(({
             onValueChange={(value) => {
               console.log('🔽 Sector changed:', value)
               setSelectedSector(value)
+              triggerSearchImmediate({ sector: value })
             }}
             placeholder="选择板块"
             className="w-32"
@@ -99,6 +109,7 @@ const SearchAndFilterBar = React.memo(({
             onValueChange={(value) => {
               console.log('🔽 Industry changed:', value)
               setSelectedIndustry(value)
+              triggerSearchImmediate({ industry: value })
             }}
             placeholder="选择行业"
             className="w-40"
@@ -112,26 +123,7 @@ const SearchAndFilterBar = React.memo(({
           </Select>
         </div>
 
-        {/* 搜索按钮 */}
-        <button
-          type="submit"
-          className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-sm whitespace-nowrap flex items-center gap-2"
-        >
-          <Search className="h-4 w-4" />
-          搜索
-        </button>
-
-        {/* 清空按钮 */}
-        {(keyword || selectedSector || selectedIndustry) && (
-          <button
-            type="button"
-            onClick={handleClear}
-            className="text-sm text-muted-foreground hover:text-foreground transition-colors whitespace-nowrap"
-          >
-            清空
-          </button>
-        )}
-      </form>
+      </div>
     </div>
   )
 }, (prevProps, nextProps) => {
@@ -393,69 +385,6 @@ function UsStockList({ className }: UsStockListProps) {
     notifyOnChangeProps: ['data', 'error'], // 只在关键属性变化时通知
   })
 
-  if (isLoading) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            美股列表
-          </CardTitle>
-          <CardDescription>
-            展示美股市场主要公司的基本信息和财务指标
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-muted-foreground">加载中...</div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (error) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-destructive">
-            <Globe className="h-5 w-5" />
-            美股列表 - 加载失败
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-center py-8">
-            <p className="text-muted-foreground mb-4">数据加载失败，请稍后重试</p>
-            <button 
-              onClick={() => refetch()}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
-            >
-              重新加载
-            </button>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
-  if (!data) {
-    return (
-      <Card className={className}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Globe className="h-5 w-5" />
-            美股列表
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-64">
-            <div className="text-muted-foreground">暂无数据</div>
-          </div>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card className={className}>
       <CardHeader>
@@ -464,7 +393,7 @@ function UsStockList({ className }: UsStockListProps) {
           美股列表
         </CardTitle>
         <CardDescription>
-          展示美股市场主要公司的基本信息和财务指标 (共 {data.total} 只股票)
+          展示美股市场主要公司的基本信息和财务指标{data ? ` (共 ${data.total} 只股票)` : ''}
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -478,14 +407,193 @@ function UsStockList({ className }: UsStockListProps) {
           </div>
         )}
 
-        {/* 使用独立的表格组件 */}
-        <StockTable
-          stockData={data}
-          page={page}
-          pageSize={pageSize}
-          onPageChange={handlePageChange}
-          onPageSizeChange={handlePageSizeChange}
-        />
+        <div className="rounded-md border">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">代码</TableHead>
+                <TableHead className="w-[200px]">公司名称</TableHead>
+                <TableHead className="w-[80px]">交易所</TableHead>
+                <TableHead className="w-[120px]">板块</TableHead>
+                <TableHead className="w-[120px]">行业</TableHead>
+                <TableHead className="w-[120px] text-right">市值</TableHead>
+                <TableHead className="w-[80px] text-right">PE</TableHead>
+                <TableHead className="w-[80px] text-right">ROE</TableHead>
+                <TableHead className="w-[100px]">上市时间</TableHead>
+                <TableHead className="w-[80px]">官网</TableHead>
+                <TableHead className="min-w-[200px]">主营业务</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-10 text-muted-foreground">
+                    加载中...
+                  </TableCell>
+                </TableRow>
+              ) : error ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-10">
+                    <div className="flex flex-col items-center gap-3">
+                      <div className="text-muted-foreground">数据加载失败，请稍后重试</div>
+                      <button
+                        onClick={() => refetch()}
+                        className="px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90"
+                      >
+                        重新加载
+                      </button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : !data || data.items.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center py-10 text-muted-foreground">
+                    暂无数据
+                  </TableCell>
+                </TableRow>
+              ) : (
+                data.items.map((stock: UsStock) => (
+                  <TableRow key={stock.tsCode || stock.symbol} className="hover:bg-muted/50">
+                    <TableCell className="font-mono font-medium">{stock.tsCode || stock.symbol}</TableCell>
+                    <TableCell>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{stock.name}</span>
+                        <span className="text-xs text-muted-foreground">{stock.sectorName || stock.sector}</span>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs bg-blue-100 text-blue-800">
+                        {stock.exchangeId || stock.exchange}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{stock.sectorNameCn || stock.sectorName || stock.sector || 'N/A'}</span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-sm">{stock.industryNameCn || stock.industryName || stock.industry || 'N/A'}</span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {stock.market_cap ? formatMarketCap(stock.market_cap) : 'N/A'}
+                    </TableCell>
+                    <TableCell className="text-right">{stock.pe_ratio ? formatNumber(stock.pe_ratio, 1) : 'N/A'}</TableCell>
+                    <TableCell className="text-right">
+                      {stock.roe ? (
+                        <span className={getTrendColorClass(getStockTrend(stock.roe))}>
+                          {formatPercent(stock.roe, 1)}
+                        </span>
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
+                    <TableCell>{stock.list_date ? formatDate(stock.list_date) : 'N/A'}</TableCell>
+                    <TableCell>
+                      {stock.webAddress ? (
+                        <a
+                          href={stock.webAddress}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-800 hover:underline text-sm inline-flex items-center gap-1"
+                        >
+                          查看
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                            />
+                          </svg>
+                        </a>
+                      ) : (
+                        'N/A'
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {stock.businessDescription ? (
+                        <Tooltip
+                          content={
+                            [
+                              stock.businessDescription ? `English:\n${stock.businessDescription}` : '',
+                              stock.businessDescriptionCn ? `中文:\n${stock.businessDescriptionCn}` : '',
+                            ]
+                              .filter(Boolean)
+                              .join('\n\n')
+                          }
+                        >
+                          <div className="text-sm text-muted-foreground max-w-[300px] truncate cursor-help">
+                            {stock.businessDescription}
+                          </div>
+                        </Tooltip>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">N/A</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {data && data.total > 0 ? (
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-6 pt-4 border-t">
+            <div className="flex items-center gap-4">
+              <div className="text-sm text-muted-foreground">
+                显示 {((page - 1) * pageSize) + 1} - {Math.min(page * pageSize, data.total)} 条，共 {data.total} 条
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">每页显示</span>
+                <select
+                  value={pageSize}
+                  onChange={(e) => {
+                    handlePageSizeChange(Number(e.target.value))
+                    handlePageChange(1)
+                  }}
+                  className="px-2 py-1 border rounded text-sm"
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={20}>20</option>
+                  <option value={50}>50</option>
+                </select>
+              </div>
+            </div>
+
+            {data.total_pages > 1 && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => handlePageChange(1)}
+                  disabled={page === 1}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  首页
+                </button>
+                <button
+                  onClick={() => handlePageChange(page - 1)}
+                  disabled={page === 1}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  上一页
+                </button>
+                <span className="text-sm text-muted-foreground">第 {page} / {data.total_pages} 页</span>
+                <button
+                  onClick={() => handlePageChange(page + 1)}
+                  disabled={page === data.total_pages}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  下一页
+                </button>
+                <button
+                  onClick={() => handlePageChange(data.total_pages)}
+                  disabled={page === data.total_pages}
+                  className="px-3 py-1 border rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed hover:bg-muted"
+                >
+                  末页
+                </button>
+              </div>
+            )}
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   )
