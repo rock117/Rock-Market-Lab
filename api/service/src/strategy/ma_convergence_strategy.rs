@@ -102,7 +102,8 @@ pub struct MaConvergenceConfig {
     /// 最大粘合持续时间（天数，超过此时间可能失效）
     pub max_convergence_days: usize,
 
-    pub recent_turnover_rate_threshold: f64,
+    pub recent_turnover_rate_min: f64,
+    pub recent_turnover_rate_max: f64,
 }
 
 impl Default for MaConvergenceConfig {
@@ -116,7 +117,8 @@ impl Default for MaConvergenceConfig {
             time_frame: "daily".to_string(),
             max_convergence_days: 20,     // 最多粘合20天
 
-            recent_turnover_rate_threshold: 0.0,
+            recent_turnover_rate_min: 0.0,
+            recent_turnover_rate_max: 0.0,
         }
     }
 }
@@ -182,8 +184,19 @@ impl StrategyConfigTrait for MaConvergenceConfig {
             anyhow::bail!("时间周期必须是 'daily' 或 'weekly'");
         }
 
-        if self.recent_turnover_rate_threshold < 0.0 || self.recent_turnover_rate_threshold > 100.0 {
-            anyhow::bail!("换手率阈值应在0-100之间");
+        if (self.recent_turnover_rate_min > 0.0) || (self.recent_turnover_rate_max > 0.0) {
+            if self.recent_turnover_rate_min < 0.0 || self.recent_turnover_rate_min > 100.0 {
+                anyhow::bail!("换手率范围最小值应在0-100之间");
+            }
+            if self.recent_turnover_rate_max < 0.0 || self.recent_turnover_rate_max > 100.0 {
+                anyhow::bail!("换手率范围最大值应在0-100之间");
+            }
+            if self.recent_turnover_rate_max <= 0.0 {
+                anyhow::bail!("请设置换手率范围最大值（>0）");
+            }
+            if self.recent_turnover_rate_min > self.recent_turnover_rate_max {
+                anyhow::bail!("换手率范围最小值不能大于最大值");
+            }
         }
         
         Ok(())
@@ -561,30 +574,29 @@ impl MaConvergenceStrategy {
             ));
         }
 
-        // 3. 检查最近5天换手率（至少2天大于阈值）
-        if self.config.recent_turnover_rate_threshold > 0.0 {
+        // 3. 检查最近5天换手率（至少2天落在范围内）
+        if self.config.recent_turnover_rate_max > 0.0 {
             let start = latest_index.saturating_sub(4);
             let mut days_ok = 0usize;
             for i in start..=latest_index {
-                if sorted_data[i]
-                    .turnover_rate
-                    .unwrap_or(0.0)
-                    > self.config.recent_turnover_rate_threshold
-                {
+                let tr = sorted_data[i].turnover_rate.unwrap_or(0.0);
+                if tr >= self.config.recent_turnover_rate_min && tr <= self.config.recent_turnover_rate_max {
                     days_ok += 1;
                 }
             }
 
             if days_ok >= 2 {
                 conditions_met.push(format!(
-                    "近5日换手率≥{:.2}%的天数{}（要求≥2）",
-                    self.config.recent_turnover_rate_threshold,
+                    "近5日换手率在[{:.2}%,{:.2}%]的天数{}（要求≥2）",
+                    self.config.recent_turnover_rate_min,
+                    self.config.recent_turnover_rate_max,
                     days_ok
                 ));
             } else {
                 conditions_failed.push(format!(
-                    "近5日换手率≥{:.2}%的天数不足（{}天，要求≥2天）",
-                    self.config.recent_turnover_rate_threshold,
+                    "近5日换手率在[{:.2}%,{:.2}%]的天数不足（{}天，要求≥2天）",
+                    self.config.recent_turnover_rate_min,
+                    self.config.recent_turnover_rate_max,
                     days_ok
                 ));
             }
