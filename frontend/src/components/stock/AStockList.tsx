@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Tooltip } from '@/components/ui/tooltip'
 import { stockApi } from '@/services/api'
 import type { AStockOverview } from '@/types'
 import { formatNumber, formatPercent, formatMarketCap, formatYmd } from '@/lib/utils'
@@ -257,8 +258,14 @@ export default function AStockList({ className }: AStockListProps) {
                       <TableCell className={`text-right ${getUpDownClass(stock.pct60)}`}>
                         {stock.pct60 == null ? '-' : formatPercent(stock.pct60, 2)}
                       </TableCell>
-                      <TableCell className="max-w-[240px] truncate" title={stock.concepts || ''}>
-                        {stock.concepts || '-'}
+                      <TableCell className="max-w-[240px]">
+                        {stock.concepts ? (
+                          <Tooltip content={stock.concepts}>
+                            <div className="truncate cursor-help">{stock.concepts}</div>
+                          </Tooltip>
+                        ) : (
+                          '-'
+                        )}
                       </TableCell>
                       <TableCell className="text-right">{stock.pe == null ? '-' : formatNumber(stock.pe, 2)}</TableCell>
                       <TableCell className="text-right">{stock.dv_ratio == null ? '-' : formatPercent(stock.dv_ratio, 2)}

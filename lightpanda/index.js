@@ -1,7 +1,7 @@
 const { chromium } = require('playwright');
 
-let url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=TSLA&type=web&color=w#/hxbd";
-url = "https://quote.eastmoney.com/us/AAPL.html";
+let url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=AAPL&type=web&color=w#/hxbd";
+// url = "https://quote.eastmoney.com/us/AAPL.html";
 (async () => {
   await find_word(url, '3.828万亿');
 })();

@@ -1,5 +1,6 @@
 use common::http;
 use serde::{Deserialize, Serialize};
+pub mod usf10_data_mainindicator;
 
 /// 东财基本信息响应结构体
 #[derive(Debug, Deserialize, Serialize)]
