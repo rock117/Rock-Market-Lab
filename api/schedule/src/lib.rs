@@ -42,6 +42,7 @@ use crate::task::fetch_eng_translate_task::FetchEngTranslateTask;
 mod task_manager;
 pub use task_manager::{TaskListItem, TaskManager, TaskStateView, TaskInfo};
 use crate::task::fetch_hm_detail_task::FetchHmDetailTask;
+use crate::task::fetch_limit_list_d_task::FetchLimitListDTask;
 
 mod task;
 
@@ -119,12 +120,12 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let dailys: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchFundTask::new(conn.clone())),
-    //    Arc::new(FetchStockDailyTask::new(conn.clone())),
-    //     Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
-    //      Arc::new(FetchFundDailyTask::new(conn.clone())),
+       Arc::new(FetchStockDailyTask::new(conn.clone())),
+        Arc::new(FetchStockDailyBasicTask::new(conn.clone())),
+         Arc::new(FetchFundDailyTask::new(conn.clone())),
 
-    //    Arc::new(FetchDcIndexTask::new(conn.clone())),
-    //    Arc::new(FetchDcMemberTask::new(conn.clone())),
+       Arc::new(FetchDcIndexTask::new(conn.clone())),
+       Arc::new(FetchDcMemberTask::new(conn.clone())),
 
     Arc::new(FetchMarginTask::new(conn.clone())),
         Arc::new(FetchMarginDetailTask::new(conn.clone())),
@@ -155,7 +156,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     let others: Vec<Arc<dyn Task>> = vec![
         //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
-        Arc::new(FetchHmDetailTask::new(conn.clone())),
+        // Arc::new(FetchHmDetailTask::new(conn.clone())),
+        Arc::new(FetchLimitListDTask::new(conn.clone()))
           // Arc::new(FetchEtfTask::new(conn.clone())),
           // Arc::new(FetchFundPortfolioTask::new(conn.clone())),
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
@@ -179,7 +181,7 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     
    // jobs.extend(security_list);
-   //  jobs.extend(dailys);
+    // jobs.extend(dailys);
    jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);

@@ -125,6 +125,6 @@ pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareRes
     // info!("call_api, response: {:?}", data);
     let data = TUSHARE_CLIENT.call_api_as::<T>(request).await;
   //  info!("call_api_as, response: {:?}", data);
-  //  sleep(Duration::from_millis(N)).await;
+    sleep(Duration::from_millis(N)).await;
     data
 }
