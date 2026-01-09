@@ -54,5 +54,6 @@ pub mod holding;
 pub mod task_run;
 pub mod task_state;
 pub mod hm_detail;
+pub mod us_main_indicator;
 
 pub use sea_orm;
