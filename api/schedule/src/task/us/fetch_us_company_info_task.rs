@@ -9,8 +9,8 @@ use entity::sea_orm::QueryOrder;
 use entity::sea_orm::{ActiveModelTrait, QuerySelect};
 use entity::sea_orm::{Condition, DatabaseConnection, InsertResult, Set, TransactionTrait};
 use entity::us_daily::{Model as UsDaily, Model};
-use entity::{us_company_info, us_stock};
-use ext_api::mstar;
+use entity::{us_company_info, us_stock, us_main_indicator};
+use ext_api::{mstar, dongcai};
 use tracing::{error, info, warn};
 
 use common::db::get_entity_update_columns;
@@ -20,6 +20,7 @@ use entity::sea_orm::sea_query::OnConflict;
 use entity::sea_orm::EntityOrSelect;
 use std::collections::HashSet;
 use std::sync::Arc;
+use ext_api::dongcai::usf10_data_mainindicator::RptUsf10DataMainindicatorResp;
 
 pub struct FetchUsCompanyInfoTask(DatabaseConnection);
 
@@ -32,13 +33,13 @@ impl FetchUsCompanyInfoTask {
         completed_count: Arc<std::sync::atomic::AtomicUsize>,
         db_conn: Arc<DatabaseConnection>,
         total_count: usize,
-    ) -> impl Fn(us_stock::Model, (us_stock::Model, anyhow::Result<mstar::company::CompanyGeneralInfoResp>, anyhow::Result<mstar::company::CompanyBusinessDescriptionResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
-        move |_original_stock, (stock, company_result, desc_result)| {
+    ) -> impl Fn(us_stock::Model, (us_stock::Model, anyhow::Result<mstar::company::CompanyGeneralInfoResp>, anyhow::Result<mstar::company::CompanyBusinessDescriptionResp>, anyhow::Result<RptUsf10DataMainindicatorResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
+        move |ori_stock, (stock, company_result, desc_result, usf10_data_mainindicator_result)| {
             let completed_count = completed_count.clone();
             let db_conn = db_conn.clone();
             Box::pin(async move {
-                match (company_result, desc_result) {
-                    (Ok(company), Ok(desc)) => {
+                match (company_result, desc_result, usf10_data_mainindicator_result) {
+                    (Ok(company), Ok(desc), _) => {
                         if let Err(e) = Self::save_company_info(&*db_conn, &stock, &company, &desc).await {
                             error!("save_company_info failed, stock: {:?}, err: {:?}", stock, e);
                         } else {
@@ -46,15 +47,56 @@ impl FetchUsCompanyInfoTask {
                             info!("fetch us company info complete rate: {}/{}", current, total_count);
                         }
                     }
-                    (Err(e), _) => {
-                        error!("get_company_general_info failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                    (_, _, Ok(indicator)) => {
+                        let res = Self::save_main_indictor(&ori_stock.exchange_id, &indicator, &*db_conn).await;
+                        if let Err(e) = res {
+                            error!("save_main_indictor failed, indicator: {:?}, err: {:?}", indicator, e);
+                        }
                     }
-                    (_, Err(e)) => {
-                        error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                    _ => {
+                        //  error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
                     }
                 }
             })
         }
+    }
+
+    async fn save_main_indictor(exchange_id: &str, resp: &RptUsf10DataMainindicatorResp,  db_conn: &DatabaseConnection,) -> anyhow::Result<()> {
+        let records = resp.result.clone().ok_or_else(|| anyhow!("get_company_business_description failed"))?.data;
+        let Some(record) = records.first() else {
+            return Ok(());
+        };
+        
+        let us_main_indicator = us_main_indicator::Model {
+            symbol: record.secucode.clone().replace(".O", ""),
+            secucode: record.security_code.clone(),
+            exchange_id: exchange_id.to_string(),
+            total_market_cap: record.total_market_cap.clone().map(|v| Decimal::try_from(v).ok()).flatten(),
+            currency: Some(record.currency.clone()),
+            pe_ttm: record.pe_ttm.clone().map(|v| Decimal::try_from(v).ok()).flatten(),
+            sale_gpr: record.sale_gpr.clone().map(|v| Decimal::try_from(v).ok()).flatten(),
+            pb:record.pb.clone().map(|v| Decimal::try_from(v).ok()).flatten(),
+            dividend_rate: record.dividend_rate.clone().map(|v| Decimal::try_from(v).ok()).flatten(),
+            std_report_date: record.std_report_date.clone(),
+            report_date: record.report_date.clone(),
+        };
+        let active_model = entity::us_main_indicator::ActiveModel { ..us_main_indicator.clone().into() };
+        let pks = [
+                us_main_indicator::Column::ExchangeId,
+                us_main_indicator::Column::Symbol,
+                us_main_indicator::Column::ReportDate,
+        ];
+        let update_columns = get_entity_update_columns::<entity::us_main_indicator::Entity>(&pks);
+        let on_conflict = entity::sea_orm::sea_query::OnConflict::columns(pks)
+            .update_columns(update_columns)
+            .to_owned();
+        let tx = db_conn.begin().await?;
+        entity::us_main_indicator::Entity::insert(active_model)
+            .on_conflict(on_conflict)
+            .exec(&tx)
+            .await?; 
+        tx.commit().await?;
+        Ok(())
     }
 
     async fn save_company_info(
@@ -145,11 +187,12 @@ impl Task for FetchUsCompanyInfoTask {
             stocks,
             |stock| async move {
                 // 并发执行两个API调用
-                let (company_result, desc_result) = tokio::join!(
+                let (company_result, desc_result, mainindicator_result) = tokio::join!(
                     mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str()),
-                    mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str())
+                    mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str()),
+                    dongcai::usf10_data_mainindicator::rpt_usf10_data_mainindicator(stock.symbol.as_str()),
                 );
-                (stock, company_result, desc_result)
+                (stock, company_result, desc_result, mainindicator_result)
             },
             handler,
         ).await;

@@ -27,7 +27,7 @@ pub struct Model {
     pub report_date: String,
 }
 
-#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
+#[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
 pub enum Column {
     Symbol,
     Secucode,
