@@ -22,39 +22,31 @@ use std::collections::HashSet;
 use std::sync::Arc;
 use ext_api::dongcai::usf10_data_mainindicator::RptUsf10DataMainindicatorResp;
 
-pub struct FetchUsCompanyInfoTask(DatabaseConnection);
+pub struct FetchUsMainIndicatorTask(DatabaseConnection);
 
-impl FetchUsCompanyInfoTask {
+impl FetchUsMainIndicatorTask {
     pub fn new(connection: DatabaseConnection) -> Self {
-        FetchUsCompanyInfoTask(connection)
+        FetchUsMainIndicatorTask(connection)
     }
 
     fn create_completion_handler(
         completed_count: Arc<std::sync::atomic::AtomicUsize>,
         db_conn: Arc<DatabaseConnection>,
         total_count: usize,
-    ) -> impl Fn(us_stock::Model, (us_stock::Model, anyhow::Result<mstar::company::CompanyGeneralInfoResp>, anyhow::Result<mstar::company::CompanyBusinessDescriptionResp>, anyhow::Result<RptUsf10DataMainindicatorResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
-        move |ori_stock, (stock, company_result, desc_result, usf10_data_mainindicator_result)| {
+    ) -> impl Fn(us_stock::Model,  (us_stock::Model, anyhow::Result<RptUsf10DataMainindicatorResp>)) -> std::pin::Pin<Box<dyn std::future::Future<Output = ()> + Send>> + Send + Sync {
+        move |stock, (st, usf10_data_mainindicator_result)| {
             let completed_count = completed_count.clone();
             let db_conn = db_conn.clone();
             Box::pin(async move {
-                match (company_result, desc_result, usf10_data_mainindicator_result) {
-                    (Ok(company), Ok(desc), _) => {
-                        if let Err(e) = Self::save_company_info(&*db_conn, &stock, &company, &desc).await {
-                            error!("save_main_indictor failed, stock: {:?}, err: {:?}", stock, e);
-                        } else {
-                            let current = completed_count.fetch_add(1, std::sync::atomic::Ordering::SeqCst) + 1;
-                            info!("fetch save_main_indictor complete rate: {}/{}", current, total_count);
-                        }
-                    }
-                    (_, _, Ok(indicator)) => {
-                        let res = Self::save_main_indictor(&ori_stock.exchange_id, &indicator, &*db_conn).await;
+                match usf10_data_mainindicator_result {
+                    Ok(indicator) => {
+                        let res = Self::save_main_indictor(&stock.exchange_id, &indicator, &*db_conn).await;
                         if let Err(e) = res {
                             error!("save_main_indictor failed, indicator: {:?}, err: {:?}", indicator, e);
                         }
                     }
-                    _ => {
-                        //  error!("get_company_business_description failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
+                    Err(e) => {
+                         error!("save_main_indictor failed, exchange_id: {}, symbol: {}, err: {:?}", stock.exchange_id, stock.symbol, e);
                     }
                 }
             })
@@ -62,7 +54,7 @@ impl FetchUsCompanyInfoTask {
     }
 
     async fn save_main_indictor(exchange_id: &str, resp: &RptUsf10DataMainindicatorResp,  db_conn: &DatabaseConnection,) -> anyhow::Result<()> {
-        let records = resp.result.clone().ok_or_else(|| anyhow!("get_company_business_description failed"))?.data;
+        let records = resp.result.clone().ok_or_else(|| anyhow!("save_main_indictor failed"))?.data;
         let Some(record) = records.first() else {
             return Ok(());
         };
@@ -99,58 +91,10 @@ impl FetchUsCompanyInfoTask {
         Ok(())
     }
 
-    async fn save_company_info(
-        db_conn: &DatabaseConnection,
-        stock: &us_stock::Model,
-        company: &mstar::company::CompanyGeneralInfoResp,
-        desc: &mstar::company::CompanyBusinessDescriptionResp,
-    ) -> anyhow::Result<()> {
-        let info = &company.company_info_entity;
-        let model = us_company_info::Model {
-            symbol: stock.symbol.clone(),
-            exchange_id: stock.exchange_id.clone(),
-            web_address: info.web_address.clone(),
-            local_name: info.local_name.clone(),
-            local_name_language_code: info.local_name_language_code.clone(),
-            short_name: info.short_name.clone(),
-            business_country: info.business_country.clone(),
-            domicile_country: info.domicile_country.clone(),
-            place_of_incorporation: info.place_of_in_corporation.clone(),
-            year_established: info.year_established.map(|v| v as i32),
-            industry_name: info.industry_name.clone(),
-            industry_group_name: info.industry_group_name.clone(),
-            sector_name: info.sector_name.clone(),
-            report_style_name: info.report_style_name.clone(),
-            industry_template_name: info.industry_template_name.clone(),
-            country: info.country.clone(),
-            business_description: desc.business_description_entity.long_description.clone(),
-            business_description_cn: None,
-            sector_name_cn: None,
-            industry_name_cn: None,
-        };
-        let tx = db_conn.begin().await?;
-        let pks = [
-            us_company_info::Column::ExchangeId,
-            us_company_info::Column::Symbol,
-        ];
-        let update_columns = get_entity_update_columns::<us_company_info::Entity>(&pks);
-        let on_conflict = OnConflict::columns(pks)
-            .update_columns(update_columns)
-            .to_owned();
-        let am = us_company_info::ActiveModel { ..model.clone().into() };
-        if let Err(e) = us_company_info::Entity::insert(am)
-            .on_conflict(on_conflict)
-            .exec(&tx)
-            .await {
-            error!("insert us_company_info failed, stock: {:?}, err: {:?}", stock, e);
-        }
-        tx.commit().await?;
-        Ok(())
-    }
 }
 
 #[async_trait]
-impl Task for FetchUsCompanyInfoTask {
+impl Task for FetchUsMainIndicatorTask {
     fn get_schedule(&self) -> String {
         "0 5 23 * * *".to_string()
     }
@@ -173,7 +117,8 @@ impl Task for FetchUsCompanyInfoTask {
             .await?;
         let stocks: Vec<us_stock::Model> = all_stocks
             .into_iter()
-            .filter(|s| !existing_keys.contains(&(s.exchange_id.clone(), s.symbol.clone())))
+           // .filter(|s| !existing_keys.contains(&(s.exchange_id.clone(), s.symbol.clone())))
+        //   .filter(|s| s.symbol == "AAPL")
             .collect();
 
         let total_count = stocks.len();
@@ -186,13 +131,8 @@ impl Task for FetchUsCompanyInfoTask {
             5, // 并发数为5
             stocks,
             |stock| async move {
-                // 并发执行两个API调用
-                let (company_result, desc_result, mainindicator_result) = tokio::join!(
-                    mstar::company::get_company_general_info(stock.exchange_id.as_str(), stock.symbol.as_str()),
-                    mstar::company::get_company_business_description(stock.exchange_id.as_str(), stock.symbol.as_str()),
-                    dongcai::usf10_data_mainindicator::rpt_usf10_data_mainindicator(stock.symbol.as_str()),
-                );
-                (stock, company_result, desc_result, mainindicator_result)
+                let mainindicator_result = dongcai::usf10_data_mainindicator::rpt_usf10_data_mainindicator(stock.symbol.as_str()).await;
+                (stock.clone(), mainindicator_result)
             },
             handler,
         ).await;
