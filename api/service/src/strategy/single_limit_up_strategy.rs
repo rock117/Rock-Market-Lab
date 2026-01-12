@@ -458,6 +458,7 @@ pub struct SingleLimitUpResult {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::strategy::traits::{SecurityType, TimeFrame};
     
     fn create_test_data(days: usize, limit_up_on_day: Option<usize>) -> Vec<SecurityData> {
         let mut data = Vec::new();
@@ -486,9 +487,11 @@ mod tests {
                 pct_change: Some(pct_change),
                 volume: 1000000.0,
                 amount: 10000000.0,
-                security_type: super::traits::SecurityType::Stock,
-                time_frame: super::traits::TimeFrame::Daily,
+                turnover_rate: None,
+                security_type: SecurityType::Stock,
+                time_frame: TimeFrame::Daily,
                 financial_data: None,
+                target: None,
             });
             
             price = new_price;

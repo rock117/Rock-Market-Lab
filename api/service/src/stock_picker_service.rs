@@ -27,6 +27,7 @@ use crate::strategy::{
     StrongCloseStrategy, StrongCloseConfig,
     QualityValueStrategy, QualityValueConfig,
     TurnoverMaBullishStrategy, TurnoverMaBullishConfig,
+    TurnoverRiseStrategy, TurnoverRiseConfig,
     LowShadowStrategy, LowShadowConfig,
     MaConvergenceStrategy, MaConvergenceConfig,
     ConsecutiveBullishStrategy, ConsecutiveBullishConfig,
@@ -207,6 +208,14 @@ impl StockPickerService {
                     _ => bail!("换手率均线多头策略不支持预设 '{}', 可用预设: standard, active, conservative, short_term", preset),
                 })
             }),
+            "turnover_rise" => execute_strategy!(TurnoverRiseConfig, TurnoverRiseStrategy, |preset: &str| {
+                Ok(match preset {
+                    "standard" => TurnoverRiseStrategy::standard(),
+                    "aggressive" => TurnoverRiseStrategy::aggressive(),
+                    "conservative" => TurnoverRiseStrategy::conservative(),
+                    _ => bail!("换手率区间涨幅策略不支持预设 '{}', 可用预设: standard, aggressive, conservative", preset),
+                })
+            }),
             "low_shadow" => execute_strategy!(LowShadowConfig, LowShadowStrategy, |preset: &str| {
                 Ok(match preset {
                     "standard" => LowShadowConfig::default(),
@@ -313,7 +322,7 @@ impl StockPickerService {
                     _ => bail!("日/周/月连阳策略不支持预设 '{}', 可用预设: daily_standard, daily_aggressive, weekly_standard, monthly_standard", preset),
                 })
             }),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, low_shadow, ma_convergence, consecutive_bullish", strategy_type)
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, low_shadow, ma_convergence, consecutive_bullish", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;

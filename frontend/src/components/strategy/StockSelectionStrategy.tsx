@@ -36,6 +36,7 @@ const STRATEGY_TYPES = [
   { value: 'strong_close', label: '强势收盘策略', description: '基于收盘强势的选股策略' },
   { value: 'quality_value', label: '优质价值策略', description: '寻找优质且被低估的股票' },
   { value: 'turnover_ma_bullish', label: '换手率均线多头策略', description: '基于换手率和均线的多头策略' },
+  { value: 'turnover_rise', label: '换手率区间涨幅策略', description: '过去N天每日换手率高于阈值，且区间累计涨幅高于阈值' },
   { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
   { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
   { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' },
@@ -53,6 +54,12 @@ const DEFAULT_PARAMS: Record<string, any> = {
     volume_surge_ratio: 2.0,
     price_bottom_threshold: 0.9,
     surge_days: 3
+  },
+  turnover_rise: {
+    preset: 'standard',
+    lookback_days: 5,
+    min_turnover_rate: 3.0,
+    min_price_rise_pct: 5.0
   },
   fundamental: {
     min_roe: 0.15,

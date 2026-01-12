@@ -483,6 +483,7 @@ export type StrategyType =
   | 'strong_close'
   | 'quality_value'
   | 'turnover_ma_bullish'
+  | 'turnover_rise'
   | 'low_shadow'
   | 'ma_convergence'
   | 'consecutive_bullish';

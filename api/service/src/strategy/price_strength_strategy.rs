@@ -491,6 +491,7 @@ impl TradingStrategy for PriceStrengthStrategy {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::strategy::traits::{SecurityType, TimeFrame};
 
     fn create_test_data(open: f64, high: f64, low: f64, close: f64) -> SecurityData {
         SecurityData {

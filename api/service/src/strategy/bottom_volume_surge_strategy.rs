@@ -617,8 +617,11 @@ mod tests {
                 pct_change: Some(0.0),
                 volume: 1000000.0,
                 amount: 10000000.0,
+                turnover_rate: None,
                 security_type: SecurityType::Stock,
                 time_frame: TimeFrame::Daily,
+                financial_data: None,
+                target: None,
             });
         }
         
@@ -637,8 +640,11 @@ mod tests {
                 pct_change: Some(0.0),
                 volume: 1000000.0,
                 amount: 10000000.0,
+                turnover_rate: None,
                 security_type: SecurityType::Stock,
                 time_frame: TimeFrame::Daily,
+                financial_data: None,
+                target: None,
             });
         }
         
@@ -655,8 +661,11 @@ mod tests {
             pct_change: Some(2.2),
             volume: 2000000.0,  // 2倍放量
             amount: 20600000.0,
+            turnover_rate: None,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
+            target: None,
         });
         
         data
@@ -745,8 +754,11 @@ mod tests {
                 pct_change: Some(-0.5),
                 volume: 1000000.0,
                 amount: base_price * 1000000.0,
+                turnover_rate: None,
                 security_type: SecurityType::Stock,
                 time_frame: TimeFrame::Daily,
+                financial_data: None,
+                target: None,
             });
         }
         
@@ -795,8 +807,11 @@ mod tests {
                 pct_change: Some(-1.0),
                 volume: 1000000.0,
                 amount: base_price * 1000000.0,
+                turnover_rate: None,
                 security_type: SecurityType::Stock,
                 time_frame: TimeFrame::Daily,
+                financial_data: None,
+                target: None,
             });
         }
         
@@ -814,8 +829,11 @@ mod tests {
                 pct_change: Some(0.0),
                 volume: 1000000.0,
                 amount: 9000000.0,
+                turnover_rate: None,
                 security_type: SecurityType::Stock,
                 time_frame: TimeFrame::Daily,
+                financial_data: None,
+                target: None,
             });
         }
         
@@ -832,8 +850,11 @@ mod tests {
             pct_change: Some(4.4),
             volume: 2000000.0,  // 2倍放量
             amount: 18800000.0,
+            turnover_rate: None,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
+            financial_data: None,
+            target: None,
         });
         
         data
