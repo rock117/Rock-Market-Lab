@@ -370,6 +370,8 @@ pub enum StrategyResult {
     MaConvergence(super::ma_convergence_strategy::MaConvergenceResult),
     /// 换手率区间涨幅策略结果
     TurnoverRise(super::turnover_rise_strategy::TurnoverRiseResult),
+    /// 均线向上发散放量策略结果
+    MaDivergenceVolume(super::ma_divergence_volume_strategy::MaDivergenceVolumeResult),
     /// 日/周/月连阳策略结果
     ConsecutiveBullish(super::consecutive_bullish_strategy::ConsecutiveBullishResult),
 }
@@ -394,6 +396,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => &r.stock_code,
             StrategyResult::MaConvergence(r) => &r.stock_code,
             StrategyResult::TurnoverRise(r) => &r.stock_code,
+            StrategyResult::MaDivergenceVolume(r) => &r.stock_code,
             StrategyResult::ConsecutiveBullish(r) => &r.stock_code,
         }
     }
@@ -418,6 +421,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => r.analysis_date,
             StrategyResult::MaConvergence(r) => r.analysis_date,
             StrategyResult::TurnoverRise(r) => r.analysis_date,
+            StrategyResult::MaDivergenceVolume(r) => r.analysis_date,
             StrategyResult::ConsecutiveBullish(r) => r.analysis_date,
         }
     }
@@ -442,6 +446,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => r.current_price,
             StrategyResult::MaConvergence(r) => r.current_price,
             StrategyResult::TurnoverRise(r) => r.current_price,
+            StrategyResult::MaDivergenceVolume(r) => r.current_price,
             StrategyResult::ConsecutiveBullish(r) => r.current_price,
         }
     }
@@ -466,6 +471,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => r.strategy_signal.clone(),
             StrategyResult::MaConvergence(r) => r.strategy_signal.clone(),
             StrategyResult::TurnoverRise(r) => r.strategy_signal.clone(),
+            StrategyResult::MaDivergenceVolume(r) => r.strategy_signal.clone(),
             StrategyResult::ConsecutiveBullish(r) => r.strategy_signal.clone(),
         }
     }
@@ -490,6 +496,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => r.signal_strength,
             StrategyResult::MaConvergence(r) => r.signal_strength,
             StrategyResult::TurnoverRise(r) => r.signal_strength,
+            StrategyResult::MaDivergenceVolume(r) => r.signal_strength,
             StrategyResult::ConsecutiveBullish(r) => r.signal_strength,
         }
     }
@@ -514,6 +521,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => &r.analysis_description,
             StrategyResult::MaConvergence(r) => &r.analysis_description,
             StrategyResult::TurnoverRise(r) => &r.analysis_description,
+            StrategyResult::MaDivergenceVolume(r) => &r.analysis_description,
             StrategyResult::ConsecutiveBullish(r) => &r.analysis_description,
         }
     }
@@ -538,6 +546,7 @@ impl StrategyResult {
             StrategyResult::LowShadow(r) => r.risk_level,
             StrategyResult::MaConvergence(r) => r.risk_level,
             StrategyResult::TurnoverRise(r) => r.risk_level,
+            StrategyResult::MaDivergenceVolume(r) => r.risk_level,
             StrategyResult::ConsecutiveBullish(r) => r.risk_level,
         }
     }

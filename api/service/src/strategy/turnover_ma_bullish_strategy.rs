@@ -606,6 +606,7 @@ mod tests {
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,
+                target: None,
             });
         }
         

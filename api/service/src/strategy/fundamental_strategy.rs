@@ -723,6 +723,7 @@ mod tests {
             pct_change: Some(5.0),
             volume: 1000000.0,
             amount: 10500000.0,
+            turnover_rate: None,
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
             financial_data: Some(FinancialData {
@@ -738,7 +739,10 @@ mod tests {
                 accounts_receivable: Some(80_000_000.0),
                 advances_from_customers: Some(30_000_000.0),
                 accounts_payable: Some(60_000_000.0),
+                market_cap: None,
+                roe: None,
             }),
+            target: None,
         }]
     }
     

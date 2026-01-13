@@ -804,7 +804,7 @@ mod tests {
         
         let mut data = Vec::new();
         // 创建连续5天阳线
-        for i in 0..20 {
+        for i in 0..23 {
             let close = 100.0 + (i as f64 * 0.5);
             data.push(create_test_data(
                 close - 0.2, close * 1.01, close - 0.5, close,

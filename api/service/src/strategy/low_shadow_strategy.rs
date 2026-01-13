@@ -591,6 +591,7 @@ mod tests {
             time_frame: crate::strategy::traits::TimeFrame::Daily,
             security_type: crate::strategy::traits::SecurityType::Stock,
             financial_data: None,
+            target: None,
         }
     }
     
@@ -644,7 +645,7 @@ mod tests {
             let price = 100.0 + i as f64;
             data.push(create_test_data(
                 price, price + 0.5, price - 0.1, price + 0.3, // 很短的下影线
-                1000000.0, &format!("2024010{:02}", i + 1)
+                1000000.0, &format!("202401{:02}", i + 1)
             ));
         }
         

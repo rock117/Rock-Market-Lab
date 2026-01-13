@@ -419,9 +419,11 @@ mod tests {
                 pct_change: Some(3.0),
                 volume: 1000000.0,
                 amount: 10000000.0,
+                turnover_rate: None,
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,
+                target: None,
             });
         }
         
@@ -468,9 +470,11 @@ mod tests {
             pct_change: Some(5.0),
             volume: 1000000.0,
             amount: 10000000.0,
+            turnover_rate: None,
             time_frame: TimeFrame::Daily,
             security_type: SecurityType::Stock,
             financial_data: None,
+            target: None,
         };
         
         assert!(strategy.is_strong_close(&strong_data));
@@ -488,9 +492,11 @@ mod tests {
             pct_change: Some(-2.0),
             volume: 1000000.0,
             amount: 10000000.0,
+            turnover_rate: None,
             time_frame: TimeFrame::Daily,
             security_type: SecurityType::Stock,
             financial_data: None,
+            target: None,
         };
         
         assert!(!strategy.is_strong_close(&weak_data));

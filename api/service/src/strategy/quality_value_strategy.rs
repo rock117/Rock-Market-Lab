@@ -562,9 +562,11 @@ mod tests {
             pct_change: Some(5.0),
             volume: 1000000.0,
             amount: 10500000.0,
+            turnover_rate: None,
             time_frame: TimeFrame::Daily,
             security_type: SecurityType::Stock,
             financial_data: Some(financial_data),
+            target: None,
         }]
     }
     

@@ -21,6 +21,7 @@ pub mod turnover_rise_strategy;
 pub mod low_shadow_strategy;
 pub mod ma_convergence_strategy;
 pub mod consecutive_bullish_strategy;
+pub mod ma_divergence_volume_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -167,5 +168,11 @@ pub use consecutive_bullish_strategy::{
     ConsecutiveBullishStrategy,
     ConsecutiveBullishConfig,
     ConsecutiveBullishResult,
+};
+
+pub use ma_divergence_volume_strategy::{
+    MaDivergenceVolumeStrategy,
+    MaDivergenceVolumeConfig,
+    MaDivergenceVolumeResult,
 };
 

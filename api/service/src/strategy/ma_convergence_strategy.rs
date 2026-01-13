@@ -838,7 +838,7 @@ mod tests {
     
     #[test]
     fn test_convergence_detection() {
-        let strategy = MaConvergenceStrategy::daily_standard();
+        let mut strategy = MaConvergenceStrategy::daily_standard();
         
         // 创建粘合数据：价格在99-101之间震荡
         let mut data = Vec::new();

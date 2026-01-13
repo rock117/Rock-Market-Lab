@@ -697,10 +697,12 @@ mod tests {
                 change: Some(0.1),
                 volume: 1000000.0,
                 amount: 10000000.0,
+                turnover_rate: None,
                 pct_change: Some(1.0),
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,
+                target: None,
             });
             price += 0.1;
         }
@@ -717,10 +719,12 @@ mod tests {
             change: Some(price * 0.1),
             volume: 2000000.0,
             amount: 22000000.0,
+            turnover_rate: None,
             pct_change: Some(10.0),
             time_frame: TimeFrame::Daily,
             security_type: SecurityType::Stock,
             financial_data: None,
+            target: None,
         });
         price = price * 1.1;
         
@@ -738,10 +742,12 @@ mod tests {
                 change: Some(-0.2),
                 volume: 500000.0,  // 缩量
                 amount: 5000000.0,
+                turnover_rate: None,
                 pct_change: Some(-1.5),
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,
+                target: None,
             });
         }
         

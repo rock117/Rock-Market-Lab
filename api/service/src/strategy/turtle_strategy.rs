@@ -888,17 +888,22 @@ mod tests {
             };
             
             data.push(SecurityData {
+                symbol: "TEST001".to_string(),
                 trade_date: format!("{}", base_date + i),
                 open,
                 close,
                 high,
                 low,
+                pre_close: Some(open),
+                change: Some(close - open),
                 volume: 1000000.0,
                 amount: 100000000.0,
+                turnover_rate: None,
                 pct_change: Some(1.0),
                 time_frame: TimeFrame::Daily,
                 security_type: SecurityType::Stock,
                 financial_data: None,
+                target: None,
             });
         }
         
