@@ -18,6 +18,7 @@ pub mod strong_close_strategy;
 pub mod quality_value_strategy;
 pub mod turnover_ma_bullish_strategy;
 pub mod turnover_rise_strategy;
+pub mod daily_rise_turnover_strategy;
 pub mod low_shadow_strategy;
 pub mod ma_convergence_strategy;
 pub mod consecutive_bullish_strategy;
@@ -147,6 +148,12 @@ pub use turnover_rise_strategy::{
     TurnoverRiseStrategy,
     TurnoverRiseConfig,
     TurnoverRiseResult,
+};
+
+pub use daily_rise_turnover_strategy::{
+    DailyRiseTurnoverStrategy,
+    DailyRiseTurnoverConfig,
+    DailyRiseTurnoverResult,
 };
 
 // 重新导出低位下影线策略相关类型

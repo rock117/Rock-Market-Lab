@@ -31,6 +31,7 @@ async function find_word(url, word) {
         if (body.includes(word)) {
           console.log('URL:', url);
           console.log('body ===>:', body);
+          
         } else {
           // console.log('URL:', url);
         }

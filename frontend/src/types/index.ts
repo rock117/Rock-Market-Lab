@@ -484,6 +484,7 @@ export type StrategyType =
   | 'quality_value'
   | 'turnover_ma_bullish'
   | 'turnover_rise'
+  | 'daily_rise_turnover'
   | 'ma_divergence_volume'
   | 'low_shadow'
   | 'ma_convergence'

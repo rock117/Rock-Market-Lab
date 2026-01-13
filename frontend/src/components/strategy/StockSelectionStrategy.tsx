@@ -37,6 +37,7 @@ const STRATEGY_TYPES = [
   { value: 'quality_value', label: '优质价值策略', description: '寻找优质且被低估的股票' },
   { value: 'turnover_ma_bullish', label: '换手率均线多头策略', description: '基于换手率和均线的多头策略' },
   { value: 'turnover_rise', label: '换手率区间涨幅策略', description: '过去N天每日换手率高于阈值，且区间累计涨幅高于阈值' },
+  { value: 'daily_rise_turnover', label: '连续上涨且换手率达标策略', description: '过去N天每天涨幅>=阈值，且每天换手率>=阈值' },
   { value: 'ma_divergence_volume', label: '均线向上发散放量策略', description: '日均线向上发散，K线站上5日线(3-4天)，成交量连续放量>=2天' },
   { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
   { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
@@ -61,6 +62,11 @@ const DEFAULT_PARAMS: Record<string, any> = {
     lookback_days: 5,
     min_turnover_rate: 3.0,
     min_price_rise_pct: 5.0
+  },
+  daily_rise_turnover: {
+    lookback_days: 5,
+    min_daily_rise_pct: 3.0,
+    min_turnover_rate: 10.0
   },
   ma_divergence_volume: {
     preset: 'standard',
