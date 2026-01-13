@@ -1,192 +1,105 @@
-use anyhow::{anyhow, Context};
-use playwright::Playwright;
-use serde::{Deserialize, Serialize};
-use std::path::{Path, PathBuf};
-use std::time::Duration;
-use tokio::sync::OnceCell;
+//! A browser automation library for monitoring network responses and searching for specific text.
+//!
+//! # Examples
+//! ```no_run
+//! use browser_crawler::{BrowserCrawler, BrowserCrawlerPlaywright};
+//! use anyhow::Result;
+//!
+//! #[tokio::main]
+//! async fn main() -> Result<()> {
+//!     let crawler = BrowserCrawler::new(true)?;
+//!     crawler.navigate("https://example.com").await?;
+//!     
+//!     let matches = crawler.find_text_in_responses("target text", 10).await?;
+//!     println!("Found matches in responses: {:?}", matches);
+//!     
+//!     let playwright_crawler = BrowserCrawlerPlaywright::new()
+//!         .with_user_data_dir("./tmp/playwright-profile")
+//!         .with_idle_wait(Duration::from_secs(5));
+//!     let result = playwright_crawler.crawl_html("https://xueqiu.com/S/SZ300063").await?;
+//!     println!("html content: {:?}", result.content);
+//!     Ok(())
+//! }
+//! ```
 
-#[derive(Debug, Clone)]
+mod playwright;
+
+pub use playwright::{BrowserCrawlerPlaywright, CrawlHtmlResult};
+
+use anyhow::{Result};
+use headless_chrome::{Browser, Tab};
+use headless_chrome::browser::tab::ResponseHandler;
+use headless_chrome::protocol::network::events::ResponseReceivedEventParams;
+use std::time::Duration;
+use std::sync::{Arc, Mutex};
+use tracing::{info, warn};
+
+/// Main struct for browser automation and response monitoring
 pub struct BrowserCrawler {
-    headless: bool,
-    idle_wait: Duration,
-    user_data_dir: Option<PathBuf>,
+    browser: Browser,
+    tab: Arc<Tab>,
 }
 
 impl BrowserCrawler {
-    pub fn new() -> Self {
-        Self {
-            headless: true,
-            idle_wait: Duration::from_millis(1500),
-            user_data_dir: None,
-        }
+    /// Creates a new BrowserCrawler instance
+    pub fn new(headless: bool) -> Result<Self> {
+        info!("Initializing browser crawler (headless: {})", headless);
+        let _ = headless;
+        let browser = Browser::default()
+            .map_err(|e| anyhow::anyhow!("Failed to initialize browser: {e:?}"))?;
+        let tab = browser
+            .new_tab()
+            .map_err(|e| anyhow::anyhow!("Failed to create new tab: {e:?}"))?;
+        
+        Ok(Self { browser, tab })
     }
 
-    pub fn with_headless(mut self, headless: bool) -> Self {
-        self.headless = headless;
-        self
-    }
-
-    pub fn with_idle_wait(mut self, idle_wait: Duration) -> Self {
-        self.idle_wait = idle_wait;
-        self
-    }
-
-    /// Enable session persistence by using a fixed Chrome user data directory.
-    ///
-    /// After you complete an interactive login once (e.g. QR scan), cookies and other
-    /// browser storage can be reused across runs as long as this directory remains.
-    pub fn with_user_data_dir(mut self, user_data_dir: impl Into<PathBuf>) -> Self {
-        self.user_data_dir = Some(user_data_dir.into());
-        self
-    }
-
-    /// Open a visible browser window for manual login (e.g. QR code scan) and wait.
-    ///
-    /// Notes:
-    /// - This requires `headless=false` internally so you can see the QR code.
-    /// - To reuse login state later, you should also set `with_user_data_dir(...)`.
-    /// - `wait` is just a simple time window for you to finish login.
-    pub async fn open_for_login(&self, url: &str, wait: Duration) -> anyhow::Result<()> {
-        let user_data_dir = self
-            .user_data_dir
-            .clone()
-            .ok_or_else(|| anyhow!("open_for_login requires with_user_data_dir(...)"))?;
-
-        ensure_dir(&user_data_dir).await?;
-
-        let url = url.to_string();
-
-        let pw = playwright().await?;
-        pw.prepare().map_err(|e| anyhow!("playwright.prepare failed: {e:?}"))?;
-
-        let chromium = pw.chromium();
-
-        let context = chromium
-            .persistent_context_launcher(&user_data_dir)
-            .headless(false)
-            .launch()
-            .await
-            .map_err(|e| anyhow!("launch persistent context failed: {e:?}"))?;
-
-        let page = context
-            .new_page()
-            .await
-            .map_err(|e| anyhow!("new_page failed: {e:?}"))?;
-
-        page.goto_builder(&url)
-            .goto()
-            .await
-            .map_err(|e| anyhow!("goto {} failed: {e:?}", url))?;
-
-        tokio::time::sleep(wait).await;
-
-        context
-            .close()
-            .await
-            .map_err(|e| anyhow!("context.close failed: {e:?}"))?;
-
+    /// Navigates to the specified URL
+    pub async fn navigate(&self, url: &str) -> Result<()> {
+        info!("Navigating to: {}", url);
+        self.tab
+            .navigate_to(url)
+            .map_err(|e| anyhow::anyhow!("Failed to navigate_to {}: {e:?}", url))?
+            .wait_until_navigated()
+            .map_err(|e| anyhow::anyhow!("Failed to wait_until_navigated {}: {e:?}", url))?;
         Ok(())
     }
 
-    pub async fn crawl_html(&self, url: &str) -> anyhow::Result<CrawlHtmlResult> {
-        let user_data_dir = self
-            .user_data_dir
-            .clone()
-            .ok_or_else(|| anyhow!("crawl_html requires with_user_data_dir(...) for stable behavior"))?;
+    /// Searches for text in network responses
+    pub async fn find_text_in_responses(&self, target_text: &str, timeout_secs: u64) -> Result<Vec<String>> {
+        info!("Searching for text in responses: '{}'", target_text);
+        let matching_urls: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+        let target_text = target_text.to_string();
+        let matching_urls_cloned = Arc::clone(&matching_urls);
 
-        ensure_dir(&user_data_dir).await?;
+        let handler: ResponseHandler = Box::new(move |params: ResponseReceivedEventParams, fetch_body| {
+            let url = params.response.url.clone();
+            if let Ok(body) = fetch_body() {
+                let body_text = format!("{body:?}");
+                if body_text.contains(&target_text) {
+                    info!("Found match in response from: {}", url);
+                    if let Ok(mut locked) = matching_urls_cloned.lock() {
+                        locked.push(url);
+                    }
+                }
+            }
+        });
 
-        let pw = playwright().await?;
-        pw.prepare().map_err(|e| anyhow!("playwright.prepare failed: {e:?}"))?;
+        self.tab
+            .enable_response_handling(handler)
+            .map_err(|e| anyhow::anyhow!("Failed to enable response handling: {e:?}"))?;
 
-        let chromium = pw.chromium();
-        let context = chromium
-            .persistent_context_launcher(&user_data_dir)
-            .headless(self.headless)
-            .launch()
-            .await
-            .map_err(|e| anyhow!("launch persistent context failed: {e:?}"))?;
+        tokio::time::sleep(Duration::from_secs(timeout_secs)).await;
 
-        let page = context
-            .new_page()
-            .await
-            .map_err(|e| anyhow!("new_page failed: {e:?}"))?;
+        let urls = matching_urls
+            .lock()
+            .map(|v| v.clone())
+            .unwrap_or_default();
 
-        page.goto_builder(url)
-            .goto()
-            .await
-            .map_err(|e| anyhow!("goto failed: {e:?}"))?;
+        if urls.is_empty() {
+            warn!("No matches found in responses within {} seconds", timeout_secs);
+        }
 
-        tokio::time::sleep(self.idle_wait).await;
-
-        let final_url = page.url().ok();
-
-        let content = page
-            .content()
-            .await
-            .map_err(|e| anyhow!("page.content failed: {e:?}"))?;
-
-        context
-            .close()
-            .await
-            .map_err(|e| anyhow!("context.close failed: {e:?}"))?;
-
-        Ok(CrawlHtmlResult {
-            final_url,
-            content,
-        })
+        Ok(urls)
     }
 }
-
-static PLAYWRIGHT: OnceCell<Playwright> = OnceCell::const_new();
-
-async fn playwright() -> anyhow::Result<&'static Playwright> {
-    PLAYWRIGHT
-        .get_or_try_init(|| async {
-            Playwright::initialize()
-                .await
-                .map_err(|e| anyhow!("Playwright::initialize failed: {e:?}"))
-        })
-        .await
-}
-
-async fn ensure_dir(dir: &Path) -> anyhow::Result<()> {
-    tokio::fs::create_dir_all(dir)
-        .await
-        .with_context(|| format!("create dir: {}", dir.display()))
-}
-
-impl Default for BrowserCrawler {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct CrawlHtmlResult {
-    pub final_url: Option<String>,
-    pub content: String,
-}
-
-
-mod tests {
-
-    use std::time::Duration;
-
-    use crate::BrowserCrawler;
-    
-
-    #[tokio::test]
-    async fn test() {
-        let crawler = BrowserCrawler::new()
-            .with_user_data_dir("./tmp/playwright-profile")
-            .with_idle_wait(Duration::from_secs(5));
-
-        // First time may require you to call open_for_login() manually in a separate run.
-        let result = crawler.crawl_html("https://xueqiu.com/S/SZ300063").await;
-     //   println!("html content: {:?}", result.unwrap().content);
-        std::fs::write(r"C:/rock/coding/code/my/rust/Rock-Market-Lab/tmp/content.html", result.unwrap().content).unwrap();
-        println!("html content saved to ./tmp/playwright-profile/content.html");
-    }
-}
-

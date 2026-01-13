@@ -494,6 +494,7 @@ name = "browser-crawler"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "headless_chrome",
  "playwright",
  "serde",
  "serde_json",
