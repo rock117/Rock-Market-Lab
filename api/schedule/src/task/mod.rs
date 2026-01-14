@@ -41,6 +41,7 @@ pub mod fetch_basic_org_info_task;
 pub mod fetch_eng_translate_task;
 pub mod fetch_hm_detail_task;
 pub mod fetch_limit_list_d_task;
+pub mod fetch_fina_mainbz_task;
 
 #[async_trait]
 pub trait Task: Send + Sync {

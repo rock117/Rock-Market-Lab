@@ -1,4 +1,4 @@
-use crate::task::{Task, us};
+use crate::task::{Task, us, fetch_fina_mainbz_task};
 use crate::task::fetch_balancesheet_task::FetchBalancesheetTask;
 use crate::task::fetch_cashflow_task::FetchCashflowTask;
 use crate::task::fetch_dc_index_task::FetchDcIndexTask;
@@ -158,7 +158,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
         //  Arc::new(FetchStockHolderNumberTask::new(conn.clone())),
         // Arc::new(FetchHmDetailTask::new(conn.clone())),
         // Arc::new(FetchLimitListDTask::new(conn.clone()))
-        Arc::new(us::fetch_main_indictor_task::FetchUsMainIndicatorTask::new(conn.clone()))
+        // Arc::new(us::fetch_main_indictor_task::FetchUsMainIndicatorTask::new(conn.clone()))
+        Arc::new(fetch_fina_mainbz_task::FetchFinaMainbzTask::new(conn.clone()))
           // Arc::new(FetchEtfTask::new(conn.clone())),
           // Arc::new(FetchFundPortfolioTask::new(conn.clone())),
         //  Arc::new(FetchStkHoldertradeTask::new(conn.clone())),
@@ -182,8 +183,8 @@ fn get_schedule_jobs(conn: DatabaseConnection) -> Vec<Arc<dyn Task>> {
     ];
     
    // jobs.extend(security_list);
-//     jobs.extend(dailys);
-//    jobs.extend(others);
+    // jobs.extend(dailys);
+   jobs.extend(others);
     //  jobs.extend(us);
     //  jobs.extend(finances);
     // jobs.extend(us);

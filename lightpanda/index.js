@@ -2,6 +2,7 @@ const { chromium } = require('playwright');
 
 let url = "https://emweb.eastmoney.com/PC_USF10/pages/index.html?code=AAPL&type=web&color=w#/hxbd";
 // url = "https://quote.eastmoney.com/us/AAPL.html";
+url = 'https://xueqiu.com';
 (async () => {
   await find_word(url, '3.828万亿');
 })();
@@ -23,24 +24,24 @@ async function find_word(url, word) {
     //   contentType.includes('application/javascript') ||
     //   contentType.includes('application/xml');
 
-    const isText = true
-    if (isText) {
-      try {
-        // 获取响应体（文本）
-        const body = await response.text();
-        if (body.includes(word)) {
-          console.log('URL:', url);
-          console.log('body ===>:', body);
-          
-        } else {
-          // console.log('URL:', url);
-        }
-      } catch (e) {
-        console.log('无法读取响应体:', e.message, url);
-      }
-    }
+    // const isText = true
+    // if (isText) {
+    //   try {
+    //     // 获取响应体（文本）
+    //     const body = await response.text();
+    //     if (body.includes(word)) {
+    //       console.log('URL:', url);
+    //       console.log('body ===>:', body);
+
+    //     } else {
+    //       // console.log('URL:', url);
+    //     }
+    //   } catch (e) {
+    //     console.log('无法读取响应体:', e.message, url);
+    //   }
+    // }
   });
   await page.goto(url, { timeout: 160000 });
-  await page.waitForTimeout(20000);
+  await page.waitForTimeout(200000000);
   await browser.close();
 }
