@@ -1,4 +1,5 @@
 use anyhow::{anyhow, Result};
+use chrono::{Local, NaiveDate};
 use entity::sea_orm::{
     ActiveModelTrait, ColumnTrait, DatabaseConnection, EntityTrait, PaginatorTrait, QueryFilter,
     QueryOrder, Set,
@@ -76,12 +77,14 @@ pub async fn create_strategy_profile(
     if exists > 0 {
         return Err(anyhow!("Strategy profile name already exists: {}", req.name));
     }
-
+    let date = Local::now().naive_local().format("%Y-%m-%d %H:%M").to_string();
     let model = stock_strategy_profile::ActiveModel {
         name: Set(req.name),
         description: Set(req.description),
         template: Set(req.template),
         settings: Set(req.settings),
+        created_at: Set(date.clone()),
+        updated_at: Set(date),
         ..Default::default()
     };
 
@@ -121,6 +124,7 @@ pub async fn update_strategy_profile(
         active.template = Set(v);
     }
     active.settings = Set(req.settings);
+    active.updated_at = Set(Local::now().naive_local().format("%Y-%m-%d %H:%M").to_string());
 
     let updated = active.update(conn).await?;
     Ok(to_dto(updated))
