@@ -42,20 +42,29 @@ impl Task for FetchFinaMainbzTask {
         let end_date = Local::now().date_naive();
         let start_date = NaiveDate::from_ymd_opt(2020,1,1).ok_or_else(|| anyhow!("invalid date"))?;
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
+        let types = vec![("P", "P"), ("D", "D"), ("I", "I")];
+        let stocks = stocks.into_iter().zip(types).map(|(stock, (type_, _))| (stock, type_)).collect::<Vec<_>>();
+        
+        
+        
         let mut curr = 0;
-        for stock in &stocks {
-            let incomes = ext_api::tushare::fina_mainbz(&stock.ts_code, &start_date, &end_date).await;
-            if let Err(e) = incomes {
+        for stock_pair in &stocks {
+            let stock = &stock_pair.0;
+            let type_ = stock_pair.1;
+            let finance_main_businesses = ext_api::tushare::fina_mainbz(&stock.ts_code, type_, &start_date, &end_date).await;
+            if let Err(e) = finance_main_businesses {
                 error!("fetch finance_main_business failed, ts_code: {}, error: {:?}", stock.ts_code, e);
                 continue;
             }
             let tx = self.0.begin().await?;
-            for finance_main_business in incomes? {
-                let active_model = entity::finance_main_business::ActiveModel { ..finance_main_business.clone().into() };
+            for finance_main_business in finance_main_businesses? {
+                let mut active_model = entity::finance_main_business::ActiveModel { ..finance_main_business.clone().into() };
+                active_model.r#type = Set(type_.to_string());
                 // ts_code  ann_date f_ann_date  end_date report_type comp_type
                 let pks = [
                     entity::finance_main_business::Column::TsCode,
                     entity::finance_main_business::Column::EndDate,
+                    entity::finance_main_business::Column::Type,
                     entity::finance_main_business::Column::BzItem,
                 ];
                 let update_columns = get_entity_update_columns::<entity::finance_main_business::Entity>(&pks);
