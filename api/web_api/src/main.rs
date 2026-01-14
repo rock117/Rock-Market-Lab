@@ -192,6 +192,8 @@ async fn rocket() -> _ {
             task_manager_controller::pause_task,
             task_manager_controller::resume_task,
             task_manager_controller::stop_task,
+
+            finance_main_business_controller::get_finance_main_business,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

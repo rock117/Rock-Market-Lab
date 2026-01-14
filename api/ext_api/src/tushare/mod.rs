@@ -1,3 +1,9 @@
+//! 积分 https://tushare.pro/document/1?doc_id=290
+//! 定制服务 https://tushare.pro/document/1?doc_id=12
+//! 数据权限 https://tushare.pro/document/1?doc_id=108
+//! 专业群 https://tushare.pro/document/1?doc_id=270
+//! 积分 https://tushare.pro/weborder/#/permission/buy
+
 use std::string::ToString;
 use std::sync::{Arc, Mutex};
 use std::time::Duration;

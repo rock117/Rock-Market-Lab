@@ -15,6 +15,8 @@ import PortfolioManager from '@/components/portfolio/PortfolioManager'
 import TaskManager from '@/components/task-manager/TaskManager'
 import DcConceptModule from '@/components/dc-concept/DcConceptModule'
 import EtfModule from '@/components/etf/EtfModule'
+import FinanceMainBusinessModule from '@/components/finance/FinanceMainBusinessModule'
+import FinanceBalanceSheetModule from '@/components/finance/FinanceBalanceSheetModule'
 import AStockList from '@/components/stock/AStockList'
 import StockSimilarity from '@/components/stock/StockSimilarity'
 import XueqiuArticles from '@/components/xueqiu/XueqiuArticles'
@@ -42,7 +44,8 @@ import {
   ArrowUpDown,
   ListChecks,
   Layers,
-  BookOpen
+  BookOpen,
+  FileText
 } from 'lucide-react'
 
 // 模块定义
@@ -144,6 +147,24 @@ const modules = [
     category: 'analysis',
     status: 'active'
   },
+  {
+    id: 'finance-main-business',
+    name: '主营业务',
+    description: '主营业务构成（P/D/I）',
+    icon: FileText,
+    color: 'text-emerald-600',
+    category: 'analysis',
+    status: 'active'
+  },
+  {
+    id: 'finance-balance-sheet',
+    name: '资产负债表',
+    description: '资产负债表（占位数据）',
+    icon: FileText,
+    color: 'text-emerald-600',
+    category: 'analysis',
+    status: 'active'
+  },
   // 即将上线的模块
   {
     id: 'etf',
@@ -242,7 +263,7 @@ export default function HomePage() {
   const [activeModule, setActiveModule] = useState('home')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [expandedCategories, setExpandedCategories] = useState<string[]>(['main', 'market', 'analysis', 'portfolio'])
-  const [expandedModuleGroups, setExpandedModuleGroups] = useState<string[]>(['xueqiu'])
+  const [expandedModuleGroups, setExpandedModuleGroups] = useState<string[]>(['xueqiu', 'finance'])
 
   // 切换分类展开状态
   const toggleCategory = (categoryId: string) => {
@@ -286,6 +307,10 @@ export default function HomePage() {
         return <StreakStats />
       case 'stock-selection-strategy':
         return <StockSelectionStrategy />
+      case 'finance-main-business':
+        return <FinanceMainBusinessModule />
+      case 'finance-balance-sheet':
+        return <FinanceBalanceSheetModule />
       case 'portfolio-manager':
         return <PortfolioManager />
       case 'task-manager':
@@ -351,7 +376,101 @@ export default function HomePage() {
                 {/* 模块列表 */}
                 {(isExpanded || sidebarCollapsed) && (
                   <div className={sidebarCollapsed ? 'space-y-1' : 'ml-4 space-y-1'}>
-                    {category.id === 'research' && !sidebarCollapsed ? (
+                    {category.id === 'analysis' && !sidebarCollapsed ? (
+                      (() => {
+                        const financeChildren = categoryModules.filter((m) => m.id.startsWith('finance-'))
+                        const otherModules = categoryModules.filter((m) => !m.id.startsWith('finance-'))
+                        const isFinanceExpanded = expandedModuleGroups.includes('finance')
+
+                        return (
+                          <>
+                            {otherModules.map((module) => {
+                              const ModuleIcon = module.icon
+                              const isActive = activeModule === module.id
+                              const isDisabled = module.status === 'coming'
+
+                              return (
+                                <button
+                                  key={module.id}
+                                  onClick={() => !isDisabled && setActiveModule(module.id)}
+                                  disabled={isDisabled}
+                                  className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
+                                    isActive 
+                                      ? 'bg-primary text-primary-foreground' 
+                                      : isDisabled
+                                        ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                                        : 'hover:bg-muted'
+                                  }`}
+                                >
+                                  <ModuleIcon className={`h-4 w-4 ${module.color}`} />
+                                  <div className="flex-1 text-left">
+                                    <div className="font-medium">{module.name}</div>
+                                    {module.description && (
+                                      <div className="text-xs opacity-70">{module.description}</div>
+                                    )}
+                                  </div>
+                                  {module.status === 'coming' && (
+                                    <Badge variant="secondary" className="text-xs">即将上线</Badge>
+                                  )}
+                                </button>
+                              )
+                            })}
+
+                            {financeChildren.length > 0 && (
+                              <div className="space-y-1">
+                                <button
+                                  onClick={() => toggleModuleGroup('finance')}
+                                  className="w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors hover:bg-muted"
+                                >
+                                  <FileText className="h-4 w-4 text-emerald-600" />
+                                  <div className="flex-1 text-left">
+                                    <div className="font-medium">财报</div>
+                                    <div className="text-xs opacity-70">主营业务 / 资产负债表</div>
+                                  </div>
+                                  {isFinanceExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                </button>
+
+                                {isFinanceExpanded && (
+                                  <div className="ml-4 space-y-1">
+                                    {financeChildren.map((module) => {
+                                      const ModuleIcon = module.icon
+                                      const isActive = activeModule === module.id
+                                      const isDisabled = module.status === 'coming'
+
+                                      return (
+                                        <button
+                                          key={module.id}
+                                          onClick={() => !isDisabled && setActiveModule(module.id)}
+                                          disabled={isDisabled}
+                                          className={`w-full flex items-center gap-2 px-2 py-2 rounded text-sm transition-colors ${
+                                            isActive 
+                                              ? 'bg-primary text-primary-foreground' 
+                                              : isDisabled
+                                                ? 'text-muted-foreground cursor-not-allowed opacity-50'
+                                                : 'hover:bg-muted'
+                                          }`}
+                                        >
+                                          <ModuleIcon className={`h-4 w-4 ${module.color}`} />
+                                          <div className="flex-1 text-left">
+                                            <div className="font-medium">{module.name}</div>
+                                            {module.description && (
+                                              <div className="text-xs opacity-70">{module.description}</div>
+                                            )}
+                                          </div>
+                                          {module.status === 'coming' && (
+                                            <Badge variant="secondary" className="text-xs">即将上线</Badge>
+                                          )}
+                                        </button>
+                                      )
+                                    })}
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                          </>
+                        )
+                      })()
+                    ) : category.id === 'research' && !sidebarCollapsed ? (
                       (() => {
                         const xueqiuChildren = categoryModules.filter((m) => m.id.startsWith('xueqiu-'))
                         const otherModules = categoryModules.filter((m) => !m.id.startsWith('xueqiu-'))

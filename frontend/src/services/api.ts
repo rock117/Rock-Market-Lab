@@ -22,3 +22,5 @@ export { etfApi } from './api/etf'
 export { stockSimilarityApi } from './api/stock-similarity'
 export { taskManagerApi } from './api/task-manager'
 export { dcConceptApi } from './api/dc-concept'
+
+export { financeApi } from './api/finance'
