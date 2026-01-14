@@ -42,10 +42,14 @@ impl Task for FetchFinaMainbzTask {
         let end_date = Local::now().date_naive();
         let start_date = NaiveDate::from_ymd_opt(2020,1,1).ok_or_else(|| anyhow!("invalid date"))?;
         let stocks: Vec<stock::Model> = stock::Entity::find().all(&self.0).await?;
-        let types = ["P", "D", "I"];
-        let stock_pairs = stocks.into_iter().zip(types.iter().cycle()).collect::<Vec<_>>();
+        info!("stocks num: {}", stocks.len());
 
-        info!("stocks num: {}", stock_pairs.len());
+        let types = ["P", "D", "I"];
+        let stock_pairs = stocks.iter()
+            .flat_map(|stock| types.iter().map(move |type_| (stock, type_)))
+            .collect::<Vec<_>>();
+
+        info!("stock_pairs num: {}", stock_pairs.len());
         let mut curr = 0;
         for (stock, type_) in &stock_pairs {
             let finance_main_businesses = ext_api::tushare::fina_mainbz(&stock.ts_code, type_, &start_date, &end_date).await;
