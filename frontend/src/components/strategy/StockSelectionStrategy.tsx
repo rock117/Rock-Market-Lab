@@ -49,6 +49,7 @@ interface StrategyTemplateDto {
 interface StrategyProfileDto {
   id: number
   name: string
+  description?: string
   template: string
   settings?: any
   enabled: boolean
@@ -159,6 +160,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   const [showCreate, setShowCreate] = useState(false)
 
   const [draftName, setDraftName] = useState('')
+  const [draftDescription, setDraftDescription] = useState('')
   const [draftTemplate, setDraftTemplate] = useState('')
   const [draftEnabled, setDraftEnabled] = useState(true)
   const [draftSettingsText, setDraftSettingsText] = useState('')
@@ -199,12 +201,13 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   })
 
   const createMutation = useMutation({
-    mutationFn: (payload: { name: string; template: string; settings?: any; enabled?: boolean }) =>
+    mutationFn: (payload: { name: string; description?: string; template: string; settings?: any; enabled?: boolean }) =>
       strategyApi.createStrategyProfile(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
       setShowCreate(false)
       setDraftName('')
+      setDraftDescription('')
       setDraftTemplate('')
       setDraftSettingsText('')
       setDraftEnabled(true)
@@ -216,10 +219,12 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   })
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: number; body: { name?: string; template?: string; settings?: any; enabled?: boolean } }) =>
+    mutationFn: (payload: { id: number; body: { name?: string; description?: string; template?: string; settings?: any; enabled?: boolean } }) =>
       strategyApi.updateStrategyProfile(payload.id, payload.body),
     onSuccess: async (data: any) => {
       await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
+      setIsEditing(false)
+      setShowCreate(false)
       setSelectedProfile(data as StrategyProfileDto)
       setIsEditing(false)
       showToast('更新成功', 'success')
@@ -243,13 +248,13 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
 
   // 从API响应中提取数据
   const allResults = Array.isArray(runQuery.data?.data) ? runQuery.data?.data : []
-  
+
   // 调试：打印第一条数据查看结构
   if (allResults.length > 0) {
     console.log('📊 策略结果第一条数据:', allResults[0])
     console.log('📊 concepts字段:', allResults[0].concepts)
   }
-  
+
   // 计算分页数据
   const totalItems = allResults.length
   const totalPages = Math.ceil(totalItems / pageSize)
@@ -292,6 +297,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
 
   const resetDraft = () => {
     setDraftName('')
+    setDraftDescription('')
     setDraftTemplate('')
     setDraftEnabled(true)
     setDraftSettingsText('')
@@ -409,6 +415,10 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                         </div>
                       ) : null}
                     </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">描述</div>
+                      <Input value={draftDescription} onChange={(e) => setDraftDescription(e.target.value)} placeholder="可选：简单说明策略用途/场景" />
+                    </div>
                   </div>
 
                   <div>
@@ -435,7 +445,13 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                             showToast('请选择模板', 'warning')
                             return
                           }
-                          createMutation.mutate({ name: draftName.trim(), template: draftTemplate.trim(), settings, enabled: draftEnabled })
+                          createMutation.mutate({
+                            name: draftName.trim(),
+                            description: draftDescription.trim() ? draftDescription.trim() : undefined,
+                            template: draftTemplate.trim(),
+                            settings,
+                            enabled: draftEnabled,
+                          })
                         } catch (e) {
                           showToast('参数格式错误，请输入有效的JSON格式', 'error')
                         }
@@ -463,6 +479,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                     <TableRow>
                       <TableHead className="whitespace-nowrap min-w-[80px]">ID</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[200px]">名称</TableHead>
+                      <TableHead className="whitespace-nowrap min-w-[260px]">描述</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[220px]">模板</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[160px]">更新时间</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[200px]">操作</TableHead>
@@ -485,6 +502,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                             {p.name}
                           </button>
                         </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{p.description || '-'}</TableCell>
                         <TableCell className="text-sm text-muted-foreground">
                           {templates.find((t) => t.template === p.template)?.label || p.template}
                         </TableCell>
@@ -512,6 +530,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                                 setShowCreate(false)
                                 setIsEditing(true)
                                 setDraftName(p.name)
+                                setDraftDescription(p.description || '')
                                 setDraftTemplate(p.template)
                                 setDraftEnabled(p.enabled)
                                 setDraftSettingsText(JSON.stringify(p.settings || {}, null, 2))
@@ -566,6 +585,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                       setShowCreate(false)
                       setIsEditing((v) => !v)
                       setDraftName(selectedProfile.name)
+                      setDraftDescription(selectedProfile.description || '')
                       setDraftTemplate(selectedProfile.template)
                       setDraftEnabled(selectedProfile.enabled)
                       setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
@@ -602,6 +622,10 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                         ))}
                       </select>
                     </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">描述</div>
+                      <Input value={draftDescription} onChange={(e) => setDraftDescription(e.target.value)} />
+                    </div>
                   </div>
 
                   <div>
@@ -622,9 +646,16 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                             showToast('请选择模板', 'warning')
                             return
                           }
+                          if (!selectedProfile) return
                           updateMutation.mutate({
                             id: selectedProfile.id,
-                            body: { name: draftName.trim(), template: draftTemplate.trim(), settings, enabled: draftEnabled },
+                            body: {
+                              name: draftName.trim(),
+                              description: draftDescription.trim() ? draftDescription.trim() : undefined,
+                              template: draftTemplate.trim(),
+                              settings,
+                              enabled: draftEnabled,
+                            },
                           })
                         } catch (e) {
                           showToast('参数格式错误，请输入有效的JSON格式', 'error')
