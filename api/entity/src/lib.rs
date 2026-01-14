@@ -56,4 +56,6 @@ pub mod task_state;
 pub mod hm_detail;
 pub mod us_main_indicator;
 
+pub mod stock_strategy_profile;
+
 pub use sea_orm;

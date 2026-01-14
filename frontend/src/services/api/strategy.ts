@@ -1,6 +1,7 @@
 // 策略相关 API
 import { StrategyType } from '@/types'
 import { delay } from './config'
+import { API_BASE_URL } from './config'
 
 // 策略API
 export const strategyApi = {
@@ -49,6 +50,140 @@ export const strategyApi = {
       }
       throw error
     }
+  },
+
+  listStrategyTemplates: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-templates`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '获取策略模板失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
+  listStrategyProfiles: async () => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '获取策略列表失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
+  getStrategyProfile: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles/${encodeURIComponent(String(id))}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '获取策略失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
+  createStrategyProfile: async (payload: { name: string; description?: string; template: string; settings?: any; enabled?: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '创建策略失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
+  updateStrategyProfile: async (id: number, payload: { name?: string; description?: string; template?: string; settings?: any; enabled?: boolean }) => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles/${encodeURIComponent(String(id))}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '更新策略失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
+  deleteStrategyProfile: async (id: number) => {
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles/${encodeURIComponent(String(id))}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage = typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '删除策略失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
   },
 
   // 获取策略列表

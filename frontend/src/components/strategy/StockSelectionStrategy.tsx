@@ -1,23 +1,59 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import React, { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { strategyApi } from '@/services/api'
-import { StrategyResult, StrategyType } from '@/types'
+import { StrategyType } from '@/types'
 import { formatNumber } from '@/lib/utils'
 import { 
   Target, 
   Settings, 
   Play, 
   BarChart3, 
-  AlertTriangle
+  AlertTriangle,
+  Plus,
+  Pencil,
+  Trash2,
+  ArrowLeft
 } from 'lucide-react'
 import { useToast } from '@/components/ui/toast'
 
 interface StockSelectionStrategyProps {
   className?: string
+}
+
+interface StrategyTemplateParam {
+  key: string
+  label: string
+  type: string
+  required: boolean
+  default_value?: any
+  description?: string
+  min?: number
+  max?: number
+  options?: any[]
+}
+
+interface StrategyTemplateDto {
+  template: string
+  label: string
+  description: string
+  params: StrategyTemplateParam[]
+}
+
+interface StrategyProfileDto {
+  id: number
+  name: string
+  template: string
+  settings?: any
+  enabled: boolean
+  created_at: string
+  updated_at: string
 }
 
 // 策略类型映射
@@ -115,22 +151,98 @@ const DEFAULT_PARAMS: Record<string, any> = {
 
 export default function StockSelectionStrategy({ className }: StockSelectionStrategyProps) {
   const { showToast } = useToast()
-  const [selectedStrategy, setSelectedStrategy] = useState<string>('')
-  const [parameters, setParameters] = useState<string>('')
+
+  const queryClient = useQueryClient()
+
+  const [selectedProfile, setSelectedProfile] = useState<StrategyProfileDto | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
+
+  const [draftName, setDraftName] = useState('')
+  const [draftTemplate, setDraftTemplate] = useState('')
+  const [draftEnabled, setDraftEnabled] = useState(true)
+  const [draftSettingsText, setDraftSettingsText] = useState('')
+
+  const [runSettingsText, setRunSettingsText] = useState('')
   const [isRunning, setIsRunning] = useState(false)
   const [executionTime, setExecutionTime] = useState<number>(0)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
 
-  const { data: apiResponse, isLoading, error, refetch } = useQuery({
-    queryKey: ['strategy-result', selectedStrategy, parameters],
-    queryFn: () => strategyApi.runStrategy(selectedStrategy as StrategyType, JSON.parse(parameters || '{}')),
+  const templatesQuery = useQuery({
+    queryKey: ['strategy-templates'],
+    queryFn: () => strategyApi.listStrategyTemplates(),
+  })
+
+  const profilesQuery = useQuery({
+    queryKey: ['strategy-profiles'],
+    queryFn: () => strategyApi.listStrategyProfiles(),
+  })
+
+  const templates = (templatesQuery.data || []) as StrategyTemplateDto[]
+  const profiles = (profilesQuery.data || []) as StrategyProfileDto[]
+
+  const selectedTemplate = useMemo(() => {
+    const t = (selectedProfile?.template || draftTemplate || '').trim()
+    if (!t) return null
+    return templates.find((x) => x.template === t) || null
+  }, [draftTemplate, selectedProfile?.template, templates])
+
+  const runQuery = useQuery({
+    queryKey: ['strategy-result', selectedProfile?.id, runSettingsText],
+    queryFn: () => {
+      const template = selectedProfile?.template as StrategyType
+      return strategyApi.runStrategy(template, JSON.parse(runSettingsText || '{}'))
+    },
     enabled: false,
     staleTime: 5 * 60 * 1000,
   })
 
+  const createMutation = useMutation({
+    mutationFn: (payload: { name: string; template: string; settings?: any; enabled?: boolean }) =>
+      strategyApi.createStrategyProfile(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
+      setShowCreate(false)
+      setDraftName('')
+      setDraftTemplate('')
+      setDraftSettingsText('')
+      setDraftEnabled(true)
+      showToast('创建成功', 'success')
+    },
+    onError: (e: any) => {
+      showToast(e?.message || '创建失败', 'error')
+    },
+  })
+
+  const updateMutation = useMutation({
+    mutationFn: (payload: { id: number; body: { name?: string; template?: string; settings?: any; enabled?: boolean } }) =>
+      strategyApi.updateStrategyProfile(payload.id, payload.body),
+    onSuccess: async (data: any) => {
+      await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
+      setSelectedProfile(data as StrategyProfileDto)
+      setIsEditing(false)
+      showToast('更新成功', 'success')
+    },
+    onError: (e: any) => {
+      showToast(e?.message || '更新失败', 'error')
+    },
+  })
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => strategyApi.deleteStrategyProfile(id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
+      if (selectedProfile) setSelectedProfile(null)
+      showToast('删除成功', 'success')
+    },
+    onError: (e: any) => {
+      showToast(e?.message || '删除失败', 'error')
+    },
+  })
+
   // 从API响应中提取数据
-  const allResults = Array.isArray(apiResponse?.data) ? apiResponse.data : []
+  const allResults = Array.isArray(runQuery.data?.data) ? runQuery.data?.data : []
   
   // 调试：打印第一条数据查看结构
   if (allResults.length > 0) {
@@ -145,15 +257,14 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   const endIndex = startIndex + pageSize
   const strategyResult = allResults.slice(startIndex, endIndex)
 
-  // 运行策略
   const runStrategy = async () => {
-    if (!selectedStrategy) {
-      showToast('请选择策略类型', 'warning')
+    if (!selectedProfile) {
+      showToast('请选择一个策略实例', 'warning')
       return
     }
 
     try {
-      JSON.parse(parameters || '{}') // 验证JSON格式
+      JSON.parse(runSettingsText || '{}')
     } catch (error) {
       showToast('参数格式错误，请输入有效的JSON格式', 'error')
       return
@@ -161,18 +272,17 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
 
     try {
       setIsRunning(true)
-      setPage(1) // 重置到第一页
+      setPage(1)
       const startTime = Date.now()
-      const result = await refetch() // 手动触发查询
+      const result = await runQuery.refetch()
       const endTime = Date.now()
       setExecutionTime(endTime - startTime)
       setIsRunning(false)
-      
-      // 检查是否有错误
+
       if (result.error) {
-        showToast(`策略运行失败：${result.error.message}`, 'error')
+        showToast(`策略运行失败：${(result.error as any).message}`, 'error')
       } else {
-        showToast(`策略运行成功，找到 ${allResults.length} 只股票`, 'success')
+        showToast(`策略运行成功，找到 ${Array.isArray(result.data?.data) ? result.data?.data.length : 0} 只股票`, 'success')
       }
     } catch (error: any) {
       setIsRunning(false)
@@ -180,94 +290,407 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     }
   }
 
-  // 策略类型变化时更新默认参数
-  const handleStrategyChange = (strategyType: string) => {
-    setSelectedStrategy(strategyType)
-    const defaultParams = DEFAULT_PARAMS[strategyType] || {}
-    setParameters(JSON.stringify(defaultParams, null, 2))
+  const resetDraft = () => {
+    setDraftName('')
+    setDraftTemplate('')
+    setDraftEnabled(true)
+    setDraftSettingsText('')
   }
+
+  const fillSettingsFromTemplate = (tpl: StrategyTemplateDto | null) => {
+    if (!tpl) return
+    const obj: Record<string, any> = {}
+    tpl.params.forEach((p) => {
+      if (p.default_value !== undefined) obj[p.key] = p.default_value
+    })
+    setDraftSettingsText(JSON.stringify(obj, null, 2))
+  }
+
+  const fillRunSettingsFromProfile = (profile: StrategyProfileDto) => {
+    const settingsObj = profile.settings || DEFAULT_PARAMS[profile.template] || {}
+    setRunSettingsText(JSON.stringify(settingsObj, null, 2))
+  }
+
+  useEffect(() => {
+    if (!showCreate) return
+    if (!draftTemplate) return
+    const tpl = templates.find((t) => t.template === draftTemplate) || null
+    if (!tpl) return
+    if (draftSettingsText.trim()) return
+    fillSettingsFromTemplate(tpl)
+  }, [draftSettingsText, draftTemplate, showCreate, templates])
+
+  useEffect(() => {
+    if (!selectedProfile) return
+    fillRunSettingsFromProfile(selectedProfile)
+  }, [selectedProfile?.id])
 
   return (
     <div className={className}>
-      {/* 策略配置 */}
       <Card className="mb-6">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Target className="h-5 w-5" />
-            选股策略配置
+            选股策略
           </CardTitle>
           <CardDescription>
-            选择策略类型并配置参数，运行策略获取选股结果
+            {selectedProfile ? (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <button
+                  className="hover:underline"
+                  onClick={() => {
+                    setSelectedProfile(null)
+                    setIsEditing(false)
+                    setShowCreate(false)
+                    setExecutionTime(0)
+                  }}
+                >
+                  策略列表
+                </button>
+                <span>/</span>
+                <span className="text-foreground">{selectedProfile.name}</span>
+              </div>
+            ) : (
+              <div className="text-sm text-muted-foreground">策略列表</div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* 策略选择 */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">策略类型</label>
-                <select
-                  value={selectedStrategy}
-                  onChange={(e) => handleStrategyChange(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-md text-sm"
-                >
-                  <option value="">请选择策略类型</option>
-                  {STRATEGY_TYPES.map((strategy) => (
-                    <option key={strategy.value} value={strategy.value}>
-                      {strategy.label}
-                    </option>
-                  ))}
-                </select>
-                {selectedStrategy && (
-                  <p className="text-xs text-muted-foreground mt-1">
-                    {STRATEGY_TYPES.find(s => s.value === selectedStrategy)?.description}
-                  </p>
-                )}
+          {selectedProfile === null ? (
+            <>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                <div className="text-sm text-muted-foreground">
+                  共 {profiles.length} 条
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    onClick={() => {
+                      resetDraft()
+                      setShowCreate((v) => !v)
+                      setIsEditing(false)
+                    }}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    新建策略
+                  </Button>
+                </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={runStrategy}
-                  disabled={!selectedStrategy || isRunning}
-                  className="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Play className="h-4 w-4" />
-                  {isRunning ? '运行中...' : '运行策略'}
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedStrategy('')
-                    setParameters('')
-                  }}
-                  className="px-4 py-2 border rounded-md text-sm hover:bg-muted"
-                >
-                  重置
-                </button>
-              </div>
-            </div>
+              {showCreate ? (
+                <div className="border rounded-md p-4 mb-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-sm font-medium mb-1">名称</div>
+                      <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="例如：换手率涨幅-标准" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">模板</div>
+                      <select
+                        value={draftTemplate}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setDraftTemplate(v)
+                          const tpl = templates.find((t) => t.template === v) || null
+                          setDraftSettingsText('')
+                          fillSettingsFromTemplate(tpl)
+                        }}
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                      >
+                        <option value="">请选择</option>
+                        {templates.map((t) => (
+                          <option key={t.template} value={t.template}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                      {draftTemplate ? (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {templates.find((t) => t.template === draftTemplate)?.description}
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
 
-            {/* 参数配置 */}
-            <div className="space-y-4">
-              <div>
-                <label className="text-sm font-medium mb-2 block">策略参数 (JSON格式)</label>
-                <textarea
-                  value={parameters}
-                  onChange={(e) => setParameters(e.target.value)}
-                  placeholder="请输入JSON格式的策略参数"
-                  className="w-full px-3 py-2 border rounded-md text-sm font-mono"
-                  rows={8}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  请输入有效的JSON格式参数，例如: {"{"}"volume_threshold": 1.5, "lookback_days": 20{"}"}
-                </p>
+                  <div>
+                    <div className="text-sm font-medium mb-1">参数（JSON）</div>
+                    <Textarea
+                      value={draftSettingsText}
+                      onChange={(e) => setDraftSettingsText(e.target.value)}
+                      placeholder="请输入 JSON"
+                      className="font-mono"
+                      rows={8}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => {
+                        try {
+                          const settings = draftSettingsText.trim() ? JSON.parse(draftSettingsText) : undefined
+                          if (!draftName.trim()) {
+                            showToast('请填写名称', 'warning')
+                            return
+                          }
+                          if (!draftTemplate.trim()) {
+                            showToast('请选择模板', 'warning')
+                            return
+                          }
+                          createMutation.mutate({ name: draftName.trim(), template: draftTemplate.trim(), settings, enabled: draftEnabled })
+                        } catch (e) {
+                          showToast('参数格式错误，请输入有效的JSON格式', 'error')
+                        }
+                      }}
+                      disabled={createMutation.isPending}
+                    >
+                      保存
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowCreate(false)
+                        resetDraft()
+                      }}
+                    >
+                      取消
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="whitespace-nowrap min-w-[80px]">ID</TableHead>
+                      <TableHead className="whitespace-nowrap min-w-[200px]">名称</TableHead>
+                      <TableHead className="whitespace-nowrap min-w-[220px]">模板</TableHead>
+                      <TableHead className="whitespace-nowrap min-w-[160px]">更新时间</TableHead>
+                      <TableHead className="whitespace-nowrap min-w-[200px]">操作</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {profiles.map((p) => (
+                      <TableRow key={p.id}>
+                        <TableCell className="font-mono">{p.id}</TableCell>
+                        <TableCell>
+                          <button
+                            className="hover:underline"
+                            onClick={() => {
+                              setSelectedProfile(p)
+                              setIsEditing(false)
+                              setShowCreate(false)
+                              fillRunSettingsFromProfile(p)
+                            }}
+                          >
+                            {p.name}
+                          </button>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {templates.find((t) => t.template === p.template)?.label || p.template}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">{p.updated_at}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedProfile(p)
+                                setIsEditing(false)
+                                setShowCreate(false)
+                                fillRunSettingsFromProfile(p)
+                              }}
+                            >
+                              <Play className="h-4 w-4 mr-1" />
+                              运行
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                setSelectedProfile(p)
+                                setShowCreate(false)
+                                setIsEditing(true)
+                                setDraftName(p.name)
+                                setDraftTemplate(p.template)
+                                setDraftEnabled(p.enabled)
+                                setDraftSettingsText(JSON.stringify(p.settings || {}, null, 2))
+                              }}
+                            >
+                              <Pencil className="h-4 w-4 mr-1" />
+                              编辑
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (window.confirm(`确认删除策略：${p.name} ?`)) {
+                                  deleteMutation.mutate(p.id)
+                                }
+                              }}
+                              disabled={deleteMutation.isPending}
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              删除
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-            </div>
-          </div>
+            </>
+          ) : (
+            <>
+              <div className="flex items-center justify-between gap-2 mb-3">
+                <div className="text-sm text-muted-foreground">
+                  模板：{templates.find((t) => t.template === selectedProfile.template)?.label || selectedProfile.template}
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedProfile(null)
+                      setIsEditing(false)
+                      setShowCreate(false)
+                      setExecutionTime(0)
+                    }}
+                  >
+                    <ArrowLeft className="h-4 w-4 mr-2" />
+                    返回列表
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreate(false)
+                      setIsEditing((v) => !v)
+                      setDraftName(selectedProfile.name)
+                      setDraftTemplate(selectedProfile.template)
+                      setDraftEnabled(selectedProfile.enabled)
+                      setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
+                    }}
+                  >
+                    <Pencil className="h-4 w-4 mr-2" />
+                    {isEditing ? '取消编辑' : '编辑'}
+                  </Button>
+                </div>
+              </div>
+
+              {isEditing ? (
+                <div className="border rounded-md p-4 mb-4 space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div>
+                      <div className="text-sm font-medium mb-1">名称</div>
+                      <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} />
+                    </div>
+                    <div>
+                      <div className="text-sm font-medium mb-1">模板</div>
+                      <select
+                        value={draftTemplate}
+                        onChange={(e) => {
+                          const v = e.target.value
+                          setDraftTemplate(v)
+                        }}
+                        className="w-full px-3 py-2 border rounded-md text-sm"
+                      >
+                        <option value="">请选择</option>
+                        {templates.map((t) => (
+                          <option key={t.template} value={t.template}>
+                            {t.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium mb-1">参数（JSON）</div>
+                    <Textarea value={draftSettingsText} onChange={(e) => setDraftSettingsText(e.target.value)} className="font-mono" rows={8} />
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Button
+                      onClick={() => {
+                        try {
+                          const settings = draftSettingsText.trim() ? JSON.parse(draftSettingsText) : undefined
+                          if (!draftName.trim()) {
+                            showToast('请填写名称', 'warning')
+                            return
+                          }
+                          if (!draftTemplate.trim()) {
+                            showToast('请选择模板', 'warning')
+                            return
+                          }
+                          updateMutation.mutate({
+                            id: selectedProfile.id,
+                            body: { name: draftName.trim(), template: draftTemplate.trim(), settings, enabled: draftEnabled },
+                          })
+                        } catch (e) {
+                          showToast('参数格式错误，请输入有效的JSON格式', 'error')
+                        }
+                      }}
+                      disabled={updateMutation.isPending}
+                    >
+                      保存修改
+                    </Button>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-sm font-medium mb-2">运行参数（JSON）</div>
+                    <Textarea
+                      value={runSettingsText}
+                      onChange={(e) => setRunSettingsText(e.target.value)}
+                      className="font-mono"
+                      rows={10}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button onClick={runStrategy} disabled={isRunning}>
+                      <Play className="h-4 w-4 mr-2" />
+                      {isRunning ? '运行中...' : '运行策略'}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        fillRunSettingsFromProfile(selectedProfile)
+                      }}
+                    >
+                      重置参数
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="border rounded-md p-4">
+                    <div className="text-sm font-medium mb-2">模板参数提示</div>
+                    {selectedTemplate ? (
+                      <div className="space-y-2">
+                        {selectedTemplate.params.map((p) => (
+                          <div key={p.key} className="text-sm">
+                            <span className="font-medium">{p.label}</span>
+                            <span className="text-muted-foreground">（{p.key}）</span>
+                            {p.description ? <div className="text-xs text-muted-foreground">{p.description}</div> : null}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">暂无</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* 策略结果 */}
-      {isLoading && (
+      {runQuery.isFetching && selectedProfile && (
         <Card>
           <CardContent className="py-8">
             <div className="flex items-center justify-center">
@@ -277,7 +700,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {error && (
+      {runQuery.error && selectedProfile && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
@@ -294,7 +717,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {allResults.length > 0 && (
+      {selectedProfile && allResults.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -302,8 +725,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
               策略运行结果
             </CardTitle>
             <CardDescription>
-              {STRATEGY_TYPES.find(s => s.value === selectedStrategy)?.label} - 
-              共找到 {totalItems} 只符合条件的股票
+              {selectedProfile.name} - 共找到 {totalItems} 只符合条件的股票
               {executionTime > 0 && ` · 运行耗时 ${(executionTime / 1000).toFixed(2)}s`}
             </CardDescription>
           </CardHeader>
@@ -435,7 +857,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
       )}
 
       {/* 无结果提示 */}
-      {apiResponse && allResults.length === 0 && (
+      {runQuery.data && selectedProfile && allResults.length === 0 && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">

@@ -194,6 +194,13 @@ async fn rocket() -> _ {
             task_manager_controller::stop_task,
 
             finance_main_business_controller::get_finance_main_business,
+
+            strategy_profile_controller::list_strategy_profiles_handler,
+            strategy_profile_controller::get_strategy_profile_handler,
+            strategy_profile_controller::create_strategy_profile_handler,
+            strategy_profile_controller::update_strategy_profile_handler,
+            strategy_profile_controller::delete_strategy_profile_handler,
+            strategy_template_controller::list_strategy_templates_handler,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }

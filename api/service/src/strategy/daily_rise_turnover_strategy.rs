@@ -71,6 +71,26 @@ impl DailyRiseTurnoverStrategy {
     pub fn new(config: DailyRiseTurnoverConfig) -> Self {
         Self { config }
     }
+
+    pub fn standard() -> DailyRiseTurnoverConfig {
+        DailyRiseTurnoverConfig::default()
+    }
+
+    pub fn aggressive() -> DailyRiseTurnoverConfig {
+        DailyRiseTurnoverConfig {
+            lookback_days: 5,
+            min_daily_rise_pct: 5.0,
+            min_turnover_rate: 12.0,
+        }
+    }
+
+    pub fn conservative() -> DailyRiseTurnoverConfig {
+        DailyRiseTurnoverConfig {
+            lookback_days: 10,
+            min_daily_rise_pct: 2.0,
+            min_turnover_rate: 8.0,
+        }
+    }
 }
 
 impl TradingStrategy for DailyRiseTurnoverStrategy {

@@ -23,3 +23,5 @@ pub mod a_stock_controller;
 pub mod task_manager_controller;
 pub mod dc_concept_controller;
 pub mod finance_main_business_controller;
+pub mod strategy_profile_controller;
+pub mod strategy_template_controller;
