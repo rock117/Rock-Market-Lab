@@ -8,23 +8,37 @@ use super::traits::{SecurityData, StrategyConfig, StrategyResult, StrategySignal
 /// 换手率区间涨幅策略配置
 ///
 /// 核心规则：
-/// - 过去 `lookback_days` 天内，每天换手率 `turnover_rate` 都必须 >= `min_turnover_rate`
-/// - 同一窗口内，从起始收盘价到最新收盘价的累计涨幅必须 >= `min_price_rise_pct`
+/// - 过去 `lookback_days` 天内：
+///   - 每天换手率 `turnover_rate` 必须在 [turnover_rate_min, turnover_rate_max] 范围内
+///   - 每天涨跌幅 `pct_change` 必须在 [daily_pct_change_min, daily_pct_change_max] 范围内
+/// - 同一窗口内，从起始收盘价到最新收盘价的累计涨幅必须在 [total_rise_min_pct, total_rise_max_pct] 范围内
 pub struct TurnoverRiseConfig {
     /// 回溯天数（窗口大小）
     pub lookback_days: usize,
-    /// 最小换手率阈值（百分比，单位：%）
-    pub min_turnover_rate: f64,
-    /// 最小区间涨幅阈值（百分比，单位：%）
-    pub min_price_rise_pct: f64,
+
+    /// 每日换手率范围（%）
+    pub turnover_rate_min: f64,
+    pub turnover_rate_max: f64,
+
+    /// 每日涨跌幅范围（%）
+    pub daily_pct_change_min: f64,
+    pub daily_pct_change_max: f64,
+
+    /// 区间累计涨幅范围（%）
+    pub total_rise_min_pct: f64,
+    pub total_rise_max_pct: f64,
 }
 
 impl Default for TurnoverRiseConfig {
     fn default() -> Self {
         Self {
             lookback_days: 5,
-            min_turnover_rate: 3.0,
-            min_price_rise_pct: 5.0,
+            turnover_rate_min: 3.0,
+            turnover_rate_max: 100.0,
+            daily_pct_change_min: -3.0,
+            daily_pct_change_max: 9.9,
+            total_rise_min_pct: 5.0,
+            total_rise_max_pct: 50.0,
         }
     }
 }
@@ -42,8 +56,20 @@ impl StrategyConfig for TurnoverRiseConfig {
         if self.lookback_days == 0 {
             bail!("lookback_days 不能为0");
         }
-        if self.min_turnover_rate < 0.0 {
-            bail!("min_turnover_rate 不能为负数");
+
+        if self.turnover_rate_min < 0.0 || self.turnover_rate_max < 0.0 {
+            bail!("turnover_rate_min/turnover_rate_max 不能为负数");
+        }
+        if self.turnover_rate_min > self.turnover_rate_max {
+            bail!("turnover_rate_min 不能大于 turnover_rate_max");
+        }
+
+        if self.daily_pct_change_min > self.daily_pct_change_max {
+            bail!("daily_pct_change_min 不能大于 daily_pct_change_max");
+        }
+
+        if self.total_rise_min_pct > self.total_rise_max_pct {
+            bail!("total_rise_min_pct 不能大于 total_rise_max_pct");
         }
         Ok(())
     }
@@ -67,10 +93,23 @@ pub struct TurnoverRiseResult {
     /// 窗口累计涨幅（%）
     pub total_rise_pct: f64,
 
-    /// 要求的最小换手率阈值（%）
-    pub min_turnover_rate_required: f64,
-    /// 窗口内观测到的最小换手率（%）
-    pub min_turnover_rate_observed: f64,
+    /// 换手率范围要求（%）
+    pub turnover_rate_min_required: f64,
+    pub turnover_rate_max_required: f64,
+    /// 窗口内观测到的换手率范围（%）
+    pub turnover_rate_min_observed: f64,
+    pub turnover_rate_max_observed: f64,
+
+    /// 每日涨跌幅范围要求（%）
+    pub daily_pct_change_min_required: f64,
+    pub daily_pct_change_max_required: f64,
+    /// 窗口内观测到的每日涨跌幅范围（%）
+    pub daily_pct_change_min_observed: f64,
+    pub daily_pct_change_max_observed: f64,
+
+    /// 区间累计涨幅范围要求（%）
+    pub total_rise_min_required: f64,
+    pub total_rise_max_required: f64,
 
     /// 策略信号
     pub strategy_signal: StrategySignal,
@@ -93,28 +132,6 @@ impl TurnoverRiseStrategy {
         Self { config }
     }
 
-    /// 预设：标准
-    pub fn standard() -> TurnoverRiseConfig {
-        TurnoverRiseConfig::default()
-    }
-
-    /// 预设：激进
-    pub fn aggressive() -> TurnoverRiseConfig {
-        TurnoverRiseConfig {
-            lookback_days: 5,
-            min_turnover_rate: 5.0,
-            min_price_rise_pct: 10.0,
-        }
-    }
-
-    /// 预设：保守
-    pub fn conservative() -> TurnoverRiseConfig {
-        TurnoverRiseConfig {
-            lookback_days: 10,
-            min_turnover_rate: 2.0,
-            min_price_rise_pct: 5.0,
-        }
-    }
 }
 
 impl TradingStrategy for TurnoverRiseStrategy {
@@ -125,7 +142,7 @@ impl TradingStrategy for TurnoverRiseStrategy {
     }
 
     fn description(&self) -> &str {
-        "过去N天每日换手率均高于阈值，且区间累计涨幅高于阈值"
+        "过去N天每日换手率/涨跌幅在指定范围内，且区间累计涨幅在指定范围内"
     }
 
     fn config(&self) -> &Self::Config {
@@ -168,7 +185,11 @@ impl TurnoverRiseStrategy {
         let analysis_date = NaiveDate::parse_from_str(&latest.trade_date, "%Y%m%d")
             .map_err(|e| anyhow::anyhow!("日期解析失败: {}", e))?;
 
-        let mut min_turnover_observed = f64::INFINITY;
+        let mut turnover_min_observed = f64::INFINITY;
+        let mut turnover_max_observed = f64::NEG_INFINITY;
+
+        let mut pct_min_observed = f64::INFINITY;
+        let mut pct_max_observed = f64::NEG_INFINITY;
         for d in window {
             let turnover = d.turnover_rate.ok_or_else(|| anyhow::anyhow!(
                 "缺少换手率数据: {} {}",
@@ -176,17 +197,39 @@ impl TurnoverRiseStrategy {
                 d.trade_date
             ))?;
 
-            if turnover < self.config.min_turnover_rate {
+            if turnover < self.config.turnover_rate_min || turnover > self.config.turnover_rate_max {
                 bail!(
-                    "{} 在 {} 换手率 {:.2}% 低于阈值 {:.2}%",
+                    "{} 在 {} 换手率 {:.2}% 不在范围 [{:.2}%, {:.2}%]",
                     symbol,
                     d.trade_date,
                     turnover,
-                    self.config.min_turnover_rate
+                    self.config.turnover_rate_min,
+                    self.config.turnover_rate_max
                 );
             }
 
-            min_turnover_observed = min_turnover_observed.min(turnover);
+            turnover_min_observed = turnover_min_observed.min(turnover);
+            turnover_max_observed = turnover_max_observed.max(turnover);
+
+            let pct = d.pct_change.ok_or_else(|| anyhow::anyhow!(
+                "缺少涨跌幅数据: {} {}",
+                d.symbol,
+                d.trade_date
+            ))?;
+
+            if pct < self.config.daily_pct_change_min || pct > self.config.daily_pct_change_max {
+                bail!(
+                    "{} 在 {} 涨跌幅 {:.2}% 不在范围 [{:.2}%, {:.2}%]",
+                    symbol,
+                    d.trade_date,
+                    pct,
+                    self.config.daily_pct_change_min,
+                    self.config.daily_pct_change_max
+                );
+            }
+
+            pct_min_observed = pct_min_observed.min(pct);
+            pct_max_observed = pct_max_observed.max(pct);
         }
 
         let start_price = start.close;
@@ -196,18 +239,19 @@ impl TurnoverRiseStrategy {
         }
 
         let total_rise_pct = (current_price - start_price) / start_price * 100.0;
-        if total_rise_pct < self.config.min_price_rise_pct {
+        if total_rise_pct < self.config.total_rise_min_pct || total_rise_pct > self.config.total_rise_max_pct {
             bail!(
-                "{} 过去{}天区间涨幅 {:.2}% 低于阈值 {:.2}%",
+                "{} 过去{}天区间涨幅 {:.2}% 不在范围 [{:.2}%, {:.2}%]",
                 symbol,
                 n,
                 total_rise_pct,
-                self.config.min_price_rise_pct
+                self.config.total_rise_min_pct,
+                self.config.total_rise_max_pct
             );
         }
 
         let mut signal_strength = 70u8;
-        if total_rise_pct >= self.config.min_price_rise_pct * 2.0 {
+        if total_rise_pct >= self.config.total_rise_min_pct + (self.config.total_rise_max_pct - self.config.total_rise_min_pct) * 0.6 {
             signal_strength = 85;
         }
 
@@ -217,19 +261,26 @@ impl TurnoverRiseStrategy {
             StrategySignal::Buy
         };
 
-        let risk_level = if self.config.min_turnover_rate >= 10.0 {
+        let risk_level = if self.config.turnover_rate_max >= 30.0 {
             4
         } else {
             3
         };
 
         let analysis_description = format!(
-            "过去{}天最小换手率 {:.2}%（阈值 {:.2}%），区间涨幅 {:.2}%（阈值 {:.2}%）",
+            "过去{}天换手率范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），日涨跌幅范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），区间涨幅 {:.2}%（要求[{:.2}%,{:.2}%]）",
             n,
-            min_turnover_observed,
-            self.config.min_turnover_rate,
+            turnover_min_observed,
+            turnover_max_observed,
+            self.config.turnover_rate_min,
+            self.config.turnover_rate_max,
+            pct_min_observed,
+            pct_max_observed,
+            self.config.daily_pct_change_min,
+            self.config.daily_pct_change_max,
             total_rise_pct,
-            self.config.min_price_rise_pct
+            self.config.total_rise_min_pct,
+            self.config.total_rise_max_pct
         );
 
         Ok(TurnoverRiseResult {
@@ -239,8 +290,16 @@ impl TurnoverRiseStrategy {
             lookback_days: n,
             start_price,
             total_rise_pct,
-            min_turnover_rate_required: self.config.min_turnover_rate,
-            min_turnover_rate_observed: min_turnover_observed,
+            turnover_rate_min_required: self.config.turnover_rate_min,
+            turnover_rate_max_required: self.config.turnover_rate_max,
+            turnover_rate_min_observed: turnover_min_observed,
+            turnover_rate_max_observed: turnover_max_observed,
+            daily_pct_change_min_required: self.config.daily_pct_change_min,
+            daily_pct_change_max_required: self.config.daily_pct_change_max,
+            daily_pct_change_min_observed: pct_min_observed,
+            daily_pct_change_max_observed: pct_max_observed,
+            total_rise_min_required: self.config.total_rise_min_pct,
+            total_rise_max_required: self.config.total_rise_max_pct,
             strategy_signal,
             signal_strength,
             analysis_description,
@@ -265,9 +324,9 @@ mod tests {
                 high: close,
                 low: close,
                 close,
-                pre_close: None,
-                change: None,
-                pct_change: None,
+                pre_close: Some(close),
+                change: Some(0.0),
+                pct_change: Some(1.0),
                 volume: 0.0,
                 amount: 0.0,
                 turnover_rate: Some(turnover),
@@ -284,8 +343,12 @@ mod tests {
     fn test_turnover_rise_strategy_ok() {
         let mut s = TurnoverRiseStrategy::new(TurnoverRiseConfig {
             lookback_days: 5,
-            min_turnover_rate: 3.0,
-            min_price_rise_pct: 2.0,
+            turnover_rate_min: 3.0,
+            turnover_rate_max: 10.0,
+            daily_pct_change_min: -100.0,
+            daily_pct_change_max: 200.0,
+            total_rise_min_pct: 1.0,
+            total_rise_max_pct: 50.0,
         });
 
         let data = make_data(10, 10.0, 0.1, 5.0);

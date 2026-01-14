@@ -210,13 +210,8 @@ impl StockPickerService {
                     _ => bail!("换手率均线多头策略不支持预设 '{}', 可用预设: standard, active, conservative, short_term", preset),
                 })
             }),
-            "turnover_rise" => execute_strategy!(TurnoverRiseConfig, TurnoverRiseStrategy, |preset: &str| {
-                Ok(match preset {
-                    "standard" => TurnoverRiseStrategy::standard(),
-                    "aggressive" => TurnoverRiseStrategy::aggressive(),
-                    "conservative" => TurnoverRiseStrategy::conservative(),
-                    _ => bail!("换手率区间涨幅策略不支持预设 '{}', 可用预设: standard, aggressive, conservative", preset),
-                })
+            "turnover_rise" => execute_strategy!(TurnoverRiseConfig, TurnoverRiseStrategy, |_preset: &str| {
+                bail!("换手率区间涨幅策略已移除 preset 参数，请直接传具体参数")
             }),
             "daily_rise_turnover" => execute_strategy!(DailyRiseTurnoverConfig, DailyRiseTurnoverStrategy, Self::handle_preset),
             "ma_divergence_volume" => execute_strategy!(MaDivergenceVolumeConfig, MaDivergenceVolumeStrategy, |preset: &str| {

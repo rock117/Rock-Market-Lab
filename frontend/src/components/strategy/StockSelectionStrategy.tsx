@@ -94,10 +94,13 @@ const DEFAULT_PARAMS: Record<string, any> = {
     surge_days: 3
   },
   turnover_rise: {
-    preset: 'standard',
     lookback_days: 5,
-    min_turnover_rate: 3.0,
-    min_price_rise_pct: 5.0
+    turnover_rate_min: 3.0,
+    turnover_rate_max: 100.0,
+    daily_pct_change_min: -3.0,
+    daily_pct_change_max: 9.9,
+    total_rise_min_pct: 5.0,
+    total_rise_max_pct: 50.0
   },
   daily_rise_turnover: {
     lookback_days: 5,
