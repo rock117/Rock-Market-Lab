@@ -476,7 +476,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="whitespace-nowrap min-w-[80px]">ID</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[200px]">名称</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[260px]">描述</TableHead>
                       <TableHead className="whitespace-nowrap min-w-[220px]">模板</TableHead>
@@ -487,7 +486,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                   <TableBody>
                     {profiles.map((p) => (
                       <TableRow key={p.id}>
-                        <TableCell className="font-mono">{p.id}</TableCell>
                         <TableCell>
                           <button
                             className="hover:underline"
@@ -511,6 +509,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                             <Button
                               variant="outline"
                               size="sm"
+                              title="编辑"
                               onClick={() => {
                                 setSelectedProfile(p)
                                 setShowCreate(false)
@@ -521,12 +520,12 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                                 setDraftSettingsText(JSON.stringify(p.settings || {}, null, 2))
                               }}
                             >
-                              <Pencil className="h-4 w-4 mr-1" />
-                              编辑
+                              <Pencil className="h-4 w-4" />
                             </Button>
                             <Button
                               variant="outline"
                               size="sm"
+                              title="删除"
                               onClick={() => {
                                 if (window.confirm(`确认删除策略：${p.name} ?`)) {
                                   deleteMutation.mutate(p.id)
@@ -534,8 +533,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                               }}
                               disabled={deleteMutation.isPending}
                             >
-                              <Trash2 className="h-4 w-4 mr-1" />
-                              删除
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </TableCell>
@@ -552,19 +550,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                   模板：{templates.find((t) => t.template === selectedProfile.template)?.label || selectedProfile.template}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setSelectedProfile(null)
-                      setIsEditing(false)
-                      setShowCreate(false)
-                      setExecutionTime(0)
-                      setHasRun(false)
-                    }}
-                  >
-                    <ArrowLeft className="h-4 w-4 mr-2" />
-                    返回列表
-                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => {
@@ -670,33 +655,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                         <Play className="h-4 w-4 mr-2" />
                         {isRunning ? '运行中...' : '运行策略'}
                       </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          fillRunSettingsFromProfile(selectedProfile)
-                        }}
-                      >
-                        重置参数
-                      </Button>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="border rounded-md p-4">
-                      <div className="text-sm font-medium mb-2">模板参数提示</div>
-                      {selectedTemplate ? (
-                        <div className="space-y-2">
-                          {selectedTemplate.params.map((p) => (
-                            <div key={p.key} className="text-sm">
-                              <span className="font-medium">{p.label}</span>
-                              <span className="text-muted-foreground">（{p.key}）</span>
-                              {p.description ? <div className="text-xs text-muted-foreground">{p.description}</div> : null}
-                            </div>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-muted-foreground">暂无</div>
-                      )}
                     </div>
                   </div>
                 </div>
