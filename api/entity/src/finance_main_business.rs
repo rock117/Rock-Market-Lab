@@ -23,7 +23,7 @@ pub struct Model {
     pub bz_cost: Option<Decimal>,
     pub curr_type: Option<String>,
     pub update_flag: Option<String>,
-    pub r#type: String,
+    pub r#type: Option<String>,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn, PartialEq)]
