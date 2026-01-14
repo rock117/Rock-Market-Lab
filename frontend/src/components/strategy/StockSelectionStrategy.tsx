@@ -52,7 +52,6 @@ interface StrategyProfileDto {
   description?: string
   template: string
   settings?: any
-  enabled: boolean
   created_at: string
   updated_at: string
 }
@@ -162,11 +161,11 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   const [draftName, setDraftName] = useState('')
   const [draftDescription, setDraftDescription] = useState('')
   const [draftTemplate, setDraftTemplate] = useState('')
-  const [draftEnabled, setDraftEnabled] = useState(true)
   const [draftSettingsText, setDraftSettingsText] = useState('')
 
   const [runSettingsText, setRunSettingsText] = useState('')
   const [isRunning, setIsRunning] = useState(false)
+  const [hasRun, setHasRun] = useState(false)
   const [executionTime, setExecutionTime] = useState<number>(0)
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(10)
@@ -201,7 +200,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   })
 
   const createMutation = useMutation({
-    mutationFn: (payload: { name: string; description?: string; template: string; settings?: any; enabled?: boolean }) =>
+    mutationFn: (payload: { name: string; description?: string; template: string; settings?: any }) =>
       strategyApi.createStrategyProfile(payload),
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
@@ -210,7 +209,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
       setDraftDescription('')
       setDraftTemplate('')
       setDraftSettingsText('')
-      setDraftEnabled(true)
       showToast('创建成功', 'success')
     },
     onError: (e: any) => {
@@ -219,7 +217,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
   })
 
   const updateMutation = useMutation({
-    mutationFn: (payload: { id: number; body: { name?: string; description?: string; template?: string; settings?: any; enabled?: boolean } }) =>
+    mutationFn: (payload: { id: number; body: { name?: string; description?: string; template?: string; settings?: any } }) =>
       strategyApi.updateStrategyProfile(payload.id, payload.body),
     onSuccess: async (data: any) => {
       await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
@@ -276,6 +274,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     }
 
     try {
+      setHasRun(true)
       setIsRunning(true)
       setPage(1)
       const startTime = Date.now()
@@ -299,7 +298,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     setDraftName('')
     setDraftDescription('')
     setDraftTemplate('')
-    setDraftEnabled(true)
     setDraftSettingsText('')
   }
 
@@ -328,6 +326,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
 
   useEffect(() => {
     if (!selectedProfile) return
+    setHasRun(false)
     fillRunSettingsFromProfile(selectedProfile)
   }, [selectedProfile?.id])
 
@@ -349,6 +348,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                     setIsEditing(false)
                     setShowCreate(false)
                     setExecutionTime(0)
+                    setHasRun(false)
                   }}
                 >
                   策略列表
@@ -450,7 +450,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                             description: draftDescription.trim() ? draftDescription.trim() : undefined,
                             template: draftTemplate.trim(),
                             settings,
-                            enabled: draftEnabled,
                           })
                         } catch (e) {
                           showToast('参数格式错误，请输入有效的JSON格式', 'error')
@@ -514,25 +513,11 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                               size="sm"
                               onClick={() => {
                                 setSelectedProfile(p)
-                                setIsEditing(false)
-                                setShowCreate(false)
-                                fillRunSettingsFromProfile(p)
-                              }}
-                            >
-                              <Play className="h-4 w-4 mr-1" />
-                              运行
-                            </Button>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => {
-                                setSelectedProfile(p)
                                 setShowCreate(false)
                                 setIsEditing(true)
                                 setDraftName(p.name)
                                 setDraftDescription(p.description || '')
                                 setDraftTemplate(p.template)
-                                setDraftEnabled(p.enabled)
                                 setDraftSettingsText(JSON.stringify(p.settings || {}, null, 2))
                               }}
                             >
@@ -574,6 +559,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                       setIsEditing(false)
                       setShowCreate(false)
                       setExecutionTime(0)
+                      setHasRun(false)
                     }}
                   >
                     <ArrowLeft className="h-4 w-4 mr-2" />
@@ -587,7 +573,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                       setDraftName(selectedProfile.name)
                       setDraftDescription(selectedProfile.description || '')
                       setDraftTemplate(selectedProfile.template)
-                      setDraftEnabled(selectedProfile.enabled)
                       setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
                     }}
                   >
@@ -654,7 +639,6 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                               description: draftDescription.trim() ? draftDescription.trim() : undefined,
                               template: draftTemplate.trim(),
                               settings,
-                              enabled: draftEnabled,
                             },
                           })
                         } catch (e) {
@@ -669,59 +653,61 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                 </div>
               ) : null}
 
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className="space-y-4">
-                  <div>
-                    <div className="text-sm font-medium mb-2">运行参数（JSON）</div>
-                    <Textarea
-                      value={runSettingsText}
-                      onChange={(e) => setRunSettingsText(e.target.value)}
-                      className="font-mono"
-                      rows={10}
-                    />
+              {!isEditing ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <div className="space-y-4">
+                    <div>
+                      <div className="text-sm font-medium mb-2">运行参数（JSON）</div>
+                      <Textarea
+                        value={runSettingsText}
+                        readOnly
+                        className="font-mono"
+                        rows={10}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button onClick={runStrategy} disabled={isRunning}>
+                        <Play className="h-4 w-4 mr-2" />
+                        {isRunning ? '运行中...' : '运行策略'}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          fillRunSettingsFromProfile(selectedProfile)
+                        }}
+                      >
+                        重置参数
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button onClick={runStrategy} disabled={isRunning}>
-                      <Play className="h-4 w-4 mr-2" />
-                      {isRunning ? '运行中...' : '运行策略'}
-                    </Button>
-                    <Button
-                      variant="outline"
-                      onClick={() => {
-                        fillRunSettingsFromProfile(selectedProfile)
-                      }}
-                    >
-                      重置参数
-                    </Button>
-                  </div>
-                </div>
 
-                <div className="space-y-4">
-                  <div className="border rounded-md p-4">
-                    <div className="text-sm font-medium mb-2">模板参数提示</div>
-                    {selectedTemplate ? (
-                      <div className="space-y-2">
-                        {selectedTemplate.params.map((p) => (
-                          <div key={p.key} className="text-sm">
-                            <span className="font-medium">{p.label}</span>
-                            <span className="text-muted-foreground">（{p.key}）</span>
-                            {p.description ? <div className="text-xs text-muted-foreground">{p.description}</div> : null}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <div className="text-sm text-muted-foreground">暂无</div>
-                    )}
+                  <div className="space-y-4">
+                    <div className="border rounded-md p-4">
+                      <div className="text-sm font-medium mb-2">模板参数提示</div>
+                      {selectedTemplate ? (
+                        <div className="space-y-2">
+                          {selectedTemplate.params.map((p) => (
+                            <div key={p.key} className="text-sm">
+                              <span className="font-medium">{p.label}</span>
+                              <span className="text-muted-foreground">（{p.key}）</span>
+                              {p.description ? <div className="text-xs text-muted-foreground">{p.description}</div> : null}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-muted-foreground">暂无</div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              ) : null}
             </>
           )}
         </CardContent>
       </Card>
 
       {/* 策略结果 */}
-      {runQuery.isFetching && selectedProfile && (
+      {runQuery.isFetching && selectedProfile && !isEditing && hasRun && (
         <Card>
           <CardContent className="py-8">
             <div className="flex items-center justify-center">
@@ -731,7 +717,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {runQuery.error && selectedProfile && (
+      {runQuery.error && selectedProfile && !isEditing && hasRun && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
@@ -748,7 +734,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {selectedProfile && allResults.length > 0 && (
+      {selectedProfile && allResults.length > 0 && !isEditing && hasRun && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">

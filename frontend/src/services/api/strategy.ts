@@ -118,7 +118,7 @@ export const strategyApi = {
     return apiResponse.data
   },
 
-  createStrategyProfile: async (payload: { name: string; description?: string; template: string; settings?: any; enabled?: boolean }) => {
+  createStrategyProfile: async (payload: { name: string; description?: string; template: string; settings?: any }) => {
     const response = await fetch(`${API_BASE_URL}/api/strategy-profiles`, {
       method: 'POST',
       headers: {
@@ -141,7 +141,7 @@ export const strategyApi = {
     return apiResponse.data
   },
 
-  updateStrategyProfile: async (id: number, payload: { name?: string; description?: string; template?: string; settings?: any; enabled?: boolean }) => {
+  updateStrategyProfile: async (id: number, payload: { name?: string; description?: string; template?: string; settings?: any }) => {
     const response = await fetch(`${API_BASE_URL}/api/strategy-profiles/${encodeURIComponent(String(id))}`, {
       method: 'PUT',
       headers: {
@@ -193,19 +193,16 @@ export const strategyApi = {
       {
         strategy_type: 'price_volume_candlestick' as StrategyType,
         parameters: { volume_threshold: 1.5, price_change_threshold: 0.03 },
-        enabled: true,
         description: '基于价格和成交量的K线形态分析'
       },
       {
         strategy_type: 'fundamental' as StrategyType,
         parameters: { min_roe: 0.15, max_pe: 25 },
-        enabled: true,
         description: '基于财务指标的价值投资策略'
       },
       {
         strategy_type: 'turtle' as StrategyType,
         parameters: { entry_period: 20, exit_period: 10 },
-        enabled: true,
         description: '经典的趋势跟踪策略'
       }
     ]

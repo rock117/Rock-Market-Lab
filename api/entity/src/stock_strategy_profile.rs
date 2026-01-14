@@ -16,24 +16,22 @@ impl EntityName for Entity {
 pub struct Model {
     pub id: i32,
     pub name: String,
-    pub description: Option<String>,
     pub template: String,
     pub settings: Option<Json>,
-    pub enabled: bool,
-    pub created_at: DateTime,
-    pub updated_at: DateTime,
+    pub created_at: String,
+    pub updated_at: String,
+    pub description: Option<String>
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DeriveColumn)]
 pub enum Column {
     Id,
     Name,
-    Description,
     Template,
     Settings,
-    Enabled,
     CreatedAt,
     UpdatedAt,
+    Description,
 }
 
 #[derive(Copy, Clone, Debug, EnumIter, DerivePrimaryKey)]
@@ -53,17 +51,15 @@ pub enum Relation {}
 
 impl ColumnTrait for Column {
     type EntityName = Entity;
-
     fn def(&self) -> ColumnDef {
         match self {
             Self::Id => ColumnType::Integer.def(),
-            Self::Name => ColumnType::String(StringLen::N(200u32)).def(),
-            Self::Description => ColumnType::String(StringLen::N(500u32)).def().null(),
+            Self::Name => ColumnType::String(StringLen::N(200u32)).def().unique(),
             Self::Template => ColumnType::String(StringLen::N(80u32)).def(),
-            Self::Settings => ColumnType::JsonBinary.def().null(),
-            Self::Enabled => ColumnType::Boolean.def(),
-            Self::CreatedAt => ColumnType::Timestamp.def(),
-            Self::UpdatedAt => ColumnType::Timestamp.def(),
+            Self::Settings => ColumnType::Json.def().null(),
+            Self::CreatedAt => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::UpdatedAt => ColumnType::String(StringLen::N(20u32)).def(),
+            Self::Description => ColumnType::String(StringLen::N(300u32)).def().null(),
         }
     }
 }

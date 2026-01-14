@@ -14,7 +14,6 @@ pub struct StrategyProfileDto {
     pub description: Option<String>,
     pub template: String,
     pub settings: Option<JsonValue>,
-    pub enabled: bool,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -25,7 +24,6 @@ pub struct CreateStrategyProfileRequest {
     pub description: Option<String>,
     pub template: String,
     pub settings: Option<JsonValue>,
-    pub enabled: Option<bool>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -34,7 +32,6 @@ pub struct UpdateStrategyProfileRequest {
     pub description: Option<String>,
     pub template: Option<String>,
     pub settings: Option<JsonValue>,
-    pub enabled: Option<bool>,
 }
 
 fn to_dto(m: stock_strategy_profile::Model) -> StrategyProfileDto {
@@ -44,9 +41,8 @@ fn to_dto(m: stock_strategy_profile::Model) -> StrategyProfileDto {
         description: m.description,
         template: m.template,
         settings: m.settings,
-        enabled: m.enabled,
-        created_at: m.created_at.to_string(),
-        updated_at: m.updated_at.to_string(),
+        created_at: m.created_at,
+        updated_at: m.updated_at,
     }
 }
 
@@ -86,7 +82,6 @@ pub async fn create_strategy_profile(
         description: Set(req.description),
         template: Set(req.template),
         settings: Set(req.settings),
-        enabled: Set(req.enabled.unwrap_or(true)),
         ..Default::default()
     };
 
@@ -126,9 +121,6 @@ pub async fn update_strategy_profile(
         active.template = Set(v);
     }
     active.settings = Set(req.settings);
-    if let Some(v) = req.enabled {
-        active.enabled = Set(v);
-    }
 
     let updated = active.update(conn).await?;
     Ok(to_dto(updated))
