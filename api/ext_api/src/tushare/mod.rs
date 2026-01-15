@@ -4,6 +4,7 @@
 //! 专业群 https://tushare.pro/document/1?doc_id=270
 //! 积分 https://tushare.pro/weborder/#/permission/buy
 //! 数据更新 https://tushare.pro/document/1?doc_id=9
+//! 培训 https://tushare.pro/document/1?doc_id=168
 
 use std::string::ToString;
 use std::sync::{Arc, Mutex};

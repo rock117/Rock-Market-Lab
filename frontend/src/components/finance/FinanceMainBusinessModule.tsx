@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -34,6 +34,9 @@ export default function FinanceMainBusinessModule() {
   const [selectedEndDates, setSelectedEndDates] = useState<string[]>([])
   const [selectedBzItems, setSelectedBzItems] = useState<string[]>([])
 
+  const [bzDropdownOpen, setBzDropdownOpen] = useState(false)
+  const bzDropdownRef = useRef<HTMLDetailsElement | null>(null)
+
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
 
@@ -44,7 +47,23 @@ export default function FinanceMainBusinessModule() {
     setPage(1)
     setSelectedEndDates([])
     setSelectedBzItems([])
+    setBzDropdownOpen(false)
   }, [type, pageSize, sortKey, sortDir])
+
+  useEffect(() => {
+    if (!bzDropdownOpen) return
+
+    const onPointerDown = (e: PointerEvent) => {
+      const el = bzDropdownRef.current
+      if (!el) return
+      const target = e.target as Node | null
+      if (target && el.contains(target)) return
+      setBzDropdownOpen(false)
+    }
+
+    document.addEventListener('pointerdown', onPointerDown)
+    return () => document.removeEventListener('pointerdown', onPointerDown)
+  }, [bzDropdownOpen])
 
   const endDatesQuery = useQuery({
     queryKey: ['finance-main-business-end-dates'],
@@ -240,7 +259,12 @@ export default function FinanceMainBusinessModule() {
 
             <div className="flex gap-2 items-center">
               <label className="text-sm text-muted-foreground whitespace-nowrap">来源</label>
-              <details className="relative">
+              <details
+                className="relative"
+                ref={bzDropdownRef}
+                open={bzDropdownOpen}
+                onToggle={(e) => setBzDropdownOpen((e.currentTarget as HTMLDetailsElement).open)}
+              >
                 <summary className="list-none border rounded-md px-3 py-2 text-sm cursor-pointer bg-background select-none min-w-[14rem]">
                   {selectedBzItems.length === 0
                     ? '全部'
