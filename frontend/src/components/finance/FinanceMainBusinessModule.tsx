@@ -159,6 +159,11 @@ export default function FinanceMainBusinessModule() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center text-muted-foreground">加载中...</TableCell>
+                </TableRow>
+              )}
               {!isLoading && filtered.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">暂无数据</TableCell>
@@ -182,7 +187,7 @@ export default function FinanceMainBusinessModule() {
         <div className="flex flex-col md:flex-row gap-3 md:items-center md:justify-between">
           <div className="flex flex-wrap gap-3 items-center">
             <div className="text-sm text-muted-foreground">
-              {isLoading ? '加载中...' : `共 ${data?.total ?? 0} 条，当前页 ${page}/${totalPages}`}
+              共 {data?.total ?? 0} 条，当前页 {page}/{totalPages}
             </div>
 
             <div className="flex flex-wrap gap-2 items-center">
