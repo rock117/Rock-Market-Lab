@@ -786,7 +786,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
         </Card>
       )}
 
-      {selectedProfile && allResults.length > 0 && !isEditing && hasRun && (
+      {selectedProfile && allResults.length > 0 && !isEditing && hasRun && !runQuery.isFetching && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -926,7 +926,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
       )}
 
       {/* 无结果提示 */}
-      {runQuery.data && selectedProfile && allResults.length === 0 && (
+      {runQuery.data && selectedProfile && allResults.length === 0 && !runQuery.isFetching && (
         <Card>
           <CardContent className="py-8">
             <div className="text-center">
