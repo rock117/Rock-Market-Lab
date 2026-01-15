@@ -76,8 +76,8 @@ pub struct LowTurnoverDividendRoeSmallCapResult {
     pub avg_turnover_rate: f64,
     pub total_rise_pct: f64,
 
-    pub dv_ttm: f64,
-    pub roe: f64,
+    pub dv_ttm: Option<f64>,
+    pub roe: Option<f64>,
     pub market_cap_yi: f64,
 
     pub strategy_signal: StrategySignal,
@@ -179,14 +179,18 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
             .as_ref()
             .ok_or_else(|| anyhow::anyhow!("缺少 financial_data"))?;
 
-        let dv_ttm = fd.dv_ttm.ok_or_else(|| anyhow::anyhow!("缺少 dv_ttm"))?;
-        if dv_ttm < self.config.min_dv_ttm {
-            bail!("股息率 {:.2}% 低于下限 {:.2}%", dv_ttm, self.config.min_dv_ttm);
+        let dv_ttm = fd.dv_ttm;
+        if let Some(v) = dv_ttm {
+            if v < self.config.min_dv_ttm {
+                bail!("股息率 {:.2}% 低于下限 {:.2}%", v, self.config.min_dv_ttm);
+            }
         }
 
-        let roe = fd.roe.ok_or_else(|| anyhow::anyhow!("缺少 ROE"))?;
-        if roe < self.config.min_roe {
-            bail!("ROE {:.2}% 低于下限 {:.2}%", roe, self.config.min_roe);
+        let roe = fd.roe;
+        if let Some(v) = roe {
+            if v < self.config.min_roe {
+                bail!("ROE {:.2}% 低于下限 {:.2}%", v, self.config.min_roe);
+            }
         }
 
         let market_cap_yi = fd
@@ -207,10 +211,10 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
 
         let signal_strength = {
             let mut s = 60u8;
-            if dv_ttm >= self.config.min_dv_ttm + 2.0 {
+            if dv_ttm.is_some_and(|v| v >= self.config.min_dv_ttm + 2.0) {
                 s = s.saturating_add(10);
             }
-            if roe >= self.config.min_roe + 5.0 {
+            if roe.is_some_and(|v| v >= self.config.min_roe + 5.0) {
                 s = s.saturating_add(10);
             }
             if market_cap_yi <= self.config.max_market_cap_yi * 0.5 {
@@ -219,13 +223,20 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
             s.min(100)
         };
 
+        let dv_desc = dv_ttm
+            .map(|v| format!("{:.2}%", v))
+            .unwrap_or_else(|| "N/A".to_string());
+        let roe_desc = roe
+            .map(|v| format!("{:.2}%", v))
+            .unwrap_or_else(|| "N/A".to_string());
+
         let analysis_description = format!(
-            "满足条件：近{}天平均换手率{:.2}%，区间涨幅{:.2}%，股息率TTM{:.2}%，ROE{:.2}%，市值{:.2}亿",
+            "满足条件：近{}天平均换手率{:.2}%，区间涨幅{:.2}%，股息率TTM{}，ROE{}，市值{:.2}亿",
             window.len(),
             avg_turnover_rate,
             total_rise_pct,
-            dv_ttm,
-            roe,
+            dv_desc,
+            roe_desc,
             market_cap_yi
         );
 

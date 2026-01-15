@@ -144,6 +144,7 @@ impl StockPickerService {
                     },
                     None => <$config>::default(),
                 };
+                info!("config = {:?}", config);
                 <$strategy>::new(config)
             }};
         }
