@@ -73,7 +73,7 @@ pub struct LowTurnoverDividendRoeSmallCapResult {
     pub analysis_date: NaiveDate,
     pub current_price: f64,
 
-    pub avg_turnover_rate: f64,
+    pub p80_turnover_rate: f64,
     pub total_rise_pct: f64,
 
     pub dv_ttm: Option<f64>,
@@ -129,25 +129,21 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
         let first = &window[0];
         let last = window.last().unwrap();
 
-        let avg_turnover_rate = {
-            let mut sum = 0.0;
-            let mut cnt = 0usize;
-            for d in window {
-                if let Some(v) = d.turnover_rate {
-                    sum += v;
-                    cnt += 1;
-                }
-            }
-            if cnt == 0 {
+        let p80_turnover_rate = {
+            let mut values: Vec<f64> = window.iter().filter_map(|d| d.turnover_rate).collect();
+            if values.is_empty() {
                 bail!("缺少换手率数据");
             }
-            sum / cnt as f64
+            values.sort_by(|a, b| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal));
+            let n = values.len();
+            let idx = ((0.8 * n as f64).ceil() as usize).saturating_sub(1).min(n - 1);
+            values[idx]
         };
 
-        if avg_turnover_rate > self.config.max_avg_turnover_rate {
+        if p80_turnover_rate > self.config.max_avg_turnover_rate {
             bail!(
-                "平均换手率 {:.2}% 高于上限 {:.2}%",
-                avg_turnover_rate,
+                "换手率P80 {:.2}% 高于上限 {:.2}%",
+                p80_turnover_rate,
                 self.config.max_avg_turnover_rate
             );
         }
@@ -231,9 +227,9 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
             .unwrap_or_else(|| "N/A".to_string());
 
         let analysis_description = format!(
-            "满足条件：近{}天平均换手率{:.2}%，区间涨幅{:.2}%，股息率TTM{}，ROE{}，市值{:.2}亿",
+            "满足条件：近{}天换手率P80{:.2}%，区间涨幅{:.2}%，股息率TTM{}，ROE{}，市值{:.2}亿",
             window.len(),
-            avg_turnover_rate,
+            p80_turnover_rate,
             total_rise_pct,
             dv_desc,
             roe_desc,
@@ -245,7 +241,7 @@ impl TradingStrategy for LowTurnoverDividendRoeSmallCapStrategy {
                 stock_code: symbol.to_string(),
                 analysis_date,
                 current_price: last.close,
-                avg_turnover_rate,
+                p80_turnover_rate,
                 total_rise_pct,
                 dv_ttm,
                 roe,

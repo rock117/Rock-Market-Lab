@@ -488,12 +488,61 @@ impl StockPickerService {
             }
         }
 
-        // 按信号强度降序排序
-        results.sort_by(|a, b| {
-            b.strategy_result
-                .signal_strength()
-                .cmp(&a.strategy_result.signal_strength())
-        });
+        if strategy_type == "low_turnover_dividend_roe_smallcap" {
+            results.sort_by(|a, b| {
+                let (a_mc, a_dv) = match &a.strategy_result {
+                    StrategyResult::LowTurnoverDividendRoeSmallCap(r) => (Some(r.market_cap_yi), r.dv_ttm),
+                    _ => (None, None),
+                };
+                let (b_mc, b_dv) = match &b.strategy_result {
+                    StrategyResult::LowTurnoverDividendRoeSmallCap(r) => (Some(r.market_cap_yi), r.dv_ttm),
+                    _ => (None, None),
+                };
+
+                // 先保证“市值 & 股息率都有值”的排在前面
+                let a_complete = a_mc.is_some() && a_dv.is_some();
+                let b_complete = b_mc.is_some() && b_dv.is_some();
+                match (a_complete, b_complete) {
+                    (true, false) => return std::cmp::Ordering::Less,
+                    (false, true) => return std::cmp::Ordering::Greater,
+                    _ => {}
+                }
+
+                // 市值越小越靠前；缺失则放后面
+                let mc_ord = match (a_mc, b_mc) {
+                    (Some(am), Some(bm)) => am.partial_cmp(&bm).unwrap_or(std::cmp::Ordering::Equal),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => std::cmp::Ordering::Equal,
+                };
+                if mc_ord != std::cmp::Ordering::Equal {
+                    return mc_ord;
+                }
+
+                // 股息率越高越靠前；None 放后面
+                let dv_ord = match (a_dv, b_dv) {
+                    (Some(ad), Some(bd)) => bd.partial_cmp(&ad).unwrap_or(std::cmp::Ordering::Equal),
+                    (Some(_), None) => std::cmp::Ordering::Less,
+                    (None, Some(_)) => std::cmp::Ordering::Greater,
+                    (None, None) => std::cmp::Ordering::Equal,
+                };
+                if dv_ord != std::cmp::Ordering::Equal {
+                    return dv_ord;
+                }
+
+                // 兜底：信号强度降序
+                b.strategy_result
+                    .signal_strength()
+                    .cmp(&a.strategy_result.signal_strength())
+            });
+        } else {
+            // 按信号强度降序排序
+            results.sort_by(|a, b| {
+                b.strategy_result
+                    .signal_strength()
+                    .cmp(&a.strategy_result.signal_strength())
+            });
+        }
 
         info!(
             "选股完成，共筛选出 {} 只符合条件的股票",
