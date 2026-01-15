@@ -16,6 +16,16 @@ pub struct TurnoverRiseConfig {
     /// 回溯天数（窗口大小）
     pub lookback_days: usize,
 
+    /// 前置窗口天数（发生在 lookback_days 窗口之前）
+    ///
+    /// 例如：lookback_days=5, pre_lookback_days=3
+    /// 则前置窗口为 d8-d6（紧邻 lookback 窗口之前的 3 天）
+    pub pre_lookback_days: usize,
+
+    /// 前置窗口累计涨跌幅范围（%）
+    pub pre_total_rise_min_pct: f64,
+    pub pre_total_rise_max_pct: f64,
+
     /// 每日换手率范围（%）
     pub turnover_rate_min: f64,
     pub turnover_rate_max: f64,
@@ -33,12 +43,15 @@ impl Default for TurnoverRiseConfig {
     fn default() -> Self {
         Self {
             lookback_days: 5,
+            pre_lookback_days: 3,
+            pre_total_rise_min_pct: 3.0,
+            pre_total_rise_max_pct: 5.0,
             turnover_rate_min: 3.0,
             turnover_rate_max: 100.0,
-            daily_pct_change_min: -3.0,
-            daily_pct_change_max: 9.9,
-            total_rise_min_pct: 5.0,
-            total_rise_max_pct: 50.0,
+            daily_pct_change_min: 3.0,
+            daily_pct_change_max: 20.0,
+            total_rise_min_pct: 15.0,
+            total_rise_max_pct: 5000.0,
         }
     }
 }
@@ -55,6 +68,10 @@ impl StrategyConfig for TurnoverRiseConfig {
     fn validate(&self) -> Result<()> {
         if self.lookback_days == 0 {
             bail!("lookback_days 不能为0");
+        }
+
+        if self.pre_total_rise_min_pct > self.pre_total_rise_max_pct {
+            bail!("pre_total_rise_min_pct 不能大于 pre_total_rise_max_pct");
         }
 
         if self.turnover_rate_min < 0.0 || self.turnover_rate_max < 0.0 {
@@ -87,6 +104,14 @@ pub struct TurnoverRiseResult {
 
     /// 回溯天数（窗口大小）
     pub lookback_days: usize,
+
+    /// 前置窗口天数
+    pub pre_lookback_days: usize,
+    /// 前置窗口累计涨幅（%）
+    pub pre_total_rise_pct: Option<f64>,
+    /// 前置窗口累计涨幅范围要求（%）
+    pub pre_total_rise_min_required: f64,
+    pub pre_total_rise_max_required: f64,
 
     /// 窗口起始收盘价
     pub start_price: f64,
@@ -170,8 +195,49 @@ impl TurnoverRiseStrategy {
         self.validate_data(data)?;
 
         let n = self.config.lookback_days;
-        if data.len() < n {
-            bail!("数据不足：需要至少 {} 天数据，实际只有 {} 天", n, data.len());
+        let pre_n = self.config.pre_lookback_days;
+        if data.len() < n + pre_n {
+            bail!(
+                "数据不足：需要至少 {} 天数据(lookback_days={} + pre_lookback_days={})，实际只有 {} 天",
+                n + pre_n,
+                n,
+                pre_n,
+                data.len()
+            );
+        }
+
+        let mut pre_total_rise_pct: Option<f64> = None;
+        if pre_n > 0 {
+            let pre_window_end = data.len() - n;
+            let pre_window_start = pre_window_end - pre_n;
+            let pre_window = &data[pre_window_start..pre_window_end];
+
+            let pre_start = pre_window
+                .first()
+                .ok_or_else(|| anyhow::anyhow!("前置窗口数据为空"))?;
+            let pre_latest = pre_window
+                .last()
+                .ok_or_else(|| anyhow::anyhow!("前置窗口数据为空"))?;
+
+            let pre_start_price = pre_start.close;
+            let pre_latest_price = pre_latest.close;
+            if pre_start_price <= 0.0 {
+                bail!("前置窗口起始价格非法: {}", pre_start_price);
+            }
+
+            let pct = (pre_latest_price - pre_start_price) / pre_start_price * 100.0;
+            pre_total_rise_pct = Some(pct);
+
+            if pct < self.config.pre_total_rise_min_pct || pct > self.config.pre_total_rise_max_pct {
+                bail!(
+                    "{} 前置窗口{}天(紧邻lookback之前)累计涨幅 {:.2}% 不在范围 [{:.2}%, {:.2}%]",
+                    symbol,
+                    pre_n,
+                    pct,
+                    self.config.pre_total_rise_min_pct,
+                    self.config.pre_total_rise_max_pct
+                );
+            }
         }
 
         let window = &data[data.len() - n..];
@@ -268,7 +334,13 @@ impl TurnoverRiseStrategy {
         };
 
         let analysis_description = format!(
-            "过去{}天换手率范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），日涨跌幅范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），区间涨幅 {:.2}%（要求[{:.2}%,{:.2}%]）",
+            "前置{}天累计涨幅{}（要求[{:.2}%,{:.2}%]），过去{}天换手率范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），日涨跌幅范围[{:.2}%,{:.2}%]（要求[{:.2}%,{:.2}%]），区间涨幅 {:.2}%（要求[{:.2}%,{:.2}%]）",
+            pre_n,
+            pre_total_rise_pct
+                .map(|v| format!("{:.2}%", v))
+                .unwrap_or_else(|| "N/A".to_string()),
+            self.config.pre_total_rise_min_pct,
+            self.config.pre_total_rise_max_pct,
             n,
             turnover_min_observed,
             turnover_max_observed,
@@ -288,6 +360,10 @@ impl TurnoverRiseStrategy {
             analysis_date,
             current_price,
             lookback_days: n,
+            pre_lookback_days: pre_n,
+            pre_total_rise_pct,
+            pre_total_rise_min_required: self.config.pre_total_rise_min_pct,
+            pre_total_rise_max_required: self.config.pre_total_rise_max_pct,
             start_price,
             total_rise_pct,
             turnover_rate_min_required: self.config.turnover_rate_min,
@@ -343,6 +419,9 @@ mod tests {
     fn test_turnover_rise_strategy_ok() {
         let mut s = TurnoverRiseStrategy::new(TurnoverRiseConfig {
             lookback_days: 5,
+            pre_lookback_days: 3,
+            pre_total_rise_min_pct: -100.0,
+            pre_total_rise_max_pct: 200.0,
             turnover_rate_min: 3.0,
             turnover_rate_max: 10.0,
             daily_pct_change_min: -100.0,
@@ -354,5 +433,26 @@ mod tests {
         let data = make_data(10, 10.0, 0.1, 5.0);
         let r = s.analyze("000001.SZ", &data);
         assert!(r.is_ok());
+    }
+
+    #[test]
+    fn test_turnover_rise_strategy_pre_window_fail() {
+        let mut s = TurnoverRiseStrategy::new(TurnoverRiseConfig {
+            lookback_days: 5,
+            pre_lookback_days: 3,
+            pre_total_rise_min_pct: 10.0,
+            pre_total_rise_max_pct: 20.0,
+            turnover_rate_min: 3.0,
+            turnover_rate_max: 10.0,
+            daily_pct_change_min: -100.0,
+            daily_pct_change_max: 200.0,
+            total_rise_min_pct: 1.0,
+            total_rise_max_pct: 50.0,
+        });
+
+        // make_data 生成的是线性上升(close 每天 +0.1)，前置3天累计涨幅很小，无法达到 [10%, 20%]
+        let data = make_data(10, 10.0, 0.1, 5.0);
+        let r = s.analyze("000001.SZ", &data);
+        assert!(r.is_err());
     }
 }
