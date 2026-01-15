@@ -241,6 +241,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
       setIsEditing(false)
       setShowCreate(false)
       setSelectedProfile(data as StrategyProfileDto)
+      fillRunSettingsFromProfile(data as StrategyProfileDto)
       setIsEditing(false)
       showToast('更新成功', 'success')
     },
@@ -361,7 +362,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     if (!selectedProfile) return
     setHasRun(false)
     fillRunSettingsFromProfile(selectedProfile)
-  }, [selectedProfile?.id])
+  }, [selectedProfile?.id, selectedProfile?.updated_at])
 
   return (
     <div className={className}>
