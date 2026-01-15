@@ -157,7 +157,7 @@ const DEFAULT_PARAMS: Record<string, any> = {
 }
 
 export default function StockSelectionStrategy({ className }: StockSelectionStrategyProps) {
-  const { showToast } = useToast()
+  const { showToast, showConfirm } = useToast()
 
   const queryClient = useQueryClient()
 
@@ -550,9 +550,12 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                               size="sm"
                               title="删除"
                               onClick={() => {
-                                if (window.confirm(`确认删除策略：${p.name} ?`)) {
-                                  deleteMutation.mutate(p.id)
-                                }
+                                showConfirm(
+                                  `确定要删除策略 "${p.name}" 吗？此操作不可恢复！`,
+                                  () => {
+                                    deleteMutation.mutate(p.id)
+                                  }
+                                )
                               }}
                               disabled={deleteMutation.isPending}
                             >
@@ -575,20 +578,7 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                 <div className="flex items-center gap-2">
                   {!isEditing ? (
                     <>
-                      <Button
-                        variant="outline"
-                        onClick={() => {
-                          setShowCreate(false)
-                          setIsEditing(true)
-                          setDraftName(selectedProfile.name)
-                          setDraftDescription(selectedProfile.description || '')
-                          setDraftTemplate(selectedProfile.template)
-                          setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
-                        }}
-                      >
-                        <Pencil className="h-4 w-4 mr-2" />
-                        编辑
-                      </Button>
+                      <></>
                     </>
                   ) : null}
                 </div>
@@ -732,6 +722,21 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                       <Button onClick={runStrategy} disabled={isRunning}>
                         <Play className="h-4 w-4 mr-2" />
                         {isRunning ? '运行中...' : '运行策略'}
+                      </Button>
+
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowCreate(false)
+                          setIsEditing(true)
+                          setDraftName(selectedProfile.name)
+                          setDraftDescription(selectedProfile.description || '')
+                          setDraftTemplate(selectedProfile.template)
+                          setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        编辑
                       </Button>
                     </div>
                   </div>
