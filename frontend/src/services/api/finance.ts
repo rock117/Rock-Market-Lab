@@ -26,6 +26,7 @@ export interface FinanceMainBusinessQuery {
   pageSize?: number
   sortBy?: string
   sortDir?: 'asc' | 'desc'
+  endDates?: string[]
 }
 
 export const financeApi = {
@@ -37,7 +38,29 @@ export const financeApi = {
     if (query.sortBy) params.set('sort_by', query.sortBy)
     if (query.sortDir) params.set('sort_dir', query.sortDir)
 
+    if (query.endDates && query.endDates.length > 0) {
+      for (const d of query.endDates) {
+        if (d) params.append('end_dates', d)
+      }
+    }
+
     const resp = await fetch(`${API_BASE_URL}/api/finance/main-business?${params.toString()}`)
+    if (!resp.ok) throw new Error(`Request failed: ${resp.status}`)
+    const json = await resp.json()
+    return json.data
+  },
+
+  async getMainBusinessEndDates(): Promise<string[]> {
+    const resp = await fetch(`${API_BASE_URL}/api/finance/main-business/end-dates`)
+    if (!resp.ok) throw new Error(`Request failed: ${resp.status}`)
+    const json = await resp.json()
+    return json.data
+  },
+
+  async getMainBusinessBzItems(type: FinanceMainBusinessType): Promise<string[]> {
+    const params = new URLSearchParams()
+    params.set('type', type)
+    const resp = await fetch(`${API_BASE_URL}/api/finance/main-business/bz-items?${params.toString()}`)
     if (!resp.ok) throw new Error(`Request failed: ${resp.status}`)
     const json = await resp.json()
     return json.data

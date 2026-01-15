@@ -194,6 +194,8 @@ async fn rocket() -> _ {
             task_manager_controller::stop_task,
 
             finance_main_business_controller::get_finance_main_business,
+            finance_main_business_controller::get_finance_main_business_end_dates_handler,
+            finance_main_business_controller::get_finance_main_business_bz_items_handler,
 
             strategy_profile_controller::list_strategy_profiles_handler,
             strategy_profile_controller::get_strategy_profile_handler,

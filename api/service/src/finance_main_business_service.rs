@@ -11,6 +11,7 @@ pub struct FinanceMainBusinessQueryParams {
     pub page_size: Option<u64>,
     pub sort_by: Option<String>,
     pub sort_dir: Option<String>,
+    pub end_dates: Option<Vec<String>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -39,6 +40,21 @@ pub async fn get_finance_main_business_list(
     params: &FinanceMainBusinessQueryParams,
     conn: &DatabaseConnection,
 ) -> Result<FinanceMainBusinessListResponse> {
+    fn normalize_end_date_for_db(input: &str) -> Option<String> {
+        let trimmed = input.trim();
+        if trimmed.is_empty() {
+            return None;
+        }
+
+        // DB stores end_date as yyyyMMdd. Frontend may pass yyyy-MM-dd.
+        let digits: String = trimmed.chars().filter(|c| c.is_ascii_digit()).collect();
+        if digits.len() == 8 {
+            return Some(digits);
+        }
+
+        None
+    }
+
     let page = params.page.unwrap_or(1);
     let page_size = params.page_size.unwrap_or(20);
     let offset = (page - 1) * page_size;
@@ -49,6 +65,17 @@ pub async fn get_finance_main_business_list(
         &finance_main_business::Column::Type,
         params.r#type.trim(),
     ));
+
+    if let Some(end_dates) = params.end_dates.as_ref() {
+        let end_dates: Vec<String> = end_dates
+            .iter()
+            .filter_map(|s| normalize_end_date_for_db(s))
+            .collect();
+
+        if !end_dates.is_empty() {
+            base_query = base_query.filter(finance_main_business::Column::EndDate.is_in(end_dates));
+        }
+    }
 
     let sort_by = params.sort_by.as_deref().unwrap_or("end_date");
     let sort_dir = params.sort_dir.as_deref().unwrap_or("desc");
@@ -142,4 +169,37 @@ pub async fn get_finance_main_business_list(
         page_size,
         total_pages,
     })
+}
+
+pub async fn get_finance_main_business_end_dates(conn: &DatabaseConnection) -> Result<Vec<String>> {
+    let end_dates: Vec<String> = finance_main_business::Entity::find()
+        .select_only()
+        .column(finance_main_business::Column::EndDate)
+        .distinct()
+        .order_by_desc(finance_main_business::Column::EndDate)
+        .into_tuple::<String>()
+        .all(conn)
+        .await?;
+
+    Ok(end_dates)
+}
+
+pub async fn get_finance_main_business_bz_items(
+    r#type: &str,
+    conn: &DatabaseConnection,
+) -> Result<Vec<String>> {
+    let bz_items: Vec<String> = finance_main_business::Entity::find()
+        .filter(ColumnTrait::eq(
+            &finance_main_business::Column::Type,
+            r#type.trim(),
+        ))
+        .select_only()
+        .column(finance_main_business::Column::BzItem)
+        .distinct()
+        .order_by_asc(finance_main_business::Column::BzItem)
+        .into_tuple::<String>()
+        .all(conn)
+        .await?;
+
+    Ok(bz_items)
 }
