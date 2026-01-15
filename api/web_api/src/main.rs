@@ -198,6 +198,7 @@ async fn rocket() -> _ {
             strategy_profile_controller::list_strategy_profiles_handler,
             strategy_profile_controller::get_strategy_profile_handler,
             strategy_profile_controller::create_strategy_profile_handler,
+            strategy_profile_controller::clone_strategy_profile_handler,
             strategy_profile_controller::update_strategy_profile_handler,
             strategy_profile_controller::delete_strategy_profile_handler,
             strategy_template_controller::list_strategy_templates_handler,

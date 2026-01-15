@@ -18,6 +18,7 @@ import {
   AlertTriangle,
   Plus,
   Pencil,
+  Copy,
   Trash2,
   ArrowLeft
 } from 'lucide-react'
@@ -247,6 +248,22 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
     },
     onError: (e: any) => {
       showToast(e?.message || '删除失败', 'error')
+    },
+  })
+
+  const cloneMutation = useMutation({
+    mutationFn: (payload: { id: number; body?: { name?: string; description?: string; template?: string; settings?: any } }) =>
+      strategyApi.cloneStrategyProfile(payload.id, payload.body),
+    onSuccess: async (data: any) => {
+      await queryClient.invalidateQueries({ queryKey: ['strategy-profiles'] })
+      setSelectedProfile(data as StrategyProfileDto)
+      setIsEditing(false)
+      setShowCreate(false)
+      fillRunSettingsFromProfile(data as StrategyProfileDto)
+      showToast('创建成功', 'success')
+    },
+    onError: (e: any) => {
+      showToast(e?.message || '创建失败', 'error')
     },
   })
 
@@ -556,20 +573,24 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                   模板：{templates.find((t) => t.template === selectedProfile.template)?.label || selectedProfile.template}
                 </div>
                 <div className="flex items-center gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowCreate(false)
-                      setIsEditing((v) => !v)
-                      setDraftName(selectedProfile.name)
-                      setDraftDescription(selectedProfile.description || '')
-                      setDraftTemplate(selectedProfile.template)
-                      setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
-                    }}
-                  >
-                    <Pencil className="h-4 w-4 mr-2" />
-                    {isEditing ? '取消编辑' : '编辑'}
-                  </Button>
+                  {!isEditing ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setShowCreate(false)
+                          setIsEditing(true)
+                          setDraftName(selectedProfile.name)
+                          setDraftDescription(selectedProfile.description || '')
+                          setDraftTemplate(selectedProfile.template)
+                          setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
+                        }}
+                      >
+                        <Pencil className="h-4 w-4 mr-2" />
+                        编辑
+                      </Button>
+                    </>
+                  ) : null}
                 </div>
               </div>
 
@@ -639,6 +660,57 @@ export default function StockSelectionStrategy({ className }: StockSelectionStra
                       disabled={updateMutation.isPending}
                     >
                       保存修改
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        try {
+                          const settings = draftSettingsText.trim() ? JSON.parse(draftSettingsText) : undefined
+                          if (!draftName.trim()) {
+                            showToast('请填写名称', 'warning')
+                            return
+                          }
+                          if (draftName.trim() === selectedProfile.name) {
+                            showToast('保存为新策略请修改名称（不能与当前策略同名）', 'warning')
+                            return
+                          }
+                          if (!draftTemplate.trim()) {
+                            showToast('请选择模板', 'warning')
+                            return
+                          }
+                          if (!selectedProfile) return
+                          cloneMutation.mutate({
+                            id: selectedProfile.id,
+                            body: {
+                              name: draftName.trim(),
+                              description: draftDescription.trim() ? draftDescription.trim() : undefined,
+                              template: draftTemplate.trim(),
+                              settings,
+                            },
+                          })
+                        } catch (e) {
+                          showToast('参数格式错误，请输入有效的JSON格式', 'error')
+                        }
+                      }}
+                      disabled={cloneMutation.isPending}
+                      title="保存为新策略"
+                    >
+                      <Copy className="h-4 w-4 mr-2" />
+                      保存为新策略
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setIsEditing(false)
+                        setDraftName(selectedProfile.name)
+                        setDraftDescription(selectedProfile.description || '')
+                        setDraftTemplate(selectedProfile.template)
+                        setDraftSettingsText(JSON.stringify(selectedProfile.settings || {}, null, 2))
+                      }}
+                    >
+                      取消编辑
                     </Button>
                   </div>
                 </div>

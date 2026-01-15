@@ -35,6 +35,14 @@ pub struct UpdateStrategyProfileRequest {
     pub settings: Option<JsonValue>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct CloneStrategyProfileRequest {
+    pub name: Option<String>,
+    pub description: Option<String>,
+    pub template: Option<String>,
+    pub settings: Option<JsonValue>,
+}
+
 fn to_dto(m: stock_strategy_profile::Model) -> StrategyProfileDto {
     StrategyProfileDto {
         id: m.id,
@@ -83,6 +91,84 @@ pub async fn create_strategy_profile(
         description: Set(req.description),
         template: Set(req.template),
         settings: Set(req.settings),
+        created_at: Set(date.clone()),
+        updated_at: Set(date),
+        ..Default::default()
+    };
+
+    let inserted = model.insert(conn).await?;
+    Ok(to_dto(inserted))
+}
+
+pub async fn clone_strategy_profile(
+    conn: &DatabaseConnection,
+    id: i32,
+    req: CloneStrategyProfileRequest,
+) -> Result<StrategyProfileDto> {
+    let source = stock_strategy_profile::Entity::find_by_id(id)
+        .one(conn)
+        .await?
+        .ok_or_else(|| anyhow!("Strategy profile not found: {}", id))?;
+
+    let provided_name = req
+        .name
+        .as_ref()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty());
+
+    let final_name = if let Some(name) = provided_name {
+        let exists = stock_strategy_profile::Entity::find()
+            .filter(stock_strategy_profile::Column::Name.eq(name.clone()))
+            .count(conn)
+            .await?;
+        if exists > 0 {
+            return Err(anyhow!("Strategy profile name already exists: {}", name));
+        }
+        name
+    } else {
+        let base_name = format!("{}-副本", source.name);
+
+        // 自动生成一个不重复的名称
+        let mut name = base_name.clone();
+        for i in 0..50 {
+            let exists = stock_strategy_profile::Entity::find()
+                .filter(stock_strategy_profile::Column::Name.eq(name.clone()))
+                .count(conn)
+                .await?;
+            if exists == 0 {
+                break;
+            }
+
+            // 第一次冲突，先加时间戳；之后再追加序号
+            if i == 0 {
+                let suffix = Local::now().naive_local().format("%Y%m%d%H%M%S").to_string();
+                name = format!("{}-{}", base_name, suffix);
+            } else {
+                name = format!("{}-{}", base_name, i + 1);
+            }
+        }
+
+        let exists = stock_strategy_profile::Entity::find()
+            .filter(stock_strategy_profile::Column::Name.eq(name.clone()))
+            .count(conn)
+            .await?;
+        if exists > 0 {
+            return Err(anyhow!("Strategy profile name already exists: {}", name));
+        }
+        name
+    };
+
+    let date = Local::now().naive_local().format("%Y-%m-%d %H:%M").to_string();
+
+    let description = req.description.or(source.description);
+    let template = req.template.unwrap_or(source.template);
+    let settings = req.settings.or(source.settings);
+
+    let model = stock_strategy_profile::ActiveModel {
+        name: Set(final_name),
+        description: Set(description),
+        template: Set(template),
+        settings: Set(settings),
         created_at: Set(date.clone()),
         updated_at: Set(date),
         ..Default::default()

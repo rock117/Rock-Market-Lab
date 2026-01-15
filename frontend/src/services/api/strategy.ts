@@ -74,6 +74,31 @@ export const strategyApi = {
     return apiResponse.data
   },
 
+  cloneStrategyProfile: async (id: number, payload?: { name?: string; description?: string; template?: string; settings?: any }) => {
+    const hasBody = payload && (typeof payload.name === 'string' || typeof payload.template === 'string' || typeof payload.description === 'string' || typeof payload.settings !== 'undefined')
+    const response = await fetch(`${API_BASE_URL}/api/strategy-profiles/${encodeURIComponent(String(id))}/clone`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: hasBody ? JSON.stringify(payload) : undefined,
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP错误! 状态码: ${response.status}`)
+    }
+
+    const apiResponse: { data: any; success: boolean } = await response.json()
+
+    if (!apiResponse.success) {
+      const errorMessage =
+        typeof (apiResponse as any).data === 'string' ? (apiResponse as any).data : '另存为策略失败'
+      throw new Error(errorMessage)
+    }
+
+    return apiResponse.data
+  },
+
   listStrategyProfiles: async () => {
     const response = await fetch(`${API_BASE_URL}/api/strategy-profiles`, {
       method: 'GET',
