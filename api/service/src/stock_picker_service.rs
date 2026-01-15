@@ -33,6 +33,7 @@ use crate::strategy::{
     LowShadowStrategy, LowShadowConfig,
     MaConvergenceStrategy, MaConvergenceConfig,
     ConsecutiveBullishStrategy, ConsecutiveBullishConfig,
+    LowTurnoverDividendRoeSmallCapStrategy, LowTurnoverDividendRoeSmallCapConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -328,6 +329,13 @@ impl StockPickerService {
                     _ => bail!("日/周/月连阳策略不支持预设 '{}', 可用预设: daily_standard, daily_aggressive, weekly_standard, monthly_standard", preset),
                 })
             }),
+            "low_turnover_dividend_roe_smallcap" => execute_strategy!(
+                LowTurnoverDividendRoeSmallCapConfig,
+                LowTurnoverDividendRoeSmallCapStrategy,
+                |_preset: &str| {
+                    bail!("低换手高股息高ROE小市值策略不支持 preset 参数，请直接传具体参数")
+                }
+            ),
             _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, daily_rise_turnover, ma_divergence_volume, low_shadow, ma_convergence, consecutive_bullish", strategy_type)
         }?;
         for result in &mut results {
@@ -550,7 +558,6 @@ impl StockPickerService {
         }
     }
 
-
     /// 获取股票日线数据（静态方法，包含基本面数据）
     async fn get_stock_daily_data(
         db: &DatabaseConnection,
@@ -624,9 +631,26 @@ impl StockPickerService {
     /// 获取财务数据（静态方法）
     async fn get_financial_data(db: &DatabaseConnection, ts_code: &str) -> Result<Option<Vec<SecurityData>>> {
         let report_type = "1"; //合并报表
+
+        let latest_daily_basic = stock_daily_basic::Entity::find()
+            .filter(ColumnTrait::eq(&stock_daily_basic::Column::TsCode, ts_code))
+            .order_by_desc(stock_daily_basic::Column::TradeDate)
+            .one(db)
+            .await?;
+        let latest_dv_ttm = latest_daily_basic
+            .as_ref()
+            .and_then(|m| m.dv_ttm.as_ref())
+            .and_then(|v| v.to_string().parse::<f64>().ok());
+        // tushare daily_basic.total_mv 单位：万元；FinancialData.market_cap 单位：元
+        let latest_market_cap = latest_daily_basic
+            .as_ref()
+            .and_then(|m| m.total_mv.as_ref())
+            .and_then(|v| v.to_string().parse::<f64>().ok())
+            .map(|v_wan| v_wan * 10_000.0);
+
         // 1. 查询财务指标表（毛利率）
         let indicators = finance_indicator::Entity::find()
-            .filter(finance_indicator::Column::TsCode.eq(ts_code))
+            .filter(ColumnTrait::eq(&finance_indicator::Column::TsCode, ts_code))
             .order_by_asc(finance_indicator::Column::EndDate)
             .all(db)
             .await?;
@@ -643,7 +667,7 @@ impl StockPickerService {
         // 3. 查询现金流量表（经营现金流）
         let cashflows = cashflow::Entity::find()
             .filter(ColumnTrait::eq(&cashflow::Column::TsCode, ts_code))
-            .filter(ColumnTrait::eq(&cashflow::Column::ReportType, ts_code))
+            .filter(ColumnTrait::eq(&cashflow::Column::ReportType, report_type))
             .order_by_asc(cashflow::Column::EndDate)
             .all(db)
             .await?;
@@ -651,7 +675,7 @@ impl StockPickerService {
         // 4. 查询资产负债表（存货、应收、预收、应付）
         let balancesheets = balancesheet::Entity::find()
             .filter(ColumnTrait::eq(&balancesheet::Column::TsCode, ts_code))
-            .filter(ColumnTrait::eq(&balancesheet::Column::ReportType, ts_code))
+            .filter(ColumnTrait::eq(&balancesheet::Column::ReportType, report_type))
             .order_by_asc(balancesheet::Column::EndDate)
             .all(db)
             .await?;
@@ -756,7 +780,8 @@ impl StockPickerService {
                 accounts_payable: balance_data
                     .and_then(|b| b.acct_payable)
                     .and_then(|v| v.to_string().parse().ok()),
-                market_cap: None,  // TODO: 从数据库获取市值数据
+                market_cap: latest_market_cap,  // TODO: 从数据库获取市值数据
+                dv_ttm: latest_dv_ttm,
                 roe: indicator
                     .and_then(|i| i.roe)
                     .and_then(|v| v.to_string().parse().ok()),

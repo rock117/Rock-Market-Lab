@@ -79,7 +79,8 @@ const STRATEGY_TYPES = [
   { value: 'low_shadow', label: '低位下影线策略', description: '识别低位长下影线的反转信号' },
   { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
   { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' },
-  { value: 'consecutive_bullish', label: '日/周/月连阳策略', description: '识别连续阳线形态，捕捉上升趋势的持续信号' }
+  { value: 'consecutive_bullish', label: '日/周/月连阳策略', description: '识别连续阳线形态，捕捉上升趋势的持续信号' },
+  { value: 'low_turnover_dividend_roe_smallcap', label: '低换手高股息高ROE小市值策略', description: '过去N天低换手、温和上涨，高股息率(dv_ttm)、高ROE、小市值' }
 ]
 
 // 默认参数示例
@@ -153,6 +154,15 @@ const DEFAULT_PARAMS: Record<string, any> = {
     require_volume_surge: false,
     volume_surge_ratio: 1.2,
     analysis_period: 20
+  },
+  low_turnover_dividend_roe_smallcap: {
+    lookback_days: 20,
+    max_avg_turnover_rate: 2.0,
+    total_rise_min_pct: 3.0,
+    total_rise_max_pct: 15.0,
+    min_dv_ttm: 3.0,
+    min_roe: 10.0,
+    max_market_cap_yi: 200.0
   }
 }
 

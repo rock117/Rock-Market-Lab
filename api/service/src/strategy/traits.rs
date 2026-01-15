@@ -90,6 +90,9 @@ pub struct FinancialData {
     
     /// 总市值（元）
     pub market_cap: Option<f64>,
+
+    /// 股息率 TTM (%)，来自 stock_daily_basic.dv_ttm
+    pub dv_ttm: Option<f64>,
     
     /// 净资产收益率 ROE（百分比）
     pub roe: Option<f64>,
@@ -146,6 +149,13 @@ impl SecurityData {
         data: (&entity::stock_daily::Model, &entity::stock_daily_basic::Model)
     ) -> Self {
         let (daily, basic) = data;
+        let dv_ttm = basic.dv_ttm.as_ref().map(decimal_to_f64);
+        // tushare daily_basic.total_mv 单位：万元；FinancialData.market_cap 单位：元
+        let market_cap = basic
+            .total_mv
+            .as_ref()
+            .map(decimal_to_f64)
+            .map(|v_wan| v_wan * 10_000.0);
         Self {
             symbol: daily.ts_code.clone(),
             trade_date: daily.trade_date.clone(),
@@ -161,7 +171,23 @@ impl SecurityData {
             turnover_rate: basic.turnover_rate.as_ref().map(decimal_to_f64),
             security_type: SecurityType::Stock,
             time_frame: TimeFrame::Daily,
-            financial_data: None,
+            financial_data: Some(FinancialData {
+                report_period: daily.trade_date.clone(),
+                revenue: None,
+                net_profit: None,
+                gross_profit_margin: None,
+                selling_expense_ratio: None,
+                admin_expense_ratio: None,
+                financial_expense_ratio: None,
+                operating_cash_flow: None,
+                inventory: None,
+                accounts_receivable: None,
+                advances_from_customers: None,
+                accounts_payable: None,
+                market_cap,
+                dv_ttm,
+                roe: None,
+            }),
             target: None,
         }
     }
@@ -236,7 +262,7 @@ impl SecurityData {
     pub fn from_index_daily(data: &entity::index_daily::Model) -> Self {
         Self {
             symbol: data.ts_code.clone(),
-            trade_date: data.trade_date.clone(),
+            trade_date: data.ts_code.clone(),
             open: data.open.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
             high: data.high.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
             low: data.low.as_ref().map(|d| decimal_to_f64(d)).unwrap_or(0.0),
@@ -376,6 +402,11 @@ pub enum StrategyResult {
     MaDivergenceVolume(super::ma_divergence_volume_strategy::MaDivergenceVolumeResult),
     /// 日/周/月连阳策略结果
     ConsecutiveBullish(super::consecutive_bullish_strategy::ConsecutiveBullishResult),
+
+    /// 低换手高股息高ROE小市值策略结果
+    LowTurnoverDividendRoeSmallCap(
+        super::low_turnover_dividend_roe_smallcap_strategy::LowTurnoverDividendRoeSmallCapResult,
+    ),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -401,6 +432,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => &r.stock_code,
             StrategyResult::MaDivergenceVolume(r) => &r.stock_code,
             StrategyResult::ConsecutiveBullish(r) => &r.stock_code,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => &r.stock_code,
         }
     }
     
@@ -427,6 +459,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => r.analysis_date,
             StrategyResult::MaDivergenceVolume(r) => r.analysis_date,
             StrategyResult::ConsecutiveBullish(r) => r.analysis_date,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.analysis_date,
         }
     }
     
@@ -453,6 +486,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => r.current_price,
             StrategyResult::MaDivergenceVolume(r) => r.current_price,
             StrategyResult::ConsecutiveBullish(r) => r.current_price,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.current_price,
         }
     }
     
@@ -479,6 +513,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => r.strategy_signal.clone(),
             StrategyResult::MaDivergenceVolume(r) => r.strategy_signal.clone(),
             StrategyResult::ConsecutiveBullish(r) => r.strategy_signal.clone(),
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -505,6 +540,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => r.signal_strength,
             StrategyResult::MaDivergenceVolume(r) => r.signal_strength,
             StrategyResult::ConsecutiveBullish(r) => r.signal_strength,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.signal_strength,
         }
     }
     
@@ -531,6 +567,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => &r.analysis_description,
             StrategyResult::MaDivergenceVolume(r) => &r.analysis_description,
             StrategyResult::ConsecutiveBullish(r) => &r.analysis_description,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => &r.analysis_description,
         }
     }
     
@@ -557,6 +594,7 @@ impl StrategyResult {
             StrategyResult::DailyRiseTurnover(r) => r.risk_level,
             StrategyResult::MaDivergenceVolume(r) => r.risk_level,
             StrategyResult::ConsecutiveBullish(r) => r.risk_level,
+            StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.risk_level,
         }
     }
 }
