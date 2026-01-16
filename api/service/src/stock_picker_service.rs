@@ -34,6 +34,7 @@ use crate::strategy::{
     MaConvergenceStrategy, MaConvergenceConfig,
     ConsecutiveBullishStrategy, ConsecutiveBullishConfig,
     LowTurnoverDividendRoeSmallCapStrategy, LowTurnoverDividendRoeSmallCapConfig,
+    RiseRangeConsolidationStrategy, RiseRangeConsolidationConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -337,7 +338,14 @@ impl StockPickerService {
                     bail!("低换手高股息高ROE小市值策略不支持 preset 参数，请直接传具体参数")
                 }
             ),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, daily_rise_turnover, ma_divergence_volume, low_shadow, ma_convergence, consecutive_bullish", strategy_type)
+            "rise_range_consolidation" => execute_strategy!(
+                RiseRangeConsolidationConfig,
+                RiseRangeConsolidationStrategy,
+                |_preset: &str| {
+                    bail!("区间涨幅+前置横盘策略不支持 preset 参数，请直接传具体参数")
+                }
+            ),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, daily_rise_turnover, ma_divergence_volume, low_shadow, ma_convergence, consecutive_bullish, low_turnover_dividend_roe_smallcap, rise_range_consolidation", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;
@@ -528,6 +536,103 @@ impl StockPickerService {
                 };
                 if dv_ord != std::cmp::Ordering::Equal {
                     return dv_ord;
+                }
+
+                // 兜底：信号强度降序
+                b.strategy_result
+                    .signal_strength()
+                    .cmp(&a.strategy_result.signal_strength())
+            });
+        } else if strategy_type == "rise_range_consolidation" {
+            // 加权综合排序：市值越小越好，ROE/股息率TTM越高越好；缺失值整体靠后
+            let mut cap_min = f64::INFINITY;
+            let mut cap_max = f64::NEG_INFINITY;
+            let mut roe_min = f64::INFINITY;
+            let mut roe_max = f64::NEG_INFINITY;
+            let mut dv_min = f64::INFINITY;
+            let mut dv_max = f64::NEG_INFINITY;
+
+            for r in &results {
+                if let StrategyResult::RiseRangeConsolidation(sr) = &r.strategy_result {
+                    if let (Some(cap), Some(roe), Some(dv)) = (sr.market_cap_yi, sr.roe, sr.dv_ttm) {
+                        cap_min = cap_min.min(cap);
+                        cap_max = cap_max.max(cap);
+                        roe_min = roe_min.min(roe);
+                        roe_max = roe_max.max(roe);
+                        dv_min = dv_min.min(dv);
+                        dv_max = dv_max.max(dv);
+                    }
+                }
+            }
+
+            fn norm_up(v: f64, min_v: f64, max_v: f64) -> f64 {
+                if !min_v.is_finite() || !max_v.is_finite() {
+                    return 0.0;
+                }
+                if (max_v - min_v).abs() < 1e-12 {
+                    return 1.0;
+                }
+                ((v - min_v) / (max_v - min_v)).clamp(0.0, 1.0)
+            }
+
+            results.sort_by(|a, b| {
+                let (a_sr, b_sr) = match (&a.strategy_result, &b.strategy_result) {
+                    (StrategyResult::RiseRangeConsolidation(ar), StrategyResult::RiseRangeConsolidation(br)) => (ar, br),
+                    _ => {
+                        return b
+                            .strategy_result
+                            .signal_strength()
+                            .cmp(&a.strategy_result.signal_strength())
+                    }
+                };
+
+                let a_complete = a_sr.market_cap_yi.is_some() && a_sr.roe.is_some() && a_sr.dv_ttm.is_some();
+                let b_complete = b_sr.market_cap_yi.is_some() && b_sr.roe.is_some() && b_sr.dv_ttm.is_some();
+                match (a_complete, b_complete) {
+                    (true, false) => return std::cmp::Ordering::Less,
+                    (false, true) => return std::cmp::Ordering::Greater,
+                    _ => {}
+                }
+
+                let a_score = if a_complete {
+                    let cap = a_sr.market_cap_yi.unwrap();
+                    let roe = a_sr.roe.unwrap();
+                    let dv = a_sr.dv_ttm.unwrap();
+                    let w_sum = a_sr.weight_market_cap + a_sr.weight_roe + a_sr.weight_dv_ttm;
+                    let w_cap = a_sr.weight_market_cap / w_sum;
+                    let w_roe = a_sr.weight_roe / w_sum;
+                    let w_dv = a_sr.weight_dv_ttm / w_sum;
+
+                    let cap_score = 1.0 - norm_up(cap, cap_min, cap_max);
+                    let roe_score = norm_up(roe, roe_min, roe_max);
+                    let dv_score = norm_up(dv, dv_min, dv_max);
+                    w_cap * cap_score + w_roe * roe_score + w_dv * dv_score
+                } else {
+                    -1.0
+                };
+
+                let b_score = if b_complete {
+                    let cap = b_sr.market_cap_yi.unwrap();
+                    let roe = b_sr.roe.unwrap();
+                    let dv = b_sr.dv_ttm.unwrap();
+                    let w_sum = b_sr.weight_market_cap + b_sr.weight_roe + b_sr.weight_dv_ttm;
+                    let w_cap = b_sr.weight_market_cap / w_sum;
+                    let w_roe = b_sr.weight_roe / w_sum;
+                    let w_dv = b_sr.weight_dv_ttm / w_sum;
+
+                    let cap_score = 1.0 - norm_up(cap, cap_min, cap_max);
+                    let roe_score = norm_up(roe, roe_min, roe_max);
+                    let dv_score = norm_up(dv, dv_min, dv_max);
+                    w_cap * cap_score + w_roe * roe_score + w_dv * dv_score
+                } else {
+                    -1.0
+                };
+
+                let score_ord = b_score
+                    .partial_cmp(&a_score)
+                    .unwrap_or(std::cmp::Ordering::Equal);
+                if score_ord != std::cmp::Ordering::Equal {
+                    return score_ord;
                 }
 
                 // 兜底：信号强度降序

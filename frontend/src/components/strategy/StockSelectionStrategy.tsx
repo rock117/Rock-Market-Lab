@@ -80,7 +80,8 @@ const STRATEGY_TYPES = [
   { value: 'similarity', label: '股价走势相似策略', description: '股价走势相似策略' },
   { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' },
   { value: 'consecutive_bullish', label: '日/周/月连阳策略', description: '识别连续阳线形态，捕捉上升趋势的持续信号' },
-  { value: 'low_turnover_dividend_roe_smallcap', label: '低换手高股息高ROE小市值策略', description: '过去N天低换手、温和上涨，高股息率(dv_ttm)、高ROE、小市值' }
+  { value: 'low_turnover_dividend_roe_smallcap', label: '低换手高股息高ROE小市值策略', description: '过去N天低换手、温和上涨，高股息率(dv_ttm)、高ROE、小市值' },
+  { value: 'rise_range_consolidation', label: '区间涨幅+前置横盘策略', description: '前置M天横盘(收盘振幅约束)，过去N天每日涨跌幅在区间内且累计涨幅在区间内；按市值/ROE/股息率TTM加权排序' }
 ]
 
 // 默认参数示例
@@ -163,6 +164,18 @@ const DEFAULT_PARAMS: Record<string, any> = {
     min_dv_ttm: 3.0,
     min_roe: 10.0,
     max_market_cap_yi: 200.0
+  },
+  rise_range_consolidation: {
+    lookback_days: 20,
+    daily_pct_change_min: -2.0,
+    daily_pct_change_max: 3.0,
+    total_rise_min_pct: 3.0,
+    total_rise_max_pct: 15.0,
+    pre_lookback_days: 20,
+    pre_amplitude_max_pct: 5.0,
+    weight_market_cap: 0.4,
+    weight_roe: 0.3,
+    weight_dv_ttm: 0.3
   }
 }
 
