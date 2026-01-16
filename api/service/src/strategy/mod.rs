@@ -25,6 +25,7 @@ pub mod consecutive_bullish_strategy;
 pub mod ma_divergence_volume_strategy;
 pub mod low_turnover_dividend_roe_smallcap_strategy;
 pub mod rise_range_consolidation_strategy;
+pub mod ma_breakout_strategy;
 
 // 重新导出主要 traits 和类型
 pub use traits::{
@@ -195,4 +196,10 @@ pub use rise_range_consolidation_strategy::{
     RiseRangeConsolidationStrategy,
     RiseRangeConsolidationConfig,
     RiseRangeConsolidationResult,
+};
+
+pub use ma_breakout_strategy::{
+    MaBreakoutStrategy,
+    MaBreakoutConfig,
+    MaBreakoutResult,
 };

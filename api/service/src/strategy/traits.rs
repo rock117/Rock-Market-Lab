@@ -412,6 +412,9 @@ pub enum StrategyResult {
     RiseRangeConsolidation(
         super::rise_range_consolidation_strategy::RiseRangeConsolidationResult,
     ),
+
+    /// 均线突破/跌破策略结果
+    MaBreakout(super::ma_breakout_strategy::MaBreakoutResult),
 }
 impl StrategyResult {
     /// 获取股票代码
@@ -439,6 +442,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => &r.stock_code,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => &r.stock_code,
             StrategyResult::RiseRangeConsolidation(r) => &r.stock_code,
+            StrategyResult::MaBreakout(r) => &r.stock_code,
         }
     }
     
@@ -467,6 +471,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => r.analysis_date,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.analysis_date,
             StrategyResult::RiseRangeConsolidation(r) => r.analysis_date,
+            StrategyResult::MaBreakout(r) => r.analysis_date,
         }
     }
     
@@ -495,6 +500,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => r.current_price,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.current_price,
             StrategyResult::RiseRangeConsolidation(r) => r.current_price,
+            StrategyResult::MaBreakout(r) => r.current_price,
         }
     }
     
@@ -523,6 +529,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => r.strategy_signal.clone(),
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.strategy_signal.clone(),
             StrategyResult::RiseRangeConsolidation(r) => r.strategy_signal.clone(),
+            StrategyResult::MaBreakout(r) => r.strategy_signal.clone(),
         }
     }
     
@@ -551,6 +558,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => r.signal_strength,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.signal_strength,
             StrategyResult::RiseRangeConsolidation(r) => r.signal_strength,
+            StrategyResult::MaBreakout(r) => r.signal_strength,
         }
     }
     
@@ -579,6 +587,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => &r.analysis_description,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => &r.analysis_description,
             StrategyResult::RiseRangeConsolidation(r) => &r.analysis_description,
+            StrategyResult::MaBreakout(r) => &r.analysis_description,
         }
     }
     
@@ -607,6 +616,7 @@ impl StrategyResult {
             StrategyResult::ConsecutiveBullish(r) => r.risk_level,
             StrategyResult::LowTurnoverDividendRoeSmallCap(r) => r.risk_level,
             StrategyResult::RiseRangeConsolidation(r) => r.risk_level,
+            StrategyResult::MaBreakout(r) => r.risk_level,
         }
     }
 }

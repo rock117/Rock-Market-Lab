@@ -81,7 +81,8 @@ const STRATEGY_TYPES = [
   { value: 'ma_convergence', label: '均线粘合策略', description: '识别均线粘合形态，筛选下跌后的粘合机会' },
   { value: 'consecutive_bullish', label: '日/周/月连阳策略', description: '识别连续阳线形态，捕捉上升趋势的持续信号' },
   { value: 'low_turnover_dividend_roe_smallcap', label: '低换手高股息高ROE小市值策略', description: '过去N天低换手、温和上涨，高股息率(dv_ttm)、高ROE、小市值' },
-  { value: 'rise_range_consolidation', label: '区间涨幅+前置横盘策略', description: '前置M天横盘(收盘振幅约束)，过去N天每日涨跌幅在区间内且累计涨幅在区间内；按市值/ROE/股息率TTM加权排序' }
+  { value: 'rise_range_consolidation', label: '区间涨幅+前置横盘策略', description: '前置M天横盘(收盘振幅约束)，过去N天每日涨跌幅在区间内且累计涨幅在区间内；按市值/ROE/股息率TTM加权排序' },
+  { value: 'ma_breakout', label: '均线突破/跌破策略', description: '突破/跌破 N 日均线（可选是否要求穿越）' }
 ]
 
 // 默认参数示例
@@ -176,6 +177,11 @@ const DEFAULT_PARAMS: Record<string, any> = {
     weight_market_cap: 0.4,
     weight_roe: 0.3,
     weight_dv_ttm: 0.3
+  },
+  ma_breakout: {
+    ma_period: 20,
+    direction: 'up',
+    require_cross: true
   }
 }
 

@@ -35,6 +35,7 @@ use crate::strategy::{
     ConsecutiveBullishStrategy, ConsecutiveBullishConfig,
     LowTurnoverDividendRoeSmallCapStrategy, LowTurnoverDividendRoeSmallCapConfig,
     RiseRangeConsolidationStrategy, RiseRangeConsolidationConfig,
+    MaBreakoutStrategy, MaBreakoutConfig,
 };
 
 use crate::strategy::traits::{SecurityData, StrategyResult, StrategySignal, TradingStrategy, FinancialData};
@@ -345,7 +346,14 @@ impl StockPickerService {
                     bail!("区间涨幅+前置横盘策略不支持 preset 参数，请直接传具体参数")
                 }
             ),
-            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, daily_rise_turnover, ma_divergence_volume, low_shadow, ma_convergence, consecutive_bullish, low_turnover_dividend_roe_smallcap, rise_range_consolidation", strategy_type)
+            "ma_breakout" => execute_strategy!(
+                MaBreakoutConfig,
+                MaBreakoutStrategy,
+                |_preset: &str| {
+                    bail!("均线突破/跌破策略不支持 preset 参数，请直接传具体参数")
+                }
+            ),
+            _ => bail!("不支持的策略类型: {}。支持的类型: price_volume_candlestick, bottom_volume_surge, long_term_bottom_reversal, yearly_high, price_strength, distressed_reversal, single_limit_up, fundamental, consecutive_strong, turtle, limit_up_pullback, strong_close, quality_value, turnover_ma_bullish, turnover_rise, daily_rise_turnover, ma_divergence_volume, low_shadow, ma_convergence, consecutive_bullish, low_turnover_dividend_roe_smallcap, rise_range_consolidation, ma_breakout", strategy_type)
         }?;
         for result in &mut results {
             let tscode = &result.ts_code;

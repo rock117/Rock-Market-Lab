@@ -490,7 +490,8 @@ export type StrategyType =
   | 'ma_convergence'
   | 'consecutive_bullish'
   | 'low_turnover_dividend_roe_smallcap'
-  | 'rise_range_consolidation';
+  | 'rise_range_consolidation'
+  | 'ma_breakout';
 
 export type StrategySignal = 'BUY' | 'SELL' | 'HOLD';
 

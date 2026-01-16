@@ -690,6 +690,46 @@ pub async fn list_strategy_templates_handler() -> Result<WebResponse<Vec<Strateg
                 },
             ],
         },
+        StrategyTemplateDto {
+            template: "ma_breakout".to_string(),
+            label: "均线突破/跌破策略".to_string(),
+            description: "支持上升/下降趋势：突破/跌破 N 日均线，可选是否要求穿越(昨日在一侧，今日到另一侧)".to_string(),
+            params: vec![
+                StrategyTemplateParam {
+                    key: "ma_period".to_string(),
+                    label: "均线周期(N)".to_string(),
+                    r#type: "number".to_string(),
+                    required: true,
+                    default_value: Some(serde_json::json!(20)),
+                    description: None,
+                    min: Some(1.0),
+                    max: Some(500.0),
+                    options: None,
+                },
+                StrategyTemplateParam {
+                    key: "direction".to_string(),
+                    label: "方向".to_string(),
+                    r#type: "string".to_string(),
+                    required: true,
+                    default_value: Some(serde_json::json!("up")),
+                    description: None,
+                    min: None,
+                    max: None,
+                    options: Some(vec![serde_json::json!("up"), serde_json::json!("down")]),
+                },
+                StrategyTemplateParam {
+                    key: "require_cross".to_string(),
+                    label: "要求穿越".to_string(),
+                    r#type: "boolean".to_string(),
+                    required: true,
+                    default_value: Some(serde_json::json!(true)),
+                    description: None,
+                    min: None,
+                    max: None,
+                    options: None,
+                },
+            ],
+        },
     ];
 
     WebResponse::new(templates).into_result()
