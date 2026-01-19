@@ -1,4 +1,3 @@
-use derive_more::Display;
 use map_macro::hash_map;
 use common::finance::ma;
 
@@ -9,12 +8,21 @@ use crate::tushare::call_api_as;
 
 
 /// 基金列表 https://tushare.pro/document/2?doc_id=19
-#[derive(Debug, Clone, Copy, Display)]
+#[derive(Debug, Clone, Copy)]
 pub enum FundMarket {
     /// 场内
     O,
     /// 场外
     E,
+}
+
+impl std::fmt::Display for FundMarket {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            FundMarket::O => write!(f, "O"),
+            FundMarket::E => write!(f, "E"),
+        }
+    }
 }
 pub async fn fund_basic(market: FundMarket) -> anyhow::Result<Vec<fund::Model>> {
     let market = market.to_string();

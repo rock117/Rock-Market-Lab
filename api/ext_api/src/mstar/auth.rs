@@ -7,8 +7,6 @@ use serde::Deserialize;
 use std::sync::Mutex;
 use tracing::{info, warn};
 
-use crate::resp_to_string;
-
 /// 全局 Equity API Token 服务单例
 static EQUITY_TOKEN_SERVICE: Lazy<MstarEquityApiAccessTokenService> = Lazy::new(|| {
     let config = AppConfig::new().expect("Failed to load config").mstar().clone();
@@ -162,11 +160,11 @@ impl MstarAccessTokenService for MstarEquityApiAccessTokenService {
                     resp.status()
                 ));
             }
-            let xml = resp_to_string(resp).await?;
+            let xml = resp.text().await?;
             return parse_access_token(&xml);
         }
 
-        let xml = resp_to_string(resp).await?;
+        let xml = resp.text().await?;
         parse_access_token(&xml)
     }
 }

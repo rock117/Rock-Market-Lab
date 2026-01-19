@@ -8,15 +8,15 @@ common = { path = "../common" }
 entity = { path = "../entity" }
 tushare-api = { version = "1.1.5", features = ["tracing", "all_types"] }
 
-map-macro = "0.2.6"
-derive_more = "0.99.17"
-reqwest = { version = "0.11", features = ["blocking", "json"] }
+map-macro = "0.3.0"
+derive_more = "2.1.1"
+reqwest = { version = "0.13.1", features = ["blocking", "json"] }
 
 chrono = "0.4.26"
 futures = "0.3.30"
-async-rate-limit = "0.0.4"
-scraper = "0.19.0"
-headless_chrome = "0.9.0"
+async-rate-limit = "0.1.1"
+scraper = "0.25.0"
+headless_chrome = "1.0.20"
 
 anyhow = { workspace = true }
 serde_json = { workspace = true }
@@ -30,10 +30,10 @@ once_cell = { workspace = true }
 derive-name = "1.1.0"
 url = "2.3.1"
 bytes = "1.7.1"
-governor = "0.8.0"
+governor = "0.10.4"
 tokio = "1.36.0"
 
-quick-xml = { version = "0.37.2", features = ["serialize"] }
+quick-xml = { version = "0.39.0", features = ["serialize"] }
 async-trait = "0.1"
 
 
