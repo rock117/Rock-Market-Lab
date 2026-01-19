@@ -5691,9 +5691,9 @@ checksum = "e421abadd41a4225275504ea4d6566923418b7f05506fbc9c0fe86ba7396114b"
 
 [[package]]
 name = "tushare-api"
-version = "1.1.3"
+version = "1.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "5934650525f7423cf06300cd76b3dcf4e4594a3a808970f4de2700bb0f3a7291"
+checksum = "1a8e0711e4ee4c94c38ff2c5b094ad4a6b5089a7d155705f170200a90bb0304f"
 dependencies = [
  "bigdecimal",
  "chrono",
