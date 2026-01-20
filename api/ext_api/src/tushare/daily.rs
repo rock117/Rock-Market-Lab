@@ -33,6 +33,6 @@ pub async fn daily(tscode: Option<&str>, start: &NaiveDate, end: &NaiveDate) -> 
         params,
         fields,
     };
-    let res = call_api_as::<StockDaily, 0>(req.clone()).await?;
+    let res = call_api_as::<StockDaily>(req.clone()).await?;
     Ok(res.items)
 }

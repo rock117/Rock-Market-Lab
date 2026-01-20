@@ -6,7 +6,7 @@ use crate::tushare::call_api_as;
 pub async fn moneyflow(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<entity::moneyflow::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<entity::moneyflow::Model, 500>(request!(Api::Moneyflow,  {
+    let res = call_api_as::<entity::moneyflow::Model>(request!(Api::Moneyflow,  {
         "ts_code" => ts_code,
         "start_date" => start_date.as_str(),
         "end_date" => end_date.as_str(),

@@ -127,6 +127,6 @@ static TUSHARE_CLIENT: Lazy<TushareClientEx> = Lazy::new(|| {
 });
 
 
-pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData + std::fmt::Debug {
+pub async fn call_api_as<T>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData + std::fmt::Debug {
      TUSHARE_CLIENT.call_api_as(&request).await
 }

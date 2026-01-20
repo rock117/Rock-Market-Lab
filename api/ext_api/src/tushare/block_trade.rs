@@ -7,7 +7,7 @@ use tushare_api::{Api, TushareRequest, fields, params, request};
 
 ///大宗交易
 pub async fn block_trade(ts_code: &str) -> anyhow::Result<Vec<BlockTrade>> {
-    let res = call_api_as::<BlockTrade, 0>(
+    let res = call_api_as::<BlockTrade>(
         request!(Api::Custom("block_trade".into()), {"ts_code" => ts_code},
             [
             "ts_code",

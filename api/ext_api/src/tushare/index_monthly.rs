@@ -5,7 +5,7 @@ use crate::tushare::call_api_as;
 pub async fn index_monthly(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<entity::index_monthly::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<entity::index_monthly::Model, 500>(request!(Api::IndexMonthly,
+    let res = call_api_as::<entity::index_monthly::Model>(request!(Api::IndexMonthly,
         {"ts_code" => ts_code, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()}, [
         "ts_code" ,
         "trade_date" ,

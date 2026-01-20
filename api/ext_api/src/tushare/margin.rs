@@ -9,7 +9,7 @@ use crate::tushare::call_api_as;
 pub async fn margin(exchange_id: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<Margin>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<Margin, 0>(request!(Api::Margin, {"exchange_id" => exchange_id, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
+    let res = call_api_as::<Margin>(request!(Api::Margin, {"exchange_id" => exchange_id, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
         [
         "trade_date",
         "exchange_id",

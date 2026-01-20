@@ -25,6 +25,6 @@ pub async fn etf_basic() -> anyhow::Result<Vec<etf::Model>> {
         "mgt_fee",
         "etf_type",
         ]);
-    let res = call_api_as::<etf::Model, 500>(req.clone()).await?;
+    let res = call_api_as::<etf::Model>(req.clone()).await?;
     Ok(res.items)
 }

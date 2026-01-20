@@ -28,6 +28,6 @@ pub async fn fund_portfolio(tscode: &str, period: Option<String>) -> anyhow::Res
         params: parmas,
         fields,
     };
-    let res = call_api_as::<FundPortfolio, 500>(request).await?;
+    let res = call_api_as::<FundPortfolio>(request).await?;
     Ok(res.items)
 }

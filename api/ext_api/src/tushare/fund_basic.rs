@@ -60,6 +60,6 @@ pub async fn fund_basic(market: FundMarket) -> anyhow::Result<Vec<fund::Model>> 
         fields,
     };
 
-    let res = call_api_as::<fund::Model, 0>(request).await?;
+    let res = call_api_as::<fund::Model>(request).await?;
     Ok(res.items)
 }

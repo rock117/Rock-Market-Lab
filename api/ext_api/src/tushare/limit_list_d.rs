@@ -8,7 +8,7 @@ use crate::tushare::call_api_as;
 pub async fn limit_list_d(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) ->  anyhow::Result<Vec<limit_list_d::Model>>  {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<limit_list_d::Model, 500>(request!(Api::Custom("limit_list_d".into()),
+    let res = call_api_as::<limit_list_d::Model>(request!(Api::Custom("limit_list_d".into()),
         {"ts_code" => ts_code, "start_date" => start_date, "end_date" => end_date},
         [
           "trade_date",

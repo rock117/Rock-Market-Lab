@@ -6,7 +6,7 @@ use crate::tushare::call_api_as;
 pub async fn moneyflow_ind_ths(start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<MoneyflowIndustryThs>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<MoneyflowIndustryThs, 500>(request!(Api::MoneyflowIndustryThs, {
+    let res = call_api_as::<MoneyflowIndustryThs>(request!(Api::MoneyflowIndustryThs, {
         "trade_date" => start_date.as_str(),
         "start_date" => end_date.as_str(),
     }, [

@@ -9,7 +9,7 @@ use crate::tushare::call_api_as;
 pub async fn get_hm_detail(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) ->  anyhow::Result<Vec<HmDetail>>  {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<HmDetail, 500>(request!(Api::Custom("hm_detail".into()),
+    let res = call_api_as::<HmDetail>(request!(Api::Custom("hm_detail".into()),
         {"ts_code" => ts_code, "start_date" => start_date, "end_date" => end_date},
         [
                                           "trade_date",

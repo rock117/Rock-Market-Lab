@@ -5,7 +5,7 @@ use crate::tushare::call_api_as;
 pub async fn index_weekly(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<entity::index_weekly::Model>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<entity::index_weekly::Model, 500>(request!(Api::IndexWeekly,
+    let res = call_api_as::<entity::index_weekly::Model>(request!(Api::IndexWeekly,
         {
         "ts_code" => ts_code,
         "start_date" => start_date.as_str(),

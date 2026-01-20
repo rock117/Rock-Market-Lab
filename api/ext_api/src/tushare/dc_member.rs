@@ -7,7 +7,7 @@ use crate::tushare::call_api_as;
 
 /// 东方财富概念板块 https://tushare.pro/document/2?doc_id=362
 pub async fn dc_member(ts_code: &str) -> anyhow::Result<Vec<DcMember>> {
-    let res = call_api_as::<DcMember, 0>(request!(Api::Custom("dc_member".into()), {
+    let res = call_api_as::<DcMember>(request!(Api::Custom("dc_member".into()), {
         "ts_code" => ts_code
     },
         ["ts_code",

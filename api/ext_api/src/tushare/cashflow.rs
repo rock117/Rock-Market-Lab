@@ -5,7 +5,7 @@ use tushare_api::{Api, fields, LogLevel, params, request, TushareRequest};
 use crate::tushare::call_api_as;
 
 pub async fn cashflow(ts_code: &str) -> anyhow::Result<Vec<cashflow::Model>> {
-    let res = call_api_as::<cashflow::Model, 500>(request!(Api::Cashflow,
+    let res = call_api_as::<cashflow::Model>(request!(Api::Cashflow,
                         {"ts_code" => ts_code},
                         [
                             "ts_code",

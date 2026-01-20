@@ -5,7 +5,7 @@ use crate::tushare::call_api_as;
 
 /// 资产负债表
 pub async fn balancesheet(ts_code: &str) -> anyhow::Result<Vec<balancesheet::Model>> {
-    let res = call_api_as::<balancesheet::Model, 500>( request!(Api::Balancesheet,
+    let res = call_api_as::<balancesheet::Model>( request!(Api::Balancesheet,
                        {"ts_code" => ts_code},
                         [
                             "ts_code",

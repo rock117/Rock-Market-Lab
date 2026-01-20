@@ -26,6 +26,6 @@ pub async fn stock_basic() -> anyhow::Result<Vec<Stock>> {
             "act_name",
             "act_ent_type",
         ]);
-    let res = call_api_as::<Stock, 100>(req.clone()).await?;
+    let res = call_api_as::<Stock>(req.clone()).await?;
     Ok(res.items)
 }

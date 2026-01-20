@@ -31,6 +31,6 @@ pub async fn us_daily(ts_code: &str, start_date: &str, end_date: &str) -> anyhow
                                           "pb"
                                           ]);
     info!("req generated");
-    let res = call_api_as::<UsDaily, 1>(req).await?;
+    let res = call_api_as::<UsDaily>(req).await?;
     Ok(res.items)
 }

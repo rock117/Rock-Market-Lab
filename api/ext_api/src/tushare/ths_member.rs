@@ -34,7 +34,7 @@ pub async fn ths_member(ts_code: Option<&str>, conn_code: Option<&str>) -> anyho
         params,
         fields,
     };
-    let res = call_api_as::<ThsMember, 50>(req).await?;
+    let res = call_api_as::<ThsMember>(req).await?;
     Ok(res.items)
 }
 

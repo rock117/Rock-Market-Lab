@@ -10,7 +10,7 @@ use crate::tushare::call_api_as;
 pub async fn fina_mainbz(ts_code: &str, type_: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<FinanceMainBusiness>>{
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<FinanceMainBusiness, 0>(request!(Api::FinaMainbz,
+    let res = call_api_as::<FinanceMainBusiness>(request!(Api::FinaMainbz,
                        {"ts_code" => ts_code, "type" => type_, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
                         [
                             "ts_code",

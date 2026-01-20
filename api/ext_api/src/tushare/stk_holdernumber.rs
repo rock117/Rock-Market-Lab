@@ -8,7 +8,7 @@ use crate::tushare::call_api_as;
 pub async fn stk_holdernumber(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<StockHolderNumber>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<StockHolderNumber, 500>(request!(Api::StkHoldernumber,
+    let res = call_api_as::<StockHolderNumber>(request!(Api::StkHoldernumber,
                         {"ts_code" => ts_code, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
                         [
                             "ts_code",

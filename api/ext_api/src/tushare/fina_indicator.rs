@@ -9,7 +9,7 @@ use crate::tushare::call_api_as;
 pub async fn fina_indicator(ts_code: &str, start_date: &NaiveDate, end_date: &NaiveDate) -> anyhow::Result<Vec<FinanceIndicator>> {
     let start_date = start_date.format("%Y%m%d").to_string();
     let end_date = end_date.format("%Y%m%d").to_string();
-    let res = call_api_as::<FinanceIndicator, 500>(request!(Api::FinaIndicator,
+    let res = call_api_as::<FinanceIndicator>(request!(Api::FinaIndicator,
                                 {"ts_code" => ts_code, "start_date" => start_date.as_str(), "end_date" => end_date.as_str()},
                                   [
                                     "ts_code" ,

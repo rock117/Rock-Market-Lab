@@ -50,7 +50,7 @@ pub async fn ths_daily(ts_code: Option<&str>, trade_date: Option<&str>, start_da
         params,
         fields,
     };
-    let res = call_api_as::<ThsDaily, 500>(req).await?;
+    let res = call_api_as::<ThsDaily>(req).await?;
     Ok(res.items)
 }
 

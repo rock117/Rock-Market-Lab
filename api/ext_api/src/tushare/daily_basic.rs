@@ -33,6 +33,6 @@ pub async fn daily_basic(start: &NaiveDate, end: &NaiveDate) -> anyhow::Result<V
             "total_mv",
             "circ_mv",
         ]);
-    let res = call_api_as::<stock_daily_basic::Model, 0>(req.clone()).await?;
+    let res = call_api_as::<stock_daily_basic::Model>(req.clone()).await?;
     Ok(res.items)
 }

@@ -40,7 +40,7 @@ pub async fn ths_index(ts_code: Option<&str>, exchange: Option<&str>, type_: Opt
         params,
         fields,
     };
-    let res = call_api_as::<ThsIndex, 500>(req).await?;
+    let res = call_api_as::<ThsIndex>(req).await?;
     Ok(res.items)
 }
 

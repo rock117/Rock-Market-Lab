@@ -6,7 +6,7 @@ use crate::tushare::call_api_as;
 
 /// 股东减持
 pub async fn stk_holdertrade(ts_code: &str) -> anyhow::Result<Vec<StkHoldertrade>> {
-    let res = call_api_as::<StkHoldertrade, 500>(request!(Api::Custom("stk_holdertrade".into()),
+    let res = call_api_as::<StkHoldertrade>(request!(Api::Custom("stk_holdertrade".into()),
                         {"ts_code" => ts_code},
                         [
                             "ts_code",

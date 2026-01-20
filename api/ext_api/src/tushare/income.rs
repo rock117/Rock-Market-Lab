@@ -13,7 +13,7 @@ use entity::sea_orm::prelude::{BigDecimal, Decimal};
 
 /// 利润表
 pub async fn income(ts_code: &str) -> anyhow::Result<Vec<income::Model>> {
-    let incomes =  call_api_as::<income::Model, 500>(request!(Api::Cashflow,
+    let incomes =  call_api_as::<income::Model>(request!(Api::Cashflow,
                         {"ts_code" => ts_code},
                                                         [
                                                   "ts_code",

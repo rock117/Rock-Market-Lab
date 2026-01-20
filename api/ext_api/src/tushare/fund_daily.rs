@@ -28,6 +28,6 @@ pub async fn fund_daily(tscode: &str, start: &NaiveDate, end: &NaiveDate) -> any
         params: parmas,
         fields,
     };
-    let res = call_api_as::<FundDaily, 500>(request).await?;
+    let res = call_api_as::<FundDaily>(request).await?;
     Ok(res.items)
 }
