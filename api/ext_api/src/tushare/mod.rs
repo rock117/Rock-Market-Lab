@@ -15,10 +15,10 @@ use async_rate_limit::sliding_window::SlidingWindowRateLimiter;
 use once_cell::sync::Lazy;
 use reqwest::{Response, StatusCode};
 use serde::de::DeserializeOwned;
-use tokio::sync::Semaphore;
 use tokio::time::sleep;
 use tracing::info;
-use tushare_api::{FromTushareData, LogConfig, LogLevel, TushareClient, TushareEntityList, TushareRequest, TushareResult};
+use tushare_api::client_ex::RetryConfig;
+use tushare_api::{FromTushareData, LogConfig, LogLevel, TushareClient, TushareClientEx, Api, TushareEntityList, TushareRequest, TushareResult};
 
 pub use balancesheet::*;
 pub use cashflow::*;
@@ -99,21 +99,10 @@ static TUSHARE_TOKEN: Lazy<String> = Lazy::new(|| {
         .tushare_token()
 });
 
-static CALL_LIMI: Lazy<Arc<Mutex<SlidingWindowRateLimiter>>> = Lazy::new(|| {
-    Arc::new(Mutex::new(SlidingWindowRateLimiter::new(
-        Duration::from_secs(60),
-        500,
-    )))
-});
-
-static max_requests_per_minute: usize = 500;
-static semaphore: Lazy<Arc<Semaphore>> =
-    Lazy::new(|| Arc::new(Semaphore::new(max_requests_per_minute)));
-
-static TUSHARE_CLIENT: Lazy<TushareClient> = Lazy::new(|| {
+static TUSHARE_CLIENT: Lazy<TushareClientEx> = Lazy::new(|| {
     let mut log = LogConfig::default();
     log.log_responses_err = true;
-    TushareClient::builder()
+    let client = TushareClient::builder()
         .with_token(TUSHARE_TOKEN.as_str())
         .with_log_level(LogLevel::Info)
         .with_log_config(log)
@@ -124,15 +113,20 @@ static TUSHARE_CLIENT: Lazy<TushareClient> = Lazy::new(|| {
         .with_connect_timeout(Duration::from_secs(300))
         .with_timeout(Duration::from_secs(300))
         .build()
-        .unwrap()
+        .unwrap();
+    let client_ex = TushareClientEx::new(client)
+    .with_api_min_interval(Api::MoneyflowIndustryThs, Duration::from_millis(500))
+    .with_api_min_interval(Api::Custom("stk_holdertrade".into()), Duration::from_millis(500))
+    .with_api_min_interval(Api::StkHoldernumber, Duration::from_millis(500))
+    .with_retry_config(RetryConfig {
+        max_retries: 3,
+        base_delay: Duration::from_millis(200),
+        max_delay: Duration::from_secs(5),
+    });
+    client_ex
 });
 
 
 pub async fn call_api_as<T, const N: u64>(request: TushareRequest) -> TushareResult<TushareEntityList<T>> where T: FromTushareData + std::fmt::Debug {
-    // let data = TUSHARE_CLIENT.call_api(request.clone()).await;
-    // info!("call_api, response: {:?}", data);
-    let data:TushareResult<TushareEntityList<T>> = TUSHARE_CLIENT.call_api_as(request).await;
-  //  info!("call_api_as, response: {:?}", data);
-    sleep(Duration::from_millis(N)).await;
-    data
+     TUSHARE_CLIENT.call_api_as(&request).await
 }
