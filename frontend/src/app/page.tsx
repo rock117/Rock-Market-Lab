@@ -19,6 +19,7 @@ import FinanceMainBusinessModule from '@/components/finance/FinanceMainBusinessM
 import FinanceBalanceSheetModule from '@/components/finance/FinanceBalanceSheetModule'
 import AStockList from '@/components/stock/AStockList'
 import StockSimilarity from '@/components/stock/StockSimilarity'
+import HolderPerCapita from '@/components/stock/HolderPerCapita'
 import XueqiuArticles from '@/components/xueqiu/XueqiuArticles'
 import XueqiuCrawler from '@/components/xueqiu/XueqiuCrawler'
 import { 
@@ -72,6 +73,15 @@ const modules = [
     description: 'A股全市场列表与指标',
     icon: TrendingUp,
     color: 'text-bull',
+    category: 'market',
+    status: 'active'
+  },
+  {
+    id: 'holder-per-capita',
+    name: '人均持股',
+    description: '股东数、人均持股市值与数量',
+    icon: Users,
+    color: 'text-blue-500',
     category: 'market',
     status: 'active'
   },
@@ -291,6 +301,8 @@ export default function HomePage() {
         return <MarketSummary />
       case 'a-stocks':
         return <AStockList />
+      case 'holder-per-capita':
+        return <HolderPerCapita />
       case 'us-stocks':
         return <UsStockList />
       case 'stock-detail':

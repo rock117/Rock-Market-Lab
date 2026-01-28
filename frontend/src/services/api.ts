@@ -24,3 +24,5 @@ export { taskManagerApi } from './api/task-manager'
 export { dcConceptApi } from './api/dc-concept'
 
 export { financeApi } from './api/finance'
+
+export { holderPerCapitaApi } from './api/holder-per-capita'

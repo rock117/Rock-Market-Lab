@@ -6182,9 +6182,9 @@ dependencies = [
 
 [[package]]
 name = "tushare-api"
-version = "1.2.5"
+version = "1.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a2ecd27f1f818f53c9a363d428ab09fa11aae1efb285255c4ff4894184fa674a"
+checksum = "79f5f5dca33a47601e150230659fadcc07162192eb19142058537ab645542970"
 dependencies = [
  "bigdecimal",
  "chrono",

@@ -204,6 +204,8 @@ async fn rocket() -> _ {
             strategy_profile_controller::update_strategy_profile_handler,
             strategy_profile_controller::delete_strategy_profile_handler,
             strategy_template_controller::list_strategy_templates_handler,
+
+            holder_per_capita_controller::get_holder_per_capita,
         ])
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }
