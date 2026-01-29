@@ -26,3 +26,4 @@ pub mod finance_main_business_controller;
 pub mod strategy_profile_controller;
 pub mod strategy_template_controller;
 pub mod holder_per_capita_controller;
+pub mod task_controller;

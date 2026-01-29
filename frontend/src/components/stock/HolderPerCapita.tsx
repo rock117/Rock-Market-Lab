@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { holderPerCapitaApi, type HolderPerCapitaItem } from '@/services/api/holder-per-capita'
 import { formatNumber, formatMarketCap } from '@/lib/utils'
+import { Users } from 'lucide-react'
 
 function formatEndDate(dateStr: string): string {
   if (dateStr.length === 8) {
@@ -13,7 +14,6 @@ function formatEndDate(dateStr: string): string {
   }
   return dateStr
 }
-import { Users } from 'lucide-react'
 
 interface HolderPerCapitaProps {
   className?: string

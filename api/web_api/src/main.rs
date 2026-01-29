@@ -207,6 +207,7 @@ async fn rocket() -> _ {
 
             holder_per_capita_controller::get_holder_per_capita,
         ])
+        .mount("/api", task_controller::routes())
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }
 
@@ -215,7 +216,7 @@ fn init_log_context() -> anyhow::Result<()> {
     // https://github.com/somehowchris/rocket-tracing-fairing-example/tree/main
     // TODO
     let file_appender = tracing_appender::rolling::daily(
-        "C:/rock/coding/code/my/rust/programmer-investment-research/api/tmp",
+        r"C:\rock\coding\code\my\rust\Rock-Market-Lab\log",
         "app.log",
     );
 

@@ -1,0 +1,28 @@
+[package]
+name = "task_scheduler"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+common = { path = "../common" }
+entity = { path = "../entity" }
+
+tokio = { version = "1.29.1", features = ["full"] }
+tokio-cron-scheduler = "0.10.2"
+cron = "0.12"
+uuid = { version = "1.4.0", features = ["v4", "fast-rng", "macro-diagnostics"] }
+
+anyhow = { workspace = true }
+serde_json = { workspace = true }
+serde = { workspace = true }
+serde_derive = { workspace = true }
+
+tracing = { workspace = true }
+chrono = { workspace = true }
+
+sea-orm = { workspace = true }
+async-trait = "0.1.74"
+
+reqwest = { version = "0.11", features = ["json"] }
+url = "2.4"
+lazy_static = "1.4"

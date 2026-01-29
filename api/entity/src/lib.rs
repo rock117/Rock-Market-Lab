@@ -58,4 +58,8 @@ pub mod us_main_indicator;
 
 pub mod stock_strategy_profile;
 
+pub mod scheduled_task;
+pub mod task_execution;
+pub mod task_execution_log;
+
 pub use sea_orm;

@@ -41,3 +41,4 @@ dist-ssr
 /ui/pnpm-lock.yaml
 /api/Cargo.lock
 /api/Cargo.lock
+/log/*
