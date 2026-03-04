@@ -167,7 +167,7 @@ impl TaskScheduler {
         ).await?;
         
         // Create execution context
-        let logger = ExecutionLogger::new(execution_id.clone());
+        let logger = ExecutionLogger::new(execution_id.clone(), self.task_service.get_db().clone());
         let context = ExecutionContext {
             task_id,
             execution_id: execution_id.clone(),
@@ -179,65 +179,50 @@ impl TaskScheduler {
         let task_config = task.task_config.clone();
         let timeout_duration = Duration::from_secs(task.timeout_seconds as u64);
         let task_service = self.task_service.clone();
-        let running_tasks = self.running_tasks.clone();
         let execution_id_clone = execution_id.clone();
         let task_name_clone = task_name.clone();
+        let executor = executor.clone();
+        let context = context.clone();
         
-        let handle = tokio::spawn(async move {
-            let result = tokio::time::timeout(
-                timeout_duration,
-                executor.execute(task_config, context)
-            ).await;
-            
-            let (exec_status, error_message, output_summary) = match result {
-                Ok(Ok(task_result)) => {
-                    if task_result.success {
-                        (ExecutionStatus::Success, None, task_result.output)
-                    } else {
-                        (ExecutionStatus::Failed, task_result.error, task_result.output)
-                    }
+        let result = tokio::time::timeout(
+            Duration::from_secs(task.timeout_seconds as u64),
+            executor.execute(task.task_config.clone(), context)
+        ).await;
+        
+        let (exec_status, error_message, output_summary) = match result {
+            Ok(Ok(task_result)) => {
+                if task_result.success {
+                    (ExecutionStatus::Success, None, task_result.output)
+                } else {
+                    (ExecutionStatus::Failed, task_result.error, task_result.output)
                 }
-                Ok(Err(e)) => {
-                    (ExecutionStatus::Failed, Some(e.to_string()), None)
-                }
-                Err(_) => {
-                    (ExecutionStatus::Timeout, Some("Task execution timed out".to_string()), None)
-                }
-            };
-            
-            let finished_at = Utc::now();
-            let duration_ms = (finished_at - started_at).num_milliseconds() as i32;
-            
-            // Update execution record
-            if let Err(e) = task_service.update_execution_record(
-                &execution_id_clone,
-                exec_status.clone(),
-                Some(finished_at),
-                Some(duration_ms),
-                error_message,
-                output_summary,
-            ).await {
-                tracing::error!("Failed to update execution record: {}", e);
             }
-            
-            // Remove from running tasks
-            running_tasks.write().await.remove(&execution_id_clone);
-            
-            tracing::info!("Task {} execution {} completed with status: {:?}", 
-                task_name_clone, execution_id_clone, exec_status);
-        });
-        
-        // Track running task
-        let running_task = RunningTask {
-            task_id,
-            execution_id: execution_id.clone(),
-            started_at,
-            cancel_handle: handle.abort_handle(),
+            Ok(Err(e)) => {
+                (ExecutionStatus::Failed, Some(e.to_string()), None)
+            }
+            Err(_) => {
+                (ExecutionStatus::Timeout, Some("Task execution timed out".to_string()), None)
+            }
         };
         
-        self.running_tasks.write().await.insert(execution_id.clone(), running_task);
+        // Update execution record
+        if let Err(e) = self.task_service.update_execution_record(
+            &execution_id_clone,
+            exec_status.clone(),
+            Some(Utc::now()),
+            Some((Utc::now() - started_at).num_milliseconds() as i32),
+            error_message,
+            output_summary,
+        ).await {
+            tracing::error!("Failed to update execution record: {}", e);
+        }
         
-        tracing::info!("Started execution {} for task: {}", execution_id, task_name);
+        // Remove from running tasks
+        self.running_tasks.write().await.remove(&execution_id_clone);
+        
+        tracing::info!("Task {} execution {} completed with status: {:?}", 
+            task_name_clone, execution_id_clone, exec_status);
+        
         Ok(execution_id)
     }
 

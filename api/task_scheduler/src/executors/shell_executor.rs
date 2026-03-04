@@ -53,8 +53,8 @@ impl TaskExecutor for ShellCommandExecutor {
         // Set environment variables
         for (key, value) in env_vars {
             if let Some(value_str) = value.as_str() {
-                cmd.env(key, value_str);
                 context.logger.info(&format!("Setting env var: {}={}", key, value_str)).await;
+                cmd.env(key, value_str);
             }
         }
 
@@ -69,8 +69,8 @@ impl TaskExecutor for ShellCommandExecutor {
 
         match cmd.spawn() {
             Ok(mut child) => {
-                let mut output_lines = Vec::new();
-                let mut error_lines = Vec::new();
+                let mut output_lines: Vec<String> = Vec::new();
+                let mut error_lines: Vec<String> = Vec::new();
 
                 if capture_output {
                     // Capture stdout

@@ -14,6 +14,10 @@ impl TaskService {
         Self { db }
     }
 
+    pub fn get_db(&self) -> &DatabaseConnection {
+        &self.db
+    }
+
     pub async fn create_task(&self, task: CreateTaskRequest) -> anyhow::Result<i64> {
         let now = Utc::now().into();
         

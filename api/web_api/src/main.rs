@@ -31,6 +31,7 @@ use tracing_subscriber::fmt::time::ChronoLocal;
 use controller::*;
 use controller::security::stock;
 use schedule::TaskManager;
+use service::task_scheduler_service::TaskSchedulerService;
 
 mod resource;
 mod template;
@@ -139,8 +140,9 @@ async fn rocket() -> _ {
     });
     rocket::build()
         .attach(RequestLogger)
-        .manage(conn)
+        .manage(conn.clone())
         .manage(task_manager)
+        .manage(TaskSchedulerService::new(conn))
         .mount("/", routes![
             stock_price_limitup_controller::stock_price_limitup,
             macd_stastic_controller::macd_stastic,
@@ -187,11 +189,6 @@ async fn rocket() -> _ {
             dc_concept_controller::list_dc_members_handler,
             dc_concept_controller::list_dc_members_enriched_handler,
 
-            task_manager_controller::list_tasks,
-            task_manager_controller::run_task,
-            task_manager_controller::pause_task,
-            task_manager_controller::resume_task,
-            task_manager_controller::stop_task,
 
             finance_main_business_controller::get_finance_main_business,
             finance_main_business_controller::get_finance_main_business_end_dates_handler,
@@ -207,7 +204,7 @@ async fn rocket() -> _ {
 
             holder_per_capita_controller::get_holder_per_capita,
         ])
-        .mount("/api", task_controller::routes())
+        .mount("/", task_controller::routes())
         .register("/", catchers![error_handlers::internal_error, error_handlers::not_found])
 }
 

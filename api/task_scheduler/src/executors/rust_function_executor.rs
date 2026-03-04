@@ -6,7 +6,7 @@ use std::collections::HashMap;
 pub struct RustFunctionExecutor;
 
 // Registry for Rust functions that can be executed
-type RustFunction = Box<dyn Fn(&Value, &ExecutionContext) -> Result<TaskResult, anyhow::Error> + Send + Sync>;
+type RustFunction = fn(&Value, &ExecutionContext) -> Result<TaskResult, anyhow::Error>;
 
 pub struct FunctionRegistry {
     functions: HashMap<String, RustFunction>,
@@ -23,11 +23,8 @@ impl FunctionRegistry {
         registry
     }
 
-    pub fn register_function<F>(&mut self, name: String, func: F)
-    where
-        F: Fn(&Value, &ExecutionContext) -> Result<TaskResult, anyhow::Error> + Send + Sync + 'static,
-    {
-        self.functions.insert(name, Box::new(func));
+    pub fn register_function(&mut self, name: String, func: RustFunction) {
+        self.functions.insert(name, func);
     }
 
     pub fn get_function(&self, name: &str) -> Option<&RustFunction> {
@@ -39,128 +36,132 @@ impl FunctionRegistry {
     }
 
     fn register_builtin_functions(&mut self) {
-        // Example: Data processing function
-        self.register_function("data_processing".to_string(), |config, context| {
-            let operation = config.get("operation")
-                .and_then(|v| v.as_str())
-                .unwrap_or("count");
-            
-            let data = config.get("data")
-                .and_then(|v| v.as_array())
-                .unwrap_or(&vec![]);
-
-            let result = match operation {
-                "count" => {
-                    format!("Data count: {}", data.len())
-                }
-                "sum" => {
-                    let sum: f64 = data.iter()
-                        .filter_map(|v| v.as_f64())
-                        .sum();
-                    format!("Data sum: {}", sum)
-                }
-                "average" => {
-                    let numbers: Vec<f64> = data.iter()
-                        .filter_map(|v| v.as_f64())
-                        .collect();
-                    if numbers.is_empty() {
-                        "No numeric data found".to_string()
-                    } else {
-                        let avg = numbers.iter().sum::<f64>() / numbers.len() as f64;
-                        format!("Data average: {:.2}", avg)
-                    }
-                }
-                _ => format!("Unknown operation: {}", operation)
-            };
-
-            Ok(TaskResult::success(Some(result)))
-        });
-
-        // Example: File operations function
-        self.register_function("file_operations".to_string(), |config, context| {
-            let operation = config.get("operation")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| anyhow::anyhow!("Missing operation"))?;
-            
-            let file_path = config.get("file_path")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| anyhow::anyhow!("Missing file_path"))?;
-
-            match operation {
-                "exists" => {
-                    let exists = std::path::Path::new(file_path).exists();
-                    Ok(TaskResult::success(Some(format!("File exists: {}", exists))))
-                }
-                "size" => {
-                    match std::fs::metadata(file_path) {
-                        Ok(metadata) => {
-                            let size = metadata.len();
-                            Ok(TaskResult::success(Some(format!("File size: {} bytes", size))))
-                        }
-                        Err(e) => Ok(TaskResult::failure(format!("Failed to get file size: {}", e)))
-                    }
-                }
-                "read" => {
-                    match std::fs::read_to_string(file_path) {
-                        Ok(content) => {
-                            let preview = if content.len() > 1000 {
-                                format!("{}... (truncated, total {} chars)", &content[..1000], content.len())
-                            } else {
-                                content
-                            };
-                            Ok(TaskResult::success(Some(format!("File content:\n{}", preview))))
-                        }
-                        Err(e) => Ok(TaskResult::failure(format!("Failed to read file: {}", e)))
-                    }
-                }
-                _ => Ok(TaskResult::failure(format!("Unknown file operation: {}", operation)))
-            }
-        });
-
-        // Example: System information function
-        self.register_function("system_info".to_string(), |config, context| {
-            let info_type = config.get("info_type")
-                .and_then(|v| v.as_str())
-                .unwrap_or("basic");
-
-            let result = match info_type {
-                "basic" => {
-                    format!("OS: {}, Arch: {}", std::env::consts::OS, std::env::consts::ARCH)
-                }
-                "env" => {
-                    let var_name = config.get("var_name")
-                        .and_then(|v| v.as_str())
-                        .unwrap_or("PATH");
-                    
-                    match std::env::var(var_name) {
-                        Ok(value) => format!("{}={}", var_name, value),
-                        Err(_) => format!("Environment variable '{}' not found", var_name)
-                    }
-                }
-                "current_dir" => {
-                    match std::env::current_dir() {
-                        Ok(dir) => format!("Current directory: {}", dir.display()),
-                        Err(e) => format!("Failed to get current directory: {}", e)
-                    }
-                }
-                _ => format!("Unknown info type: {}", info_type)
-            };
-
-            Ok(TaskResult::success(Some(result)))
-        });
-
-        // Example: Database query function (placeholder)
-        self.register_function("database_query".to_string(), |config, context| {
-            let query = config.get("query")
-                .and_then(|v| v.as_str())
-                .ok_or_else(|| anyhow::anyhow!("Missing query"))?;
-
-            // This is a placeholder - in a real implementation, you would
-            // connect to the database and execute the query
-            let result = format!("Would execute query: {}", query);
-            Ok(TaskResult::success(Some(result)))
-        });
+        // Register built-in functions
+        self.register_function("data_processing".to_string(), data_processing_fn);
+        self.register_function("file_operations".to_string(), file_operations_fn);
+        self.register_function("system_info".to_string(), system_info_fn);
+        self.register_function("database_query".to_string(), database_query_fn);
     }
+}
+
+// Define the built-in functions as regular functions
+fn data_processing_fn(config: &Value, _context: &ExecutionContext) -> Result<TaskResult, anyhow::Error> {
+    let operation = config.get("operation")
+        .and_then(|v| v.as_str())
+        .unwrap_or("count");
+    
+    let empty_vec = vec![];
+    let data = config.get("data")
+        .and_then(|v| v.as_array())
+        .unwrap_or(&empty_vec);
+
+    let result = match operation {
+        "count" => {
+            format!("Data count: {}", data.len())
+        }
+        "sum" => {
+            let sum: f64 = data.iter()
+                .filter_map(|v| v.as_f64())
+                .sum();
+            format!("Data sum: {}", sum)
+        }
+        "average" => {
+            let numbers: Vec<f64> = data.iter()
+                .filter_map(|v| v.as_f64())
+                .collect();
+            if numbers.is_empty() {
+                "No numeric data found".to_string()
+            } else {
+                let avg = numbers.iter().sum::<f64>() / numbers.len() as f64;
+                format!("Data average: {:.2}", avg)
+            }
+        }
+        _ => format!("Unknown operation: {}", operation)
+    };
+
+    Ok(TaskResult::success(Some(result)))
+}
+
+fn file_operations_fn(config: &Value, _context: &ExecutionContext) -> Result<TaskResult, anyhow::Error> {
+    let operation = config.get("operation")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing operation"))?;
+    
+    let file_path = config.get("file_path")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing file_path"))?;
+
+    match operation {
+        "exists" => {
+            let exists = std::path::Path::new(file_path).exists();
+            Ok(TaskResult::success(Some(format!("File exists: {}", exists))))
+        }
+        "size" => {
+            match std::fs::metadata(file_path) {
+                Ok(metadata) => {
+                    let size = metadata.len();
+                    Ok(TaskResult::success(Some(format!("File size: {} bytes", size))))
+                }
+                Err(e) => Ok(TaskResult::failure(format!("Failed to get file size: {}", e)))
+            }
+        }
+        "read" => {
+            match std::fs::read_to_string(file_path) {
+                Ok(content) => {
+                    let preview = if content.len() > 1000 {
+                        format!("{}... (truncated, total {} chars)", &content[..1000], content.len())
+                    } else {
+                        content
+                    };
+                    Ok(TaskResult::success(Some(format!("File content:\n{}", preview))))
+                }
+                Err(e) => Ok(TaskResult::failure(format!("Failed to read file: {}", e)))
+            }
+        }
+        _ => Ok(TaskResult::failure(format!("Unknown file operation: {}", operation)))
+    }
+}
+
+fn system_info_fn(config: &Value, _context: &ExecutionContext) -> Result<TaskResult, anyhow::Error> {
+    let info_type = config.get("info_type")
+        .and_then(|v| v.as_str())
+        .unwrap_or("basic");
+
+    let result = match info_type {
+        "basic" => {
+            format!("OS: {}, Arch: {}", std::env::consts::OS, std::env::consts::ARCH)
+        }
+        "env" => {
+            let var_name = config.get("var_name")
+                .and_then(|v| v.as_str())
+                .unwrap_or("PATH");
+            
+            match std::env::var(var_name) {
+                Ok(value) => format!("{}={}", var_name, value),
+                Err(_) => format!("Environment variable '{}' not found", var_name)
+            }
+        }
+        "current_dir" => {
+            match std::env::current_dir() {
+                Ok(dir) => format!("Current directory: {}", dir.display()),
+                Err(e) => format!("Failed to get current directory: {}", e)
+            }
+        }
+        _ => format!("Unknown info type: {}", info_type)
+    };
+
+    Ok(TaskResult::success(Some(result)))
+}
+
+fn database_query_fn(config: &Value, _context: &ExecutionContext) -> Result<TaskResult, anyhow::Error> {
+    let query = config.get("query")
+        .and_then(|v| v.as_str())
+        .ok_or_else(|| anyhow::anyhow!("Missing query"))?;
+
+    // This is a placeholder - in a real implementation, you would
+    // connect to the database and execute the query
+    let result = format!("Would execute query: {}", query);
+    Ok(TaskResult::success(Some(result)))
 }
 
 // Global function registry (in a real implementation, this might be injected)
@@ -182,24 +183,20 @@ impl TaskExecutor for RustFunctionExecutor {
 
         context.logger.info(&format!("Executing Rust function: {}", function_name)).await;
 
-        let registry = FUNCTION_REGISTRY.lock().unwrap();
+        // Get function without holding the lock across await
+        let func = {
+            let registry = FUNCTION_REGISTRY.lock().unwrap();
+            registry.get_function(function_name).copied()
+        };
         
-        match registry.get_function(function_name) {
+        match func {
             Some(func) => {
                 context.logger.info("Function found, executing...").await;
                 
                 // Execute the function synchronously (since most Rust functions are sync)
-                let result = tokio::task::spawn_blocking({
-                    let func = func as *const RustFunction;
-                    let parameters = parameters.clone();
-                    let context = context.clone();
-                    
-                    move || {
-                        // Safety: We know the function pointer is valid within this scope
-                        unsafe {
-                            (*func)(&parameters, &context)
-                        }
-                    }
+                let context_clone = context.clone();
+                let result = tokio::task::spawn_blocking(move || {
+                    func(&parameters, &context_clone)
                 }).await;
 
                 match result {
@@ -220,7 +217,10 @@ impl TaskExecutor for RustFunctionExecutor {
                 }
             }
             None => {
-                let available_functions = registry.list_functions();
+                let available_functions = {
+                    let registry = FUNCTION_REGISTRY.lock().unwrap();
+                    registry.list_functions()
+                };
                 let error_msg = format!(
                     "Function '{}' not found. Available functions: {}", 
                     function_name, 

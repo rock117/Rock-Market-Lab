@@ -3,6 +3,8 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 use chrono::{DateTime, Utc};
+use sea_orm::{DatabaseConnection, EntityTrait, ActiveModelTrait, Set};
+use entity::task_execution_log;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct TaskConfig {
@@ -95,26 +97,55 @@ pub struct ExecutionContext {
 #[derive(Debug, Clone)]
 pub struct ExecutionLogger {
     pub execution_id: String,
+    pub db: DatabaseConnection,
 }
 
 impl ExecutionLogger {
-    pub fn new(execution_id: String) -> Self {
-        Self { execution_id }
+    pub fn new(execution_id: String, db: DatabaseConnection) -> Self {
+        Self { execution_id, db }
     }
 
     pub async fn info(&self, message: &str) {
         tracing::info!("[{}] {}", self.execution_id, message);
-        // TODO: Store to database
+        
+        // Store to database
+        if let Err(e) = self.store_log("INFO", message).await {
+            tracing::error!("Failed to store log to database: {}", e);
+        }
     }
 
     pub async fn warn(&self, message: &str) {
         tracing::warn!("[{}] {}", self.execution_id, message);
-        // TODO: Store to database
+        
+        // Store to database
+        if let Err(e) = self.store_log("WARN", message).await {
+            tracing::error!("Failed to store log to database: {}", e);
+        }
     }
 
     pub async fn error(&self, message: &str) {
         tracing::error!("[{}] {}", self.execution_id, message);
-        // TODO: Store to database
+        
+        // Store to database
+        if let Err(e) = self.store_log("ERROR", message).await {
+            tracing::error!("Failed to store log to database: {}", e);
+        }
+    }
+
+    async fn store_log(&self, log_level: &str, message: &str) -> Result<(), sea_orm::DbErr> {
+        let log_entry = task_execution_log::ActiveModel {
+            id: sea_orm::NotSet,
+            execution_id: Set(self.execution_id.clone()),
+            log_level: Set(log_level.to_string()),
+            message: Set(message.to_string()),
+            timestamp: Set(Utc::now().into()),
+        };
+
+        task_execution_log::Entity::insert(log_entry)
+            .exec(&self.db)
+            .await?;
+
+        Ok(())
     }
 }
 
